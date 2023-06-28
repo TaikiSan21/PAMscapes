@@ -26,7 +26,7 @@
 #'
 #' @export
 #'
-readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=3600) {
+readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=0) {
     daySeq <- getDaySequence(gps$UTC)
     dayChar <- format(daySeq, format='%Y_%m_%d')
     aisFiles <- list.files(aisDir, pattern='.*AIS.*csv$', full.names=TRUE)

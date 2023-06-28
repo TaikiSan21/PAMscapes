@@ -8,6 +8,7 @@
 #' @param latRange range of desired latitudes (decimal degrees)
 #' @param lonRange range of desired longitudes (decimal degrees)
 #' @param name prefix to append to new filenames
+#' @param overwrite logical flag to overwrite existing files
 #' @param progress logical flag to show progress bar
 #'
 #' @return invisibly return new file names
@@ -20,7 +21,8 @@
 #'
 #' @export
 #'
-subsetMarCadAIS <- function(inDir, outDir, latRange=c(20, 50), lonRange=c(-140, -110), name='West_', progress=TRUE) {
+subsetMarCadAIS <- function(inDir, outDir, latRange=c(20, 50), lonRange=c(-140, -110), name='West_',
+                            overwrite=FALSE, progress=TRUE) {
     if(!dir.exists(outDir)) {
         dir.create(outDir)
     }
@@ -30,6 +32,14 @@ subsetMarCadAIS <- function(inDir, outDir, latRange=c(20, 50), lonRange=c(-140, 
     }
     outFiles <- character(length(aisFiles))
     for(i in seq_along(aisFiles)) {
+        outName <- file.path(outDir, paste0(name, basename(aisFiles[i])))
+        if(isFALSE(overwrite) &&
+           file.exists(outName)) {
+            if(progress) {
+                setTxtProgressBar(pb, value=i)
+            }
+            next
+        }
         thisAis <- fread(aisFiles[i], select=c(LAT='numeric', LON='numeric', MMSI='integer',BaseDateTime='POSIXct',
                                                Length='integer', VesselType='integer', SOG='numeric'), quote='')
 
@@ -43,7 +53,7 @@ subsetMarCadAIS <- function(inDir, outDir, latRange=c(20, 50), lonRange=c(-140, 
         # thisAis[, tDiff := c(0, diff(as.numeric(UTC))), MMSI]
         thisAis <- dropBySpeed(thisAis, knots=150)
         thisAis$knots <- NULL
-        outName <- file.path(outDir, paste0(name, basename(aisFiles[i])))
+
         fwrite(thisAis, file=outName)
         outFiles[i] <- outName
         if(progress) {

@@ -31,7 +31,7 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
     interpType <- match.arg(interpType)
     if(interpType == 'all' &&
        interpTime > 0) {
-        x <- interpLocations(x, diff=interpTime, includeEnd=TRUE)
+        x <- interpLocations(x, diff=interpTime, includeEnd=TRUE, interpCols=interpCols)
     }
     bind_rows(
         lapply(
@@ -51,7 +51,8 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
                     interpData <- interpLocations(x, from=min(oneGroup$UTC)-interpTime,
                                               to=max(oneGroup$UTC)+interpTime,
                                               diff=interpTime,
-                                              includeEnd=TRUE)
+                                              includeEnd=TRUE,
+                                              interpCols=interpCols)
                     oneAddAIS(interpData, oneGroup)
                 })
                 bind_rows(result)

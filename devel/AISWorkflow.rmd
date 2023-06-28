@@ -1,0 +1,215 @@
+---
+title: "AIS Workflow Example"
+author: "Taiki Sakai"
+output: html_document
+---
+
+## Introduction
+
+This document is a brief outline to using the new AIS download / matching functions in the
+`PAMscapes` R package. All functions use AIS data downloaded from [MarineCadastre](https://marinecadastre.gov/data/).
+Data from other sources may work with some of the functions, but formatting may need to be adjusted.
+
+Currently this package is only available on GitHub, and can be installed with:
+
+```{r, eval=FALSE}
+devtools::install_github('TaikiSan21/PAMscapes')
+```
+
+Load packages for the start of the examples:
+
+```{r}
+library(here)
+library(PAMscapes)
+library(readr)
+```
+### Download from Marine Cadastre
+
+For this example we will use drifter track data from one of the SWFSC ADRIFT buoy deployments. The first step
+is to read in the data you want to download AIS data for. The requirements are that this data have columns
+"UTC", "Longitude", and "Latitude", and that the "UTC" column is converted to `POSIXct`. Here we'll use
+`readr::read_csv` to handle the type conversion for us. This drift also has a couple wonky spots at the start,
+so we are dropping the first two rows.
+
+```{r, cache=TRUE}
+gps <- read_csv(here('devel/ADRIFT_006_GPS.csv'))
+gps <- gps[-(1:2),]
+```
+
+The function `downloadMarCadAIS` will look at your data, and start downloading the appropriate AIS
+files from Marine Cadastre (MC). The files on MC are stored as daily files covering the entire geographic
+range, so are very large and cumbersome to deal with. They download as .zip files which contain a single large
+(700mb +) CSV file. `downloadMarCadAIS` will download the appropriate files covering your dataset, and unzip them 
+to CSV if `unzip=TRUE`. An important note is that if you use the same `outDir` folder for all of your AIS storage,
+the function will check if the file exists first before trying to download a new file from MC if `overwrite=FALSE`.
+This is the default option and should almost always be used, unless something has gone wrong with a previous attempt.
+This function can take quite a while depending on the number of days you need to download, it will show a progress
+bar so that you know its working.
+
+```{r, cache=TRUE}
+marcadFiles <- downloadMarCadAIS(gps, outDir = here('AIS'), overwrite = FALSE, unzip=TRUE)
+```
+
+The full size files are not needed for any specific analysis, so it is often useful to subset these files to a
+geographic region that you work with often. The function `subsetMarCadAIS` lets you create a geographic subset
+of the AIS data that is smaller and easier to work with. I work with US West Coast data, so I'll specify a very rough
+Lat/Long boundary to create a new folder called "AIS_West". These will go through each file in `inDir` and subset it
+to those boundaries, and then create a new file in `outDir` that has the same file name but prefixed with "West_"
+(`name='West_'`). This function can also take quite a while, so it is recommended to run with `overwrite=FALSE` so
+that if a file has already been subset in the past it will not read and subset it again.
+
+```{r, cache=TRUE}
+subsetMarCadAIS(inDir=here('AIS'), outDir=here('AIS_West'), name='West_', 
+                latRange=c(20,50), lonRange=c(-140,-110),
+                overwrite=FALSE, progress=TRUE)
+```
+
+### Read AIS Data Into R
+
+Now we have a folder "AIS_West" that contains smaller (~140mb vs ~700mb) files to work with that are relevant
+to our study region. This is still too much data to really work with, and most of it is not relevant to our
+specific GPS for this example. Instead of simply reading in all of these, we can use the `readLocalAIS` function
+to read in only AIS data that come within a certain distance of our buoys. Here we set `distance=10e3` to read in
+only AIS data for ships that come within 10km of our drifter track. This function will read in only AIS data that
+fall within the time range of the "UTC" values in `gps`, if additional data before/after that are desired you 
+can specify the `timeBuff` argument (units seconds) to capture additional time before and after the time range
+of your GPS data. This can be useful to show the full picture of ship activity just before/after your data.
+
+```{r, cache=TRUE}
+ais <- readLocalAIS(gps, aisDir=here('AIS_West'), distance=10e3)
+str(ais)
+```
+
+Here's a list of the columns in `ais`:
+
+- `Latitude` - Latitude coordinate of the ship
+- `Longitude` - Longitude coordinate fo the ship
+- `MMSI` - MMSI Id of the ship
+-  `UTC` - Timestamp of coordinate update
+- `vesselLength` - Length of ship (I believe this is meters)
+- `SOG`  - Speed Over Ground of ship
+- `buoyLat` - Latitude coordinate of the input `gps` dataframe at time `UTC`
+- `buoyLong` - Longitude coordinate of the input `gps` dataframe at time `UTC`
+- `buoyDist` - Distance (meters) between the Latitude/Longitude coordinate and buoyLat/buoyLong coordinates
+- `inDist` - Logical flag whether or not `buoyDist` is less than the input `distance` (10e3 in this case)
+- `group` - Individual vessel tracks are marked as different groups when the vessel travels in/out of range.
+This is mostly used internally by some testing functions while I was developing the code.
+
+Now you have AIS data! Note that this contains a lot of AIS data that will not be particularly close
+to your input GPS data. It contains **all** AIS data from the entire time range of `gps` for any
+vessel that traveled within `distance=10e3` of our buoy for even a short amount of time. Since ships
+move fast and far, a lot of this is quite far from our buoy. The plot below shows the full extent of
+AIS data we have loaded.
+
+```{r}
+library(ggplot2)
+ggplot() +
+    geom_path(data=gps, aes(x=Longitude, y=Latitude), col='black') +
+    geom_path(data=ais, aes(x=Longitude, y=Latitude, group=factor(MMSI), col=factor(MMSI)))
+```
+
+A more relevant plot would be to truncate this to only data within the Lat/Long bounds of our GPS data.
+We can also color the tracks by whether or not they were within 10km of our buoy at that time (bottom 
+plot).
+
+```{r}
+library(patchwork)
+(ggplot() +
+    geom_path(data=gps, aes(x=Longitude, y=Latitude), col='black') +
+    geom_path(data=ais, aes(x=Longitude, y=Latitude, group=factor(MMSI), col=factor(MMSI))) +
+    xlim(min(gps$Longitude), max(gps$Longitude)) +
+    ylim(min(gps$Latitude), max(gps$Latitude))
+) /
+    (ggplot() +
+    geom_path(data=gps, aes(x=Longitude, y=Latitude), col='black') +
+    geom_path(data=ais, aes(x=Longitude, y=Latitude, group=factor(MMSI), col=inDist)) +
+    xlim(min(gps$Longitude), max(gps$Longitude)) +
+    ylim(min(gps$Latitude), max(gps$Latitude)))
+```
+
+### Match AIS to Our Data
+
+`ais` contains a lot of data we don't need, but we might be more interested in connecting this
+data specifically back to our original `gps` dataframe. The function `addAIS` will do this,
+pairing the times in `gps` with the AIS data for each vessel in `ais`. However, this gets a bit
+tricky because of the differing timescales of `gps` and `ais`. Our buoy coordinate updates are
+often quite far apart (30-60 minutes) relative to the speed of the AIS updates. In the time between
+GPS updates most vessels will travel quite far, so just connecting our GPS times to AIS data
+as-is can be a bit confusing. The solution to get around this is to use interpolation to make
+our GPS data have a similar timescale to the AIS data we are matching to. `addAIS` allows for three
+different types - "none" does no interpolation, "close" will only interpolate GPS coordinates at times
+when the vessel is marked as `inDist=TRUE` from earlier, and "all" will simply interpolate the full
+time range of our GPS data. The parameter `interpTime` controls how far apart to space the new coordinates.
+
+The main reason one might want to use `interpType='close'` instead of `interpType='all'` is that the 
+`addAIS` function multiplies the number of rows in your data by quite a bit. Each separate vessel in `ais`
+will be paired with each coordinate in `gps`, so if there are 5 unique vessels in `ais` then the result
+of `addAIS` will contain 5x as many rows as `gps`. Interpolating the coordinate points further multiplies
+the number of rows in the output, so it can get quite large. You can see below that we start with only
+222 rows of points, but `interpType='all'` and `interpTime=120` ends up with 72,838 rows. This is probably
+fine for most datasets, but may be prohibitive for larger datasets.
+
+```{r}
+gpsNone <- addAIS(gps, ais, interpType = 'none')
+gpsClose <- addAIS(gps, ais, interpType = 'close', interpTime = 120)
+gpsAll <- addAIS(gps, ais, interpType = 'all', interpTime = 120)
+cat('Original:', nrow(gps),
+    'NoInterp:', nrow(gpsNone),
+    'CloseInterp:', nrow(gpsClose),
+    'AllInterp:', nrow(gpsAll))
+```
+The plots below illustrate the difference in output - no interpolate results in quite a 
+confusing picture of ship activity due to the different timescales. "close" interpolation
+gives an accurate image of activity, but only when ships are nearby. "all" interpolation
+gives a more complete picture of ship activity as they are passing by our buoy. 
+
+```{r}
+baseGps <- ggplot(data=gps, aes(x=Longitude, y=Latitude), col='black') +
+    geom_path() +
+    xlim(min(gps$Longitude), max(gps$Longitude)) +
+    ylim(min(gps$Latitude), max(gps$Latitude))
+(baseGps +
+    geom_path(data=gpsNone, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+        geom_point(data=gpsNone, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    ggtitle('NoInterp')) /
+(baseGps +
+    geom_path(data=gpsClose, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+     geom_point(data=gpsClose, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    ggtitle('CloseInterp')) /
+(baseGps +
+    geom_path(data=gpsAll, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+     geom_point(data=gpsAll, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    ggtitle('AllInterp'))
+```
+
+There are some other important things to consider when using interpolation with `addAIS`. It
+is necessary that some columns of the input `gps` will be lost. Comparing the column names
+of the input and output:
+
+```{r}
+print(colnames(gps))
+cat('\n')
+print(colnames(gpsAll))
+```
+
+Some columns like "DriftName" and "DeploymentSite" were kept in the output, but others like "recordingEffort"
+and "knots" were not. Any columns in the input `gps` that contain only a single unique value will be kept in the 
+output, but all other columns will be dropped. This is because `addAIS` does not know how to handle other data types
+when interpolating. If there are some columns present that would be appropriate to linearly interpolate between GPS
+points, then these column names can be given to the `interpCols` parameter, and they will then be present in the output.
+As an example, we'll use `matchEnvData` from the `PAMmisc` package to download some sea-surface temperature data for
+our GPS input.
+
+```{r, cache=TRUE}
+library(PAMmisc)
+gps <- matchEnvData(gps, nc='jplMURSST41', var='analysed_sst')
+str(gps)
+```
+
+We now have a column "analysed_sst_mean" that should be appropriate to interpolate, so we can give this
+as the `interpCols` argument and it will be kept in the output:
+
+```{r}
+gpsAllSST <- addAIS(gps, ais=ais, interpType='all', interpTime=120, interpCols='analysed_sst_mean')
+str(gpsAllSST)
+```

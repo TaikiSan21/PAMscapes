@@ -10,6 +10,7 @@ subsetMarCadAIS(
   latRange = c(20, 50),
   lonRange = c(-140, -110),
   name = "West_",
+  overwrite = FALSE,
   progress = TRUE
 )
 }
@@ -23,6 +24,8 @@ subsetMarCadAIS(
 \item{lonRange}{range of desired longitudes (decimal degrees)}
 
 \item{name}{prefix to append to new filenames}
+
+\item{overwrite}{logical flag to overwrite existing files}
 
 \item{progress}{logical flag to show progress bar}
 }

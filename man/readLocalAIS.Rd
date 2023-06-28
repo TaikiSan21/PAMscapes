@@ -4,7 +4,7 @@
 \alias{readLocalAIS}
 \title{Read AIS Data Near GPS Track}
 \usage{
-readLocalAIS(gps, aisDir, distance = 10000, timeBuff = 3600)
+readLocalAIS(gps, aisDir, distance = 10000, timeBuff = 0)
 }
 \arguments{
 \item{gps}{a dataframe with columns \code{UTC}, \code{Latitude},

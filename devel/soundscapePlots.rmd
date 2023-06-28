@@ -1,0 +1,261 @@
+---
+title: 'Soundscape Plot Examples'
+output: html_document
+---
+# Soundscape Plots
+
+Load raw soundscape data
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(here)
+tolFile <- here('testData/ADRIFT_017_TOL_mean_2min.csv')
+olFile <- here('testData/ADRIFT_017_OL_mean_2min.csv')
+bbFile <- here('testData/ADRIFT_017_BB_mean_2min.csv')
+```
+Create function to read triton data and format into long-style to be useful
+
+```{r}
+library(tidyr)
+readTriton <- function(x) {
+    data <- read_csv(x, show_col_types=FALSE)
+    if(!colnames(data)[1] == "yyyy-mm-ddTHH:MM:SSZ") {
+        warning('Format does not appear to be from Triton, formatting stopped')
+        return(data)
+    }
+    colnames(data)[1] <- 'UTC'
+    data
+}
+
+tritonToLong <- function(x) {
+    type <- gsub('_[0-9-]+', '', colnames(x)[2])
+    if(type != 'BB') {
+        x <- pivot_longer(x, cols=2:ncol(x), names_to='type', values_to='value')
+        x$frequency <- as.numeric(gsub('[A-z]+_', '', x$type))
+        x$type <- gsub('_[0-9-]+', '', x$type)
+    }
+    if(type == 'BB') {
+        freqs <- as.numeric(strsplit(gsub('BB_', '', colnames(x)[2]), '-')[[1]])
+                 # as.numeric(strsplit(gsub('BB_', '', colnames(x)[2]), '-')[[1]])
+        x$type <- 'BB'
+        colnames(x)[grepl('BB_', colnames(x))] <- 'value'
+        x$freqMin <- freqs[1]
+        x$freqMax <- freqs[2]
+    }
+    x
+}
+ol <- readTriton(olFile)
+tol <- readTriton(tolFile)
+bb <- readTriton(bbFile)
+olLong <- tritonToLong(ol)
+tolLong <- tritonToLong(tol)
+bbLong <- tritonToLong(bb)
+```
+## Slide 3c
+
+Frequency (x) vs Hour of day (y) using TOL or OL as input
+Units for PSD are "dB re: 1 uPa^2/Hz"
+Units for OL, TOL, and BB are "dB re: 1uPa"
+```{r}
+library(lubridate)
+# needs UTC, frequency, value
+slide3c <- function(x, title=NULL, scale=c('log', 'linear'), freqMin=NULL, toTz='UTC',
+                    cmap=scales::viridis_pal()(25)) {
+    scale <- switch(match.arg(scale),
+                    'log' = 'log10',
+                    'identity'
+    )
+    x <- tritonToLong(x)
+    # x <- tolLong
+    x$UTC <- with_tz(x$UTC, tzone=toTz)
+    x$hour <- hour(x$UTC)
+    summByHour <- group_by(x, hour, frequency) %>% 
+        summarise(value = median(value), .groups='drop')
+    summByHour$hour_end <- summByHour$hour + 1 # hour ranges 0-23
+    freqVals <- sort(unique(summByHour$frequency))
+    freqDiffs <- diff(freqVals)
+    freqDiffs <- c(freqDiffs[1], freqDiffs)
+    names(freqDiffs) <- as.character(freqVals)
+    summByHour$freq_low <- summByHour$frequency - freqDiffs[as.character(summByHour$frequency)]
+    summByHour$freq_low <- ifelse(summByHour$freq_low < .0001, .0001, summByHour$freq_low)
+    if(is.null(title)) {
+        title <- x$type[1]
+    }
+    if(is.null(freqMin)) {
+        freqMin <- min(summByHour$freq_low)
+    }
+    if(freqMin < 1 && scale == 'log10') {
+        freqMin <- 1
+    }
+    ggplot(summByHour) +
+        geom_rect(aes(ymin=hour, 
+                      ymax=hour_end,
+                      xmin=freq_low,
+                      xmax=frequency,
+                      fill=value)) +
+        scale_x_continuous(trans=scale, expand=c(0,0), limits=c(freqMin, max(freqVals))) + 
+        scale_y_continuous(expand = c(0,0)) +
+        scale_fill_gradientn(colors=cmap) +
+        ggtitle(title) +
+        labs(x='Frequency (Hz)', 
+             y=paste0('Hour (', toTz, ')'),
+             fill = 'dB re: 1uPa') +
+        theme(legend.title = element_text(angle=90)) +
+        guides(fill=guide_colorbar(title.position='right', barheight=10, title.hjust=.5))
+}
+slide3c(tol, toTz='UTC')
+```
+
+```{r}
+library(patchwork)
+slide3c(tol, title='TOL Log scale', freqMin=10) / slide3c(tol, title='TOL Linear scale', freqMin=10, scale='linear')
+# slide3c(tol, title='TOL linear scale', scale='linear') / slide3c(ol, scale='linear')
+```
+Time series plots - we want confidence interval?? we have every 2 minutes, so guess we need
+to bin it to some bigger unit then plot time series
+```{r}
+# slim is placeholder to make minimal embelishment plot to fit into other plots
+# needs UTC, then user defined column and by
+slide6 <- function(x, bin='1hour', column, ci=0, title=NULL, by=NULL, slim=FALSE) {
+    x$timeBin <- floor_date(x$UTC, unit=bin)
+    if(length(ci) == 1) {
+        ci <- c(ci, ifelse(ci==0, 0, 1-ci))
+    }
+    ci <- sort(ci)
+    if(is.null(by)) {
+        plotData <- group_by(x, timeBin)
+    } else {
+        x[[by]] <- factor(x[[by]])
+        plotData <- group_by(x, timeBin, .data[[by]])
+    }
+    if(!all(ci == 0)) {
+        plotData <- plotData %>% 
+            summarise(med = median(.data[[column]]),
+                      qlow = quantile(.data[[column]], probs=ci[1]),
+                      qhigh = quantile(.data[[column]], probs=ci[2]),
+                      .groups='drop')
+    } else {
+        plotData <- plotData %>% 
+            summarise(med = median(.data[[column]]),
+                      .groups='drop')
+    }
+    if(is.null(by)) {
+        g <- ggplot(data=plotData, aes(x=timeBin))
+    } else {
+        g <- ggplot(data=plotData, aes(x=timeBin, col=.data[[by]], fill=.data[[by]]))
+    }
+    g <- g + geom_line(aes(y=med))
+    if(!all(ci == 0)) {
+        g <- g + 
+            geom_ribbon(aes(ymin=qlow, ymax=qhigh), alpha=.1)
+    }
+    if(is.null(title)) {
+        title <- column
+    }
+    g <- g + ggtitle(title) +
+        labs(x='Date', y='SPL (dB re: 1uPa)')
+    g
+}
+```
+
+```{r}
+gps <- read_csv(here('testData/ADRIFT_017_GPS.csv'))
+slide6(tol, bin='2hour', column='TOL_160') /
+    slide6(tol, bin='2hour', column='TOL_160', ci=.05, title='TOL160 with 95% quantiles')
+(ggplot(gps, aes(x=Longitude, y=Latitude)) +
+    geom_path()) /
+    slide6(tol, bin='2hour', column='TOL_160') +
+    plot_layout(heights=c(4,1))
+
+```
+```{r}
+# needs UTC, thne user defined column
+slide5 <- function(x, column, title=NULL, cmap=scales::viridis_pal()(25)) {
+    x$hour <- hour(x$UTC)
+    x$day <- floor_date(x$UTC, unit='1day')
+    if(is.null(title)) {
+        title <- column
+    }
+    plotData <- group_by(x, day, hour) %>% 
+        summarise(med = median(.data[[column]]), .groups='drop')
+    ggplot(plotData) +
+        geom_rect(aes(xmin=hour, xmax = hour + 1,
+                         ymin=day, ymax = day + 3600*24,
+                      fill=med)) +
+        scale_fill_gradientn(colors=cmap) +
+        scale_x_continuous(limits=c(0,24), expand=c(0,0)) +
+        labs(x='Hour', 
+             y='Date',
+             fill = 'dB re: 1uPa') +
+        theme(legend.title = element_text(angle=90)) +
+        guides(fill=guide_colorbar(title.position='right', barheight=10, title.hjust=.5)) +
+        ggtitle(title)
+}
+slide5(tol, column='TOL_160')
+```
+
+Acoustic scene boxy plot needs freq ranges
+```{r, cache=TRUE}
+freqMap <- data.frame(
+    type=paste0('Click_Detector_', 1:6),
+    freqMin= c(40, 120, 1e3, 10e3, 3e3, 10),
+    freqMax=c(200, 600, 2e3, 30e3, 6e3, 1e3),
+    color=c('red', 'blue', 'green', 'darkgreen', 'black', 'black')
+)
+data <- readRDS(here('testData/adrift17study.rds'))
+library(PAMpal)
+clicks <- getClickData(data)
+clicks$species <- clicks$detectorName
+```
+
+```{r}
+# helper to make periods out of bin units
+unitToPeriod <- function(x) {
+    x <- gsub('([0-9]*)(.*)', '\\1_\\2', x)
+    x <- strsplit(x, '_')[[1]]
+    if(x[1] == '') {
+        x[1] <- '1'
+    }
+    period(as.numeric(x[1]), units=x[2])
+}
+# needs UTC, species==type, 
+slide7 <- function(x, freqMap, title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL) {
+    x$plotStart <- floor_date(x$UTC, unit=bin)
+    thisPeriod <- unitToPeriod(bin)
+    x$plotEnd <- x$plotStart + thisPeriod
+    scale <- switch(match.arg(scale),
+                    'log' = 'log10',
+                    'identity'
+    )
+    x <- left_join(x, freqMap, by=join_by('species'=='type'))
+    x <- x[!is.na(x[['freqMin']]), ]
+    x <- distinct(x[c('plotStart', 'plotEnd', 'freqMin', 'freqMax', 'species')])
+    if(is.null(freqMin)) {
+        freqMin <- min(x[['freqMin']])
+    }
+    if(freqMin < 1 && scale == 'log10') {
+        freqMin <- 1
+    }
+    g <- ggplot(x) +
+        geom_rect(aes(xmin=plotStart,
+                      xmax=plotEnd,
+                      ymin=freqMin,
+                      ymax=freqMax,
+                      fill=species)) +
+        scale_y_continuous(trans=scale) +
+        labs(y='Frequency (Hz)',
+             x='Date',
+             fill='Sound Type')
+    if('color' %in% colnames(freqMap)) {
+        colNames <- freqMap[['color']]
+        names(colNames) <- freqMap[['type']]
+        g <- g +
+            scale_fill_manual(values=colNames)
+    }
+    g
+}
+s7 <- slide7(clicks, bin='15min', freqMap=freqMap, scale='log')
+s7
+```
