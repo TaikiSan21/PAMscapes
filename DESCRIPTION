@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: What the Package Does (One Line, Title Case)
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
@@ -22,4 +22,6 @@ Imports:
     httr,
     data.table,
     geosphere,
-    sf
+    sf,
+    hoardr,
+    PAMmisc

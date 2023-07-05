@@ -29,6 +29,10 @@
 #'
 addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, interpCols=NULL) {
     interpType <- match.arg(interpType)
+    # if(!all(c('Latitude', 'Longitude') %in% colnames(x))) {
+    #     interpType <- 'none'
+    #     interpTime <- 0
+    # }
     if(interpType == 'all' &&
        interpTime > 0) {
         x <- interpLocations(x, diff=interpTime, includeEnd=TRUE, interpCols=interpCols)
@@ -49,10 +53,10 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
                     }
                     interpTime <- 60
                     interpData <- interpLocations(x, from=min(oneGroup$UTC)-interpTime,
-                                              to=max(oneGroup$UTC)+interpTime,
-                                              diff=interpTime,
-                                              includeEnd=TRUE,
-                                              interpCols=interpCols)
+                                                  to=max(oneGroup$UTC)+interpTime,
+                                                  diff=interpTime,
+                                                  includeEnd=TRUE,
+                                                  interpCols=interpCols)
                     oneAddAIS(interpData, oneGroup)
                 })
                 bind_rows(result)
@@ -70,8 +74,12 @@ oneAddAIS <- function(gps, ais) {
     gps$SOG <- approx(x=ais$UTC, y=ais$SOG, xout=gps$UTC)$y
     gps$shipLat <- approx(x=ais$UTC, y=ais$Latitude, xout=gps$UTC)$y
     gps$shipLong <- approx(x=ais$UTC, y=ais$Longitude, xout=gps$UTC)$y
-    gps$shipDist <- distGeo(matrix(c(gps$Longitude, gps$Latitude), ncol=2),
-                            matrix(c(gps$shipLong, gps$shipLat), ncol=2))
+    if(all(c('Latitude', 'Longitude') %in% colnames(gps))) {
+        gps$shipDist <- distGeo(matrix(c(gps$Longitude, gps$Latitude), ncol=2),
+                                matrix(c(gps$shipLong, gps$shipLat), ncol=2))
+    } else {
+        gps$shipDist <- NA
+    }
     gps
 }
 # interpolate lat/longs to smaller time scale
@@ -91,16 +99,17 @@ interpLocations <- function(x, from=NULL, to=NULL, diff=300, interpCols=NULL, in
         newTimes <- c(newTimes, to)
     }
     result <- data.frame(UTC=newTimes)
-    result$Latitude <- approx(x=x$UTC, y=x$Latitude, xout=result$UTC)$y
-    result$Longitude <- approx(x=x$UTC, y=x$Longitude, xout=result$UTC)$y
-    if(!is.null(interpCols)) {
-        for(e in interpCols) {
-            if(!e %in% colnames(x)) {
-                next
-            }
-            result[[e]] <- approx(x=x$UTC, y=x[[e]], xout=result$UTC)$y
+    interpCols <- c('Latitude', 'Longitude', interpCols)
+    # result$Latitude <- approx(x=x$UTC, y=x$Latitude, xout=result$UTC)$y
+    # result$Longitude <- approx(x=x$UTC, y=x$Longitude, xout=result$UTC)$y
+    # if(!is.null(interpCols)) {
+    for(e in interpCols) {
+        if(!e %in% colnames(x)) {
+            next
         }
+        result[[e]] <- approx(x=x$UTC, y=x[[e]], xout=result$UTC)$y
     }
+    # }
     uniqueVals <- lapply(x, function(x) unique(x))
     # browser()
     nVals <- sapply(uniqueVals, length)

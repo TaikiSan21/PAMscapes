@@ -24,6 +24,53 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
     x
 }
 
+#' @importFrom hoardr hoard
+#'
+fileNameManager <- function(fileName=NULL, suffix=NULL) {
+    if(is.null(fileName)) {
+        tempDir <- hoard()$cache_path_set('PAMmisc')
+        if(!dir.exists(tempDir)) {
+            dir.create(tempDir, recursive = TRUE)
+        }
+        fileName <- paste0(tempDir, '/TEMPFILE.nc')
+    }
+    if(!is.null(suffix)) {
+        fileName <- gsub('(.*)(\\.nc$)', paste0('\\1_', suffix, '\\2'), fileName)
+    }
+    if(!dir.exists(dirname(fileName))) {
+        dir.create(dirname(fileName), recursive = TRUE)
+    }
+    fileName
+}
+
+to180 <- function(x, inverse = FALSE) {
+    if(inverse) {
+        return(to360(x, inverse = FALSE))
+    }
+    if(is.data.frame(x) ||
+       is.list(x)) {
+        tmp <- x$Longitude %% 360
+        tmp <- ifelse(tmp > 180, tmp - 360, tmp)
+        x$Longitude <- tmp
+        return(x)
+    }
+    tmp <- x %% 360
+    tmp <- ifelse(tmp > 180, tmp - 360, tmp)
+    tmp
+}
+
+to360 <- function(x, inverse = FALSE) {
+    if(inverse) {
+        return(to180(x, inverse = FALSE))
+    }
+    if(is.data.frame(x) ||
+       is.list(x)) {
+        x$Longitude <- x$Longitude %% 360
+        return(x)
+    }
+    x %% 360
+}
+
 #' @importFrom lubridate parse_date_time with_tz
 #'
 parseToUTC <- function(x,
