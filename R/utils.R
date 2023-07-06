@@ -141,3 +141,15 @@ nowUTC <- function() {
     attr(now, 'tzone') <- 'UTC'
     now
 }
+
+
+#' @importFrom lubridate period
+#'
+unitToPeriod <- function(x) {
+    x <- gsub('([0-9]*)(.*)', '\\1_\\2', x)
+    x <- strsplit(x, '_')[[1]]
+    if(x[1] == '') {
+        x[1] <- '1'
+    }
+    period(as.numeric(x[1]), units=x[2])
+}

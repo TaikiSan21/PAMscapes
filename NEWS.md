@@ -1,3 +1,8 @@
+# PAMscapes 0.2.0
+
+- Adding plotting functions
+- Adding GHActions
+
 # PAMscapes 0.1.1
 
 - Removing slide# from exports
