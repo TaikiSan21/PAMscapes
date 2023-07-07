@@ -1,3 +1,8 @@
+# PAMscapes 0.3.0
+
+- Adding `plotScaledTimeseries` function
+- Adding `addAISSumamry` function
+
 # PAMscapes 0.2.0
 
 - Adding plotting functions

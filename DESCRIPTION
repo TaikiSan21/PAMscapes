@@ -1,9 +1,14 @@
 Package: PAMscapes
-Title: What the Package Does (One Line, Title Case)
-Version: 0.2.0
+Title: Tools for Summarising and Analysing Soundscape Data
+Version: 0.3.0
 Authors@R: 
     person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Description: This package contains a variety of tools relevant to the analysis
+    of marine soundscape data. There are tools for downloading AIS data from MarineCadastre.gov,
+    connecting AIS data to a set of GPS coordinates, plotting summaries of various soundscape
+    measurements, downloading relevant environmental variables (wind, swell height), and more.
+    Most tools were developed to work well with output from Triton software, but can be adapted
+    to work with any similar measurements.
 License: GNU General Public License
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
