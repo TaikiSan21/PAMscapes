@@ -27,7 +27,8 @@
 #'
 #' @export
 #'
-plotAcousticScene <- function(x, freqMap, typeCol='species', title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL) {
+plotAcousticScene <- function(x, freqMap, typeCol='species',
+                              title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL) {
     x <- checkSoundscapeInput(x, needCols=c('UTC', typeCol))
     x$plotStart <- floor_date(x$UTC, unit=bin)
     thisPeriod <- unitToPeriod(bin)

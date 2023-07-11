@@ -22,11 +22,15 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @importFrom dplyr distinct
+#'
 #' @export
 #'
 addAISSummary <- function(x, ais, distance=10e3) {
     x <- checkSoundscapeInput(x, needCols=c('UTC', 'Latitude', 'Longitude'))
-    aisCols <- c('MMSI', 'shipDist', 'SOG')
+    aisCols <- c('MMSI', 'vesselLength', 'vesselType', 'SOG',
+                 'shipLat', 'shipLong', 'shipDist')
+    nonAisCols <- colnames(x)[!colnames(x) %in% aisCols]
     # if we do not already have AIS data in x
     if(!all(aisCols %in% colnames(x))) {
         if(is.character(ais)) {
@@ -53,6 +57,7 @@ addAISSummary <- function(x, ais, distance=10e3) {
         list(UTC=time$UTC[1], nShips=nShips, meanDist=meanDist, meanSOG=meanSOG,
              closeDist=closeDist, closeSOG=closeSOG)
     }))
+    x <- distinct(x[nonAisCols])
     x <- left_join(x, withAis, by=join_by('UTC'=='UTC'))
     x
 }

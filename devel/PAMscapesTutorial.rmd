@@ -1,0 +1,333 @@
+---
+title: "PAMscapes Tutorial"
+author: "Taiki Sakai"
+output: html_document
+date: 2023-07-10
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This document introduces the plotting and summary functions included in the early
+versions of the `PAMscapes` package (v0.3.1 as of this writing). This will not
+cover a lot of the AIS download functions in depth since they are covered in 
+a separate document `AISWorkflow.md` that should be available in the same location
+as this file.
+
+Currently this package is only available on GitHub, and can be installed with:
+
+```{r, eval=FALSE}
+devtools::install_github('TaikiSan21/PAMscapes')
+```
+
+Load packages for the start of the examples:
+
+```{r, message=FALSE}
+library(here)
+library(PAMscapes)
+library(readr)
+```
+
+### Load Data
+
+For this example we will use drifter track data from one of the SWFSC ADRIFT buoy deployments. We also
+have soundscape metrics calculated using Triton software, and we've already downloaded AIS data
+following the guide in `AISWorkflow.rmd`. We'll use `readr::read_csv` to read in the various soundscape
+and GPS data to handle type conversions for us, and use `readLocalAIS` to read in the AIS data we've
+already downloaded.
+
+```{r}
+gps <- read_csv(here('testData/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
+ol <- read_csv(here('testData/ADRIFT_017_OL_mean_2min.csv'), show_col_types = FALSE)
+bb <- read_csv(here('testData/ADRIFT_017_BB_mean_2min.csv'), show_col_types = FALSE)
+aisDir <- here('AIS_West')
+ais <- readLocalAIS(gps, aisDir, distance=10e3)
+```
+
+### Pairing Environmental and AIS Summary Data
+
+As a first step, lets use some of the `PAMscapes` functions to augment our GPS data with
+some additional information. First we'll use `matchGFS` to add wind and precipitation rate
+data to our GPS coordinates. This will download relevant data from the 
+[UCAR data server](https://rda.ucar.edu/datasets/ds084.1/) and pair it with the appropriate
+GPS coordinates.
+
+```{r, eval=FALSE}
+gps <- matchGFS(gps)
+```
+
+This function has added columns:
+
+- `windU` eastward wind velocity
+- `windV` northward wind velocity
+- `precRate` average surface precipitation rate
+- `matchLong/Lat/Time_mean` the coordinate value in the NetCDF file your data was matched to
+
+We'll also create
+a `windMag` column to get the overall wind magnitude instead of just the components.
+
+```{r}
+gps$windMag <- sqrt(gps$windU^2 + gps$windV^2)
+str(gps)
+```
+Now we'll use the `addAISSummary` function to add columns that summarise the AIS activity at each time in our GPS
+track. This function is a little different than the `addAIS` function explained in detail in the other tutorial,
+instead of adding all the raw AIS data (and creating many additional rows of data), this function just adds
+summary information relating to how many ships are nearby at each point in time, and their speed and distance
+if any are present. You can either supply AIS data that has already been read in with `readLocalAIS` to the `ais`
+argument, or you can give it the directory containing your AIS data. The distance is used to decide whether or not
+a ship is "nearby" your data for the purpose of counting nearby vessels, and should be the same as the `distance`
+argument used in `readLocalAIS`.
+
+This function adds columns:
+
+- `nShips` the number of vessels within `distance` at this time
+- `meanDist` the average distance (meters) to nearby ships (`NA` if `nShips` is 0)
+- `meanSOG` the average speed (knots) over ground of the nearby ships (`NA` if `nShips` is 0)
+- `closeDist` the distance (meters) to the closest nearby ship (`NA` if `nShips` is 0)
+- `closeSOG` the speed over ground (knots) of the closest nearby ship (`NA` if `nShips` is 0)
+
+```{r}
+gps <- addAISSummary(gps, ais=ais, distance=10e3)
+# This would give identical results
+# gps <- addAISSummary(gps, ais=aisDir, distance=10e3)
+str(gps)
+```
+
+
+
+### Plotting Functions
+
+We'll use this augmented GPS data and the soundscape metric data we loaded earlier to explore the 
+plotting functions available in `PAMscapes`.
+
+#### plotTimeseries Function - Simple Timeseries
+
+Let's start by examining some of our soundscape data. The `plotTimeseries` function 
+lets you plot a simple timeseries of data, with a few extra possibilities. The input
+is any data with a `UTC` column (it also accepts the `yyyy-mm-ddTHH:MM:SSZ` column
+name from Triton). Then you specify the column (`column`) you want to plot, and a time bin (`bin`)
+for displaying the data. Soundscape metrics are often calculated at a small timescale,
+so binning the data to a larger timescale can be more useful to examine trends. This also
+allows us to display confidence interval of measurements within that bin with the `q` 
+argument. 
+
+
+```{r}
+plotTimeseries(bb, column='BB_100-24000', bin='1hour')
+```
+
+All plotting outputs in `PAMscapes` are `ggplot` objects, so they can be
+manipulated after creation, and we can use the `patchwork` package to create 
+multipanel plots. Here's a grid showing some of the various options of the plotting function.
+
+```{r}
+library(patchwork)
+(plotTimeseries(bb, column='BB_100-24000', bin='1hour', q=.05) + 
+     plotTimeseries(bb, column='BB_100-24000', bin='2hour', q=c(.1, .99))) /
+    (plotTimeseries(bb, column='BB_100-24000', bin='1hour', units='Broadband dB Level') +
+         plotTimeseries(bb, column='BB_100-24000', bin='1hour', title='Broadband Level Plot'))
+```
+
+#### plotTimeseries Heatmaps - Display Timeseries as Grid
+
+`plotTimeseries` can also plot your timeseries data as a grid showing a heatmap of values instead
+of just a simple line with `style='heatmap'`. 
+
+```{r}
+plotTimeseries(bb, column='BB_100-24000', bin='1hour', style='heatmap')
+```
+
+#### markNA Function - Removing Unwanted Data
+
+The high values at the end of the broadband data are throwing off the color scales. There can be times
+where there are known high-noise events that we want to exclude from our analysis, so `PAMscapes` has a
+`markNA` function that lets us label certain time periods and frequency ranges as `NA` values so that
+they will not display in plots. We just need to create a dataframe that has `start` and `end` times to
+mark as `NA`.
+
+```{r}
+tail(bb, 20)
+```
+
+We can see that the spike occurs just after 12:18:00, so we'll use that for our time boundary.
+
+```{r}
+naDf <- data.frame(start=as.POSIXct('2022-04-28 12:19:00', tz='UTC'),
+                   end = as.POSIXct('2022-04-28 12:43:00', tz='UTC'))
+bb <- markNA(bb, na=naDf)
+tail(bb, 20)
+```
+
+We can also change the timezone used for plots
+using the `toTz` argument. Inputs are always expected to be UTC, but it can be useful to display
+in local time.
+
+```{r}
+plotTimeseries(bb, column='BB_100-24000', bin='1hour', style='heatmap')/
+    plotTimeseries(bb, column='BB_100-24000', bin='1hour', style='heatmap', toTz='America/Los_Angeles')
+```
+
+#### plotHourlyLevel Function - Time/Frequency Relationships
+
+Another useful summary plot for soundscape metrics explores the distribution of sound levels
+across time and frequency. `plotHourlyLevel` creates a plot with frequency on one axis, and
+hour of the day on the other. Each point is the median level across the dataset. This can be
+a great way to look for diurnal patterns in data across the range of frequencies.
+
+```{r}
+plotHourlyLevel(ol)
+```
+
+Frequency can also be displayed in linear scale by setting `scale='linear'`, and a different
+minimum frequency for the plot can be set with the `freqMin` parameter. Like `plotTimeseries`
+above there are also options for `title`, `units`, and `toTz` that can be set. Additionally
+you can change the color palette used with the `cmap` option. 
+
+```{r}
+(plotHourlyLevel(ol, scale='log', freqMin=10) + 
+     plotHourlyLevel(ol, scale='linear', cmap=scales::viridis_pal(option='B')(25))) /
+    (plotHourlyLevel(ol, toTz='America/Los_Angeles') + 
+         plotHourlyLevel(ol, title='Octave Level', units='Octave Level dB'))
+```
+
+#### plotScaledTimeseries & PAMpal::timeJoin - Data With Different Ranges
+
+Before using `plotScaledTimeseries`, we'll connect some of our soundscape metrics directly
+to the GPS data we were working with earlier. This is easily done with the `timeJoin` function 
+from the `PAMpal` package (v0.20.1 or later). The
+Triton outputs we loaded earlier just need to have their time column changed to `UTC` so that we 
+can use `PAMpal::timeJoin` to connect them. We'll only connect metrics that are within 1 hour of our
+GPS points (`thresh=3600`). We'll also mark the same time range as `NA` in our octave level data
+as we did to our broadband data earlier for consistency.
+
+```{r, message=FALSE}
+# requires v 0.20.1 or later
+library(PAMpal)
+colnames(bb)[1] <- 'UTC'
+colnames(ol)[1] <- 'UTC'
+ol <- markNA(ol, na=naDf)
+gps <- timeJoin(gps, bb, thresh=3600)
+gps <- timeJoin(gps, ol, thresh=3600)
+str(gps)
+```
+
+Now we have soundscape metrics, AIS summaries, and environmental data all in the same dataframe.
+It would be nice to plot these all together, but they have vastly different ranges of values. 
+`plotScaledTimeseries` lets us plot different types of data on the same line plot, and will
+rescale the data so that they are all visible on the same scale. We just tell it which
+columns we want to look at (`columns`). This values of columns `BB_100-24000`, `nShips`, and
+`windMag` are rescaled so that their minimum and maximum values match the min and max of the
+first column, `OL_250`. This function is useful to see if there is a correlation between
+the various types of data - e.g. does the noise level tend to increase when there are more
+ships nearby.
+
+```{r}
+plotScaledTimeseries(gps, columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'))
+```
+
+The plot above can be a bit cluttered and hard to read, so there are some options to help.
+First, you can use the `lwd` parameter to set different linewidths for the different
+columns. This can help to highlight the most important variable we want to compare things to.
+This is a vector of length equal to the number of columns, specifying their widths in order
+(note that the default `ggplot` linewidth is 0.5). Another option to reduce visual clutter
+is to use the `relMax` option to make the rescaled columns only use a certain percentage 
+of the available plot range. In the plot below `relMax=0.7` means that the 3 rescaled columns
+only have maximum values that reach 70% of the available plot maximum.
+
+```{r}
+plotScaledTimeseries(gps, title='Linewidth', columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
+                     lwd=c(1, .5, .5, .5)) /
+    plotScaledTimeseries(gps, title='RelMax', columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
+                     relMax=0.7)
+```
+
+Another potential downside to the rescaling is that the minimum value present in your data
+may not be the most sensible lower range to show. In our plot above, it appears that `windMag`
+starts at 0, then goes up, but really it just starts at whatever its minimum value is. The
+`minVals` argument lets you specify a minimum value to use for plot scaling instead of
+the minimum value present in your data. To increase visibility, we'll only plot two columns
+here to showcase the difference. `minVals` is a vector of length equal to `columns`, and
+a value of `NA` will use the minimum value present for that variable (this is the default
+behavior). Here we plot one default (top), and one where we set the `windMag` lower bound
+to 0. 
+
+```{r}
+plotScaledTimeseries(gps, columns=c('OL_250', 'windMag'), title='Bottom is Minimum') /
+    plotScaledTimeseries(gps, columns=c('OL_250', 'windMag'), title='Bottom is Zero',
+                         minVals=c(NA, 0))
+```
+
+The default colors for the different columns uses `scales::hue_pal` (which is the same
+default color palette as `ggplot`, but this can be changed with the `cpal` argument.
+You can either provide a different color palette generating function, or a vector
+of color names equal to the number of `columns`.
+
+```{r}
+plotScaledTimeseries(gps, columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
+                     cpal=scales::viridis_pal()) /
+    plotScaledTimeseries(gps, columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
+                     cpal=c('red', 'green', 'darkgreen', 'blue'))
+```
+
+#### plotAcousticScene - Frequency Contributions from Different Detections
+
+The final type of plot displays the contributions of different detections in a
+dataset to the total acoustic scene. It needs a dataframe that has some kind
+of timestamped detections that are labeled as different types, and then
+another dataframe specifying the frequency ranges that those detection
+types correspond to. For this example we'll read in some `PAMpal` data to
+fake an example plot. These echolocation click detections are classified to
+a different click detector type with the `detectorName` column, so we'll use
+that to show how the plotting function works.
+
+```{r}
+library(PAMpal)
+data <- readRDS(here('testData/adrift17study.rds'))
+clicks <- getClickData(data)
+table(clicks$detectorName)
+```
+
+First we'll need to create a dataframe that tells the function what frequency ranges to
+associate with each value of `detectorName`. This needs to have column `type` that matches
+the names of the types in the data we will plot, then `freqMin` and `freqMax` are the
+frequency ranges for that type. We use this dataframe as the `freqMap` input for the
+`plotAcousticScene` function. We also need to specify that the column within our data
+that contains the different detection types we are interested in (`typeCol='detectorName'`).
+The `bin` argument is the unit of time to use for each detection in the time axis. Detections
+are plotted as "presence within some time bin" rather than attempting to plot the actual 
+duration of a detected signal. 
+
+```{r}
+freqMap <- data.frame(
+    type=paste0('Click_Detector_', 1:6),
+    freqMin= c(40, 120, 1e3, 10e3, 3e3, 10),
+    freqMax=c(200, 600, 2e3, 30e3, 6e3, 1e3)
+)
+plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='30min')
+```
+
+Adjusting the timescale of the `bin` value can have a large affect on the appearance
+of the plot. 
+
+```{r}
+
+plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='1hour') /
+        plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min')
+    
+```
+
+Similar to other frequency plots, `plotAcousticScene` also has a `scale` 
+parameter to change whether frequency is shown in log or linear scale. Additionally,
+the colors used can be manually specified by adding a `color` column to the `freqMap` input.
+
+```{r}
+freqMapManualColor <- freqMap
+freqMapManualColor$color <- scales::viridis_pal()(nrow(freqMap))
+plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMapManualColor, bin='15min', title='Log Scale') /
+         plotAcousticScene(clicks, typeCol='detectorName', scale='linear', 
+                           freqMap=freqMapManualColor, bin='15min', title='Linear Scale')
+```

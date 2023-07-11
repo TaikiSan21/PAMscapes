@@ -36,11 +36,8 @@
 #'
 plotHourlyLevel <- function(x, title=NULL, units='dB re: 1uPa',
                             scale=c('log', 'linear'), freqMin=NULL, toTz='UTC',
-                    cmap=viridis_pal()(25)) {
-    scale <- switch(match.arg(scale),
-                    'log' = 'log10',
-                    'identity'
-    )
+                            cmap=viridis_pal()(25)) {
+    scale <- match.arg(scale)
     x <- checkSoundscapeInput(x, needCols='UTC')
     x <- toLong(x)
     if('type' %in% colnames(x) &&
@@ -54,19 +51,30 @@ plotHourlyLevel <- function(x, title=NULL, units='dB re: 1uPa',
     summByHour$hour_end <- summByHour$hour + 1 # hour ranges 0-23
     freqVals <- sort(unique(summByHour$frequency))
     freqDiffs <- diff(freqVals)
-    freqDiffs <- c(freqDiffs[1], freqDiffs)
+    lowFreq <- switch(scale,
+                      'log' = {
+                          freqDiffs[1] / (freqDiffs[2]/freqDiffs[1])
+                      },
+                      'linear' = freqDiffs[1]
+    )
+    freqDiffs <- c(lowFreq, freqDiffs)
     names(freqDiffs) <- as.character(freqVals)
     summByHour$freq_low <- summByHour$frequency - freqDiffs[as.character(summByHour$frequency)]
-    summByHour$freq_low <- ifelse(summByHour$freq_low < .0001, .0001, summByHour$freq_low)
+    minAllowed <- ifelse(scale=='log', 1.0001, .0001)
+    summByHour$freq_low <- ifelse(summByHour$freq_low < minAllowed, minAllowed, summByHour$freq_low)
     if(is.null(title)) {
         title <- x$type[1]
     }
     if(is.null(freqMin)) {
         freqMin <- min(summByHour$freq_low)
     }
-    if(freqMin < 1 && scale == 'log10') {
+    if(freqMin < 1 && scale == 'log') {
         freqMin <- 1
     }
+    scale <- switch(match.arg(scale),
+                    'log' = 'log10',
+                    'identity'
+    )
     g <- ggplot(summByHour) +
         geom_rect(aes(ymin=.data$hour,
                       ymax=.data$hour_end,

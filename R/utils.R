@@ -116,11 +116,13 @@ toLong <- function(x) {
         x$type <- gsub('_[0-9-]+', '', x$type)
     }
     if(type == 'BB') {
-        freqs <- as.numeric(strsplit(gsub('BB_', '', colnames(x)[2]), '-')[[1]])
+        freqRange <- gsub('BB_', '', colnames(x)[2])
+        # freqs <- as.numeric(strsplit(freqRange, '-')[[1]])
         x$type <- 'BB'
         colnames(x)[grepl('BB_', colnames(x))] <- 'value'
-        x$freqMin <- freqs[1]
-        x$freqMax <- freqs[2]
+        # x$freqMin <- freqs[1]
+        # x$freqMax <- freqs[2]
+        x$frequency <- freqRange
     }
     x
 }

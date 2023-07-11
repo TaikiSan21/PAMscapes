@@ -17,6 +17,10 @@
 #' @export
 #'
 matchGFS <- function(x) {
+    needCols <- c('UTC', 'Latitude', 'Longitude')
+    if(!all(needCols %in% colnames(x))) {
+        stop('"x" must have columns "UTC", "Longitude", and "Latitude"')
+    }
     # ranges of GFS data from UCAR
     minTime <- as.POSIXct('2015-01-15 00:00:00', tz='UTC')
     maxTime <- nowUTC() - 36*3600

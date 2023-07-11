@@ -76,7 +76,7 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uP
                        geom_ribbon(aes(ymin=.data$qlow, ymax=.data$qhigh), alpha=.1)
                }
 
-               g <- g + labs(x='Date', y=units)
+               g <- g + labs(x=paste0('Date (', toTz, ')'), y=units)
            },
            'heatmap' = {
                x$day <- floor_date(x$UTC, unit='1day')
@@ -93,7 +93,7 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uP
                    scale_fill_gradientn(colors=cmap) +
                    scale_x_continuous(limits=c(0,24), expand=c(0,0))
                g <- g +
-                   labs(x='Hour',
+                   labs(x=paste0('Hour (', toTz, ')'),
                         y='Date',
                         fill = units) +
                    theme(legend.title = element_text(angle=90)) +

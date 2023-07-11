@@ -1,3 +1,8 @@
+# PAMscapes 0.3.1
+
+- Some bugfixes from creating tutorial
+- Uploading `PAMscapesTutorial` RMarkdown doc
+
 # PAMscapes 0.3.0
 
 - Adding `plotScaledTimeseries` function
