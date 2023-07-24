@@ -42,9 +42,9 @@ already downloaded. Note that the soundscape metrics provided here (`ADRIFT_017_
 in appearance to the real soundscape metrics for demonstration purposes only.
 
 ```{r}
-gps <- read_csv(here('data/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
-ol <- read_csv(here('data/ADRIFT_017_OL_sim.csv'), show_col_types = FALSE)
-bb <- read_csv(here('data/ADRIFT_017_BB_sim.csv'), show_col_types = FALSE)
+gps <- read_csv(here('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
+ol <- read_csv(here('tutorial/ADRIFT_017_OL_sim.csv'), show_col_types = FALSE)
+bb <- read_csv(here('tutorial/ADRIFT_017_BB_sim.csv'), show_col_types = FALSE)
 aisDir <- here('AIS_West')
 ais <- readLocalAIS(gps, aisDir, distance=10e3)
 ```
@@ -291,7 +291,7 @@ data, only the `UTC` and `detectorName` columns are included from a dataframe
 that was created using the function `PAMpal::getClickData`. 
 
 ```{r}
-clicks <- readRDS(here('data/ADRIFT017_clicks.rds'))
+clicks <- readRDS(here('tutorial/ADRIFT017_clicks.rds'))
 table(clicks$detectorName)
 ```
 
