@@ -37,12 +37,14 @@ For this example we will use drifter track data from one of the SWFSC ADRIFT buo
 have soundscape metrics calculated using Triton software, and we've already downloaded AIS data
 following the guide in `AISWorkflow.rmd`. We'll use `readr::read_csv` to read in the various soundscape
 and GPS data to handle type conversions for us, and use `readLocalAIS` to read in the AIS data we've
-already downloaded.
+already downloaded. Note that the soundscape metrics provided here (`ADRIFT_017_OL_sim.csv` and 
+`ADRIFT_017_BB_sim.csv`) are not the actual soundscape metrics, but synthetic data created to be similar
+in appearance to the real soundscape metrics for demonstration purposes only.
 
 ```{r}
-gps <- read_csv(here('testData/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
-ol <- read_csv(here('testData/ADRIFT_017_OL_mean_2min.csv'), show_col_types = FALSE)
-bb <- read_csv(here('testData/ADRIFT_017_BB_mean_2min.csv'), show_col_types = FALSE)
+gps <- read_csv(here('data/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
+ol <- read_csv(here('data/ADRIFT_017_OL_sim.csv'), show_col_types = FALSE)
+bb <- read_csv(here('data/ADRIFT_017_BB_sim.csv'), show_col_types = FALSE)
 aisDir <- here('AIS_West')
 ais <- readLocalAIS(gps, aisDir, distance=10e3)
 ```
@@ -53,7 +55,9 @@ As a first step, lets use some of the `PAMscapes` functions to augment our GPS d
 some additional information. First we'll use `matchGFS` to add wind and precipitation rate
 data to our GPS coordinates. This will download relevant data from the 
 [UCAR data server](https://rda.ucar.edu/datasets/ds084.1/) and pair it with the appropriate
-GPS coordinates.
+GPS coordinates. Other environmental data products from either ERDDAP or HYCOM data servers
+can be added using the `matchEnvData` function from the `PAMmisc` package, more information
+is available on the [PAMpal tutorial website](https://taikisan21.github.io/PAMpal/NextStepsProcessing.html#adding-environmental-data).
 
 ```{r, eval=FALSE}
 gps <- matchGFS(gps)
@@ -282,12 +286,12 @@ another dataframe specifying the frequency ranges that those detection
 types correspond to. For this example we'll read in some `PAMpal` data to
 fake an example plot. These echolocation click detections are classified to
 a different click detector type with the `detectorName` column, so we'll use
-that to show how the plotting function works.
+that to show how the plotting function works. To reduce the size of the example
+data, only the `UTC` and `detectorName` columns are included from a dataframe
+that was created using the function `PAMpal::getClickData`. 
 
 ```{r}
-library(PAMpal)
-data <- readRDS(here('testData/adrift17study.rds'))
-clicks <- getClickData(data)
+clicks <- readRDS(here('data/ADRIFT017_clicks.rds'))
 table(clicks$detectorName)
 ```
 
