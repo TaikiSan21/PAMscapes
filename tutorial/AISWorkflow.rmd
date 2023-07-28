@@ -200,23 +200,29 @@ different timescales. "close" interpolation gives an accurate image of
 activity, but only when ships are nearby. "all" interpolation gives a
 more complete picture of ship activity as they are passing by our buoy.
 
-```{r}
-baseGps <- ggplot(data=gps, aes(x=Longitude, y=Latitude), col='black') +
-    geom_path() +
+```{r fig.height=12, fig.width=6, warning=FALSE}
+noInterp <- ggplot(data=gpsNone) +
+    geom_path(aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+    geom_point(aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    geom_point(aes(x=Longitude, y=Latitude), col='black') +
     xlim(min(gps$Longitude), max(gps$Longitude)) +
-    ylim(min(gps$Latitude), max(gps$Latitude))
-(baseGps +
-    geom_path(data=gpsNone, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
-        geom_point(data=gpsNone, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
-    ggtitle('NoInterp')) /
-(baseGps +
-    geom_path(data=gpsClose, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
-     geom_point(data=gpsClose, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
-    ggtitle('CloseInterp')) /
-(baseGps +
-    geom_path(data=gpsAll, aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
-     geom_point(data=gpsAll, aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
-    ggtitle('AllInterp'))
+    ylim(min(gps$Latitude), max(gps$Latitude)) +
+    ggtitle('NoInterp')
+closeInterp <- ggplot(data=gpsClose) +
+    geom_path(aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+    geom_point(aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    geom_point(aes(x=Longitude, y=Latitude), col='black') +
+    xlim(min(gps$Longitude), max(gps$Longitude)) +
+    ylim(min(gps$Latitude), max(gps$Latitude)) +
+    ggtitle('CloseInterp')
+allInterp <- ggplot(data=gpsAll) +
+    geom_path(aes(x=shipLong, y=shipLat, group=factor(MMSI), color=shipDist < 10e3)) +
+    geom_point(aes(x=shipLong, y=shipLat, color=shipDist < 10e3)) +
+    geom_point(aes(x=Longitude, y=Latitude), col='black') +
+    xlim(min(gps$Longitude), max(gps$Longitude)) +
+    ylim(min(gps$Latitude), max(gps$Latitude)) +
+    ggtitle('AllInterp')
+noInterp / closeInterp / allInterp
 ```
 
 <!--# A few points to clarify: 1. Why does the 'Close' plot show times when shipDist<10000 is FALSE? 2. The plots show added points on the AIS tracks, but aren't we interpolating along the drifter track (black line)? I'm a little confused as to how the plots help illustrate the different interpolation methods -->
