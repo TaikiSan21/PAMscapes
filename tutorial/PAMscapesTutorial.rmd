@@ -50,7 +50,15 @@ following the guide in `AISWorkflow.rmd`. We'll use `readr::read_csv` to read in
 and GPS data to handle type conversions for us, and use `readLocalAIS` to read in the AIS data we've
 already downloaded. Note that the soundscape metrics provided here (`ADRIFT_017_OL_sim.csv` and 
 `ADRIFT_017_BB_sim.csv`) are not the actual soundscape metrics, but synthetic data created to be similar
-in appearance to the real soundscape metrics for demonstration purposes only.
+in appearance to the real soundscape metrics for demonstration purposes only. 
+
+Note that while this example
+is using soundscape metrics in the format created by Triton, the functions shown here are general enough
+to be used for metrics calculated using other methods. The formatting requirements for input data are
+that the first column of the dataframe is `UTC`, formatted as `POSIXct` class with timezone `UTC`, and the
+remainder of the columns storing the metrics are named using the convention `NAME_FREQUENCY`, where the
+`NAME` is the same across all columns and the `FREQUENCY` is in Hertz (Hz). For example, data with columns
+`UTC`, `OctLev_150`, `OctLev_200`, `OctLev_300` would be accepted.
 
 ```{r}
 gps <- read_csv(here('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)

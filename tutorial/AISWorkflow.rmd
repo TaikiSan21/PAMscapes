@@ -21,7 +21,7 @@ devtools::install_github('TaikiSan21/PAMscapes')
 
 Load packages for the start of the examples:
 
-```{r}
+```{r, message=FALSE}
 library(here)
 library(PAMscapes)
 library(readr)
@@ -34,12 +34,10 @@ ADRIFT buoy deployments. The first step is to read in the data you want
 to download AIS data for. The requirements are that this data have
 columns "UTC", "Longitude", and "Latitude", and that the "UTC" column is
 converted to `POSIXct`. Here we'll use `readr::read_csv` to handle the
-type conversion for us. This drift also has a couple wonky spots at the
-start, so we are dropping the first two rows.
+type conversion for us.
 
 ```{r, cache=TRUE}
 gps <- read_csv(here('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
-gps <- gps[-(1:2),]
 ```
 
 The function `downloadMarCadAIS` will look at your data, and start
@@ -57,7 +55,7 @@ with a previous attempt. This function can take quite a while depending
 on the number of days you need to download, it will show a progress bar
 so that you know its working.
 
-```{r, cache=TRUE}
+```{r cache=TRUE, results=FALSE}
 marcadFiles <- downloadMarCadAIS(gps, outDir = here('AIS'), overwrite = FALSE, unzip=TRUE)
 ```
 
@@ -73,7 +71,7 @@ file in `outDir` that has the same file name but prefixed with "West\_"
 recommended to run with `overwrite=FALSE` so that if a file has already
 been subset in the past it will not read and subset it again.
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, results=FALSE}
 subsetMarCadAIS(inDir=here('AIS'), outDir=here('AIS_West'), name='West_', 
                 latRange=c(20,50), lonRange=c(-140,-110),
                 overwrite=FALSE, progress=TRUE)
