@@ -1,3 +1,7 @@
+# PAMscapes 0.3.2
+
+- Added `alpha` param to `plotAcousticScene`
+
 # PAMscapes 0.3.1
 
 - Some bugfixes from creating tutorial

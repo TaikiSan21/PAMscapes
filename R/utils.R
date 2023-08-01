@@ -105,7 +105,7 @@ toLong <- function(x) {
     if(all(longCols %in% colnames(x))) {
         return(x)
     }
-    type <- unique(gsub('_[0-9-]+', '', colnames(x)[2:ncol(x)]))
+    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[2:ncol(x)]))
     if(length(type) != 1) {
         stop('"x" must be in long format with columns "UTC", "frequency", and "value" OR',
              ' columns 2:n must named in format TYPE_FREQUENCY.')

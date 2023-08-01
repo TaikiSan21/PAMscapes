@@ -72,7 +72,8 @@ ais <- readLocalAIS(gps, aisDir, distance=10e3)
 
 As a first step, lets use some of the `PAMscapes` functions to augment our GPS data with
 some additional information. First we'll use `matchGFS` to add wind and precipitation rate
-data to our GPS coordinates. This will download relevant data from the 
+data to our GPS coordinates from the Global Forecast System (GFS) weather model. 
+This will download relevant data from the 
 [UCAR data server](https://rda.ucar.edu/datasets/ds084.1/) and pair it with the appropriate
 GPS coordinates. Other environmental data products from either ERDDAP or HYCOM data servers
 can be added using the `matchEnvData` function from the `PAMmisc` package, more information
@@ -353,4 +354,12 @@ freqMapManualColor$color <- scales::viridis_pal()(nrow(freqMap))
 plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMapManualColor, bin='15min', title='Log Scale') /
          plotAcousticScene(clicks, typeCol='detectorName', scale='linear', 
                            freqMap=freqMapManualColor, bin='15min', title='Linear Scale')
+```
+
+There is also an `alpha` parameter that allows users to set a transparency level for the plotted
+regions, which can be useful for situations with many overlapping frequency and time ranges.
+
+```{r}
+plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.8) /
+    plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.5)
 ```

@@ -18,6 +18,8 @@
 #' @param scale one of \code{log} or \code{linear}, the frequency scale for
 #'   the plot
 #' @param freqMin optional minimum frequency for plot, useful for log scale
+#' @param alpha transparency percentage for plotting, values less than 1
+#'   will allow multiple overlapping colors to be seen
 #'
 #' @return a ggplot object
 #'
@@ -28,7 +30,8 @@
 #' @export
 #'
 plotAcousticScene <- function(x, freqMap, typeCol='species',
-                              title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL) {
+                              title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL,
+                              alpha=1) {
     x <- checkSoundscapeInput(x, needCols=c('UTC', typeCol))
     x$plotStart <- floor_date(x$UTC, unit=bin)
     thisPeriod <- unitToPeriod(bin)
@@ -62,7 +65,8 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
                       xmax=.data$plotEnd,
                       ymin=.data$freqMin,
                       ymax=.data$freqMax,
-                      fill=.data[[typeCol]])) +
+                      fill=.data[[typeCol]]),
+                  alpha=alpha) +
         scale_y_continuous(trans=scale)
     g <- g +
         ggtitle(title) +

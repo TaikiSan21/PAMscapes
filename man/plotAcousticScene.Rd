@@ -11,7 +11,8 @@ plotAcousticScene(
   title = NULL,
   bin = "1day",
   scale = c("log", "linear"),
-  freqMin = NULL
+  freqMin = NULL,
+  alpha = 1
 )
 }
 \arguments{
@@ -35,6 +36,9 @@ be displayed as covering this amount of time}
 the plot}
 
 \item{freqMin}{optional minimum frequency for plot, useful for log scale}
+
+\item{alpha}{transparency percentage for plotting, values less than 1
+will allow multiple overlapping colors to be seen}
 }
 \value{
 a ggplot object
