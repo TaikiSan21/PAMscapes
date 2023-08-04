@@ -9,10 +9,8 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
         }
         x <- read_csv(x, show_col_types=FALSE)
     }
-    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
-    if(tritonTime %in% colnames(x)) {
-        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
-    }
+    x <- checkTriton(x)
+    x <- checkManta(x)
     missingCols <- needCols[!needCols %in% colnames(x)]
     if(length(missingCols) > 0) {
         stop('Required columns ', paste0(missingCols, collapse=', '),
@@ -21,6 +19,53 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
     if(is.character(x$UTC)) {
         x$UTC <- parseToUTC(x$UTC)
     }
+    x
+}
+
+checkTriton <- function(x) {
+    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
+    if(tritonTime %in% colnames(x)) {
+        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
+    }
+    x
+}
+
+# colnames are d-m-y h:m:s, 0, 0-freq end
+checkManta <- function(x) {
+    if(all(grepl('^X', colnames(x)))) {
+        colnames(x) <- gsub('^X', '', colnames(x))
+    }
+    dateCol <- colnames(x)[1]
+    mantaFormat <- c('%d-%b-%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S',
+                     '%d.%b.%Y.%H.%M.%S', '%m.%d.%Y.%H.%M.%S')
+    tryConvert <- suppressWarnings(parse_date_time(dateCol, orders=mantaFormat, tz='UTC', truncated=2))
+    # manta has the date as first column name, if we couldnt convert
+    # then this isnt manta
+    if(is.na(tryConvert)) {
+        return(x)
+    }
+    # manta second col is seconds? only sometimes
+    checkSeconds <- all(x[[2]] <= 60)
+    secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
+        (colnames(x)[2] == '0' & colnames(x)[3] == '0.1')
+    checkSeconds <- checkSeconds & secondCol
+    if(isTRUE(checkSeconds )) {
+        x[[2]] <- NULL
+        colnames(x)[2] <- '0'
+    }
+
+    # manta should have columns named just frequency for 2:ncol
+    # if we cant convert w/o NA, then its not manta
+    freqCols <- colnames(x)[2:ncol(x)]
+    tryFreq <- suppressWarnings(as.numeric(freqCols))
+    if(anyNA(tryFreq)) {
+        return(x)
+    }
+    colnames(x)[1] <- 'UTC'
+    if(is.character(x$UTC)) {
+        x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
+    }
+    colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
     x
 }
 
@@ -111,9 +156,11 @@ toLong <- function(x) {
              ' columns 2:n must named in format TYPE_FREQUENCY.')
     }
     if(type != 'BB') {
-        x <- pivot_longer(x, cols=2:ncol(x), names_to='type', values_to='value')
-        x$frequency <- as.numeric(gsub('[A-z]+_', '', x$type))
-        x$type <- gsub('_[0-9-]+', '', x$type)
+        colnames(x)[2:ncol(x)] <- gsub('[A-z]+_', '', colnames(x)[2:ncol(x)])
+        x <- pivot_longer(x, cols=2:ncol(x), names_to='frequency', values_to='value')
+        x$frequency <- as.numeric(x$frequency)
+        # x$type <- gsub('_[0-9-]+', '', x$type)
+        x$type <- type
     }
     if(type == 'BB') {
         freqRange <- gsub('BB_', '', colnames(x)[2])
@@ -154,4 +201,8 @@ unitToPeriod <- function(x) {
         x[1] <- '1'
     }
     period(as.numeric(x[1]), units=x[2])
+}
+
+isLong <- function(x) {
+    all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
 }

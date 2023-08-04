@@ -42,7 +42,7 @@ library(PAMscapes)
 library(readr)
 ```
 
-### Load Data
+### Load and Format Data
 
 For this example we will use drifter track data from one of the SWFSC ADRIFT buoy deployments. We also
 have soundscape metrics calculated using Triton software, and we've already downloaded AIS data
@@ -52,13 +52,8 @@ already downloaded. Note that the soundscape metrics provided here (`ADRIFT_017_
 `ADRIFT_017_BB_sim.csv`) are not the actual soundscape metrics, but synthetic data created to be similar
 in appearance to the real soundscape metrics for demonstration purposes only. 
 
-Note that while this example
-is using soundscape metrics in the format created by Triton, the functions shown here are general enough
-to be used for metrics calculated using other methods. The formatting requirements for input data are
-that the first column of the dataframe is `UTC`, formatted as `POSIXct` class with timezone `UTC`, and the
-remainder of the columns storing the metrics are named using the convention `NAME_FREQUENCY`, where the
-`NAME` is the same across all columns and the `FREQUENCY` is in Hertz (Hz). For example, data with columns
-`UTC`, `OctLev_150`, `OctLev_200`, `OctLev_300` would be accepted.
+<!-- Change this to reference manta input and link to HMD https://doi.org/10.1121/10.0003324 -->
+
 
 ```{r}
 gps <- read_csv(here('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
@@ -68,9 +63,81 @@ aisDir <- here('AIS_West')
 ais <- readLocalAIS(gps, aisDir, distance=10e3)
 ```
 
+Note that while this example
+is using soundscape metrics in the format created by Triton, the functions shown here are general enough
+to be used for metrics calculated using other methods. The formatting requirements for input data are
+that the first column of the dataframe is `UTC`, formatted as `POSIXct` class with timezone `UTC`, and the
+remainder of the columns storing the metrics are named using the convention `NAME_FREQUENCY`, where the
+`NAME` is the same across all columns and the `FREQUENCY` is in Hertz (Hz). For example, data with columns
+`UTC`, `OctLev_150`, `OctLev_200`, `OctLev_300` would be accepted.
+
+Data created with [MANTA](https://doi.org/10.3389/fmars.2021.703650) are also accepted even though 
+they do not follow this convention. Typical MANTA output has the first column as the date, then the
+remaining columns named by just frequency, with no `NAME_` prefix. MANTA data processed with `PAMscapes`
+may have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
+appended to the frequency column names.
+
+#### Creating Third Octave Level & Octave Level Measurements
+
+The soundscape metrics you have may be at a finer frequency resolution than is necessary for 
+the analysis task at hand. Power Spectral Density (PSD) at a resolution of 1Hz or 
+Hybrid Millidecade (HMD) outputs are common formats, but have much more frequency resolution
+than most users needed. This means larger files, which can make working with them slower. 
+Often it is enough to use the Third Octave Level (TOL) or Octave Level (OL) measurements to
+observe patterns in the soundscape. `PAMscapes` includes a function `createOctaveLevel` that
+allows users to to generate these octave level measurements from their finer scale inputs.
+
+Here we'll show how this works for a very small subset of MANTA data, which outputs in HMD
+resolution. The original MANTA data has 2180 columns.
+
+```{r}
+manta <- read_csv(here('tutorial/MANTAExampleSmall1.csv'), show_col_types = FALSE)
+ncol(manta)
+```
+The `createOctaveLevel` function takes this larger file as input, then we use the `type`
+argument to specify OL (`type='ol'`) or TOL (`type='tol'`) bands.
+
+```{r}
+mantaOl <- createOctaveLevel(manta, type='ol')
+colnames(mantaOl)
+```
+This function will use the standard center frequencies for the OL/TOL bands, and by default
+it will use all frequencies available in the input data. Octave bands are created by summing
+(in linear space) the values of the input data that are within each octave band. This can
+be changed to average the values in each band by setting `method='mean'`, but this is not
+recommended.
+
+In this data our frequencies start
+at 1Hz, but we may not be interested in the full range of available frequencies. We can use
+the `freqRange` argument to specify the upper and lower frequencies we want. Here we can
+restrict our data to bands from 250Hz to 8000Hz.
+
+```{r}
+mantaOl <- createOctaveLevel(manta, type='ol', freqRange=c(250, 8000))
+str(mantaOl)
+```
+
+Note that the `freqRange` parameter only checks against the *center* frequency of the
+band, so users do not need to worry about making sure their specifications account for
+all frequencies within the band, only that the desired center frequency is included.
+Practically this means that `freqRange=c(200, 8000)` and `freqRange=c(250, 8000)`
+are identical when calculating full octave bands since the lowest center frequency
+in both is 250Hz.
+
+This function can be used to generate octave level measures from any finer
+resolution input - this means that we can even use TOL measures to calculate
+OL measures, and expect nearly identical results (there may occasional be
+band-edge differences but they should be minor).
+
+```{r}
+mantaTol <- createOctaveLevel(manta, type='tol')
+olFromTol <- createOctaveLevel(mantaTol, type='ol')
+sum(abs(mantaOl[['OL_250']] - olFromTol[['OL_250']]))
+```
+
 ### Pairing Environmental and AIS Summary Data
 
-As a first step, lets use some of the `PAMscapes` functions to augment our GPS data with
+With data in hand, lets use some of the `PAMscapes` functions to augment our GPS data with
 some additional information. First we'll use `matchGFS` to add wind and precipitation rate
 data to our GPS coordinates from the Global Forecast System (GFS) weather model. 
 This will download relevant data from the 
@@ -363,3 +430,6 @@ regions, which can be useful for situations with many overlapping frequency and 
 plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.8) /
     plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.5)
 ```
+
+### MANTA Examples
+

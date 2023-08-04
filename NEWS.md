@@ -1,3 +1,8 @@
+# PAMscapes 0.4.0
+
+- Added `createOctaveLevel` function and updated tutorial doc to include it
+- Added tests
+
 # PAMscapes 0.3.2
 
 - Added `alpha` param to `plotAcousticScene`

@@ -18,7 +18,7 @@
 markNA <- function(x, na) {
     na <- checkNaDf(na)
     x <- checkSoundscapeInput(x, 'UTC')
-    startLong <- all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
+    startLong <- isLong(x)
     x <- toLong(x)
     naFreq <- all(c('freqMin', 'freqMax') %in% colnames(na))
     for(i in 1:nrow(na)) {
