@@ -2,7 +2,7 @@
 title: "PAMscapes Tutorial"
 author: "Taiki Sakai"
 output: html_document
-date: 2023-07-10
+date: 2023-08-04
 ---
 
 ```{r setup, include=FALSE}
@@ -52,9 +52,6 @@ already downloaded. Note that the soundscape metrics provided here (`ADRIFT_017_
 `ADRIFT_017_BB_sim.csv`) are not the actual soundscape metrics, but synthetic data created to be similar
 in appearance to the real soundscape metrics for demonstration purposes only. 
 
-<!-- Change this to reference manta input and link to HMD https://doi.org/10.1121/10.0003324 -->
-
-
 ```{r}
 gps <- read_csv(here('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
 ol <- read_csv(here('tutorial/ADRIFT_017_OL_sim.csv'), show_col_types = FALSE)
@@ -75,7 +72,8 @@ Data created with [MANTA](https://doi.org/10.3389/fmars.2021.703650) are also ac
 they do not follow this convention. Typical MANTA output has the first column as the date, then the
 remaining columns named by just frequency, with no `NAME_` prefix. MANTA data processed with `PAMscapes`
 may have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
-appended to the frequency column names.
+appended to the frequency column names. NetCDF files from MANTA are also accepted by `PAMscapes`
+functions, users can load these as dataframes using the `loadMantaNc` function.
 
 #### Creating Third Octave Level & Octave Level Measurements
 

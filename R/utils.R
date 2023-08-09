@@ -7,7 +7,11 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
         if(!file.exists(x)) {
             stop('File ', x, ' does not exist.')
         }
-        x <- read_csv(x, show_col_types=FALSE)
+        if(grepl('csv$', x, ignore.case=TRUE)) {
+            x <- read_csv(x, show_col_types=FALSE)
+        } else if(grepl('nc$', x, ignore.case=TRUE)) {
+            x <- loadMantaNc(x)
+        }
     }
     x <- checkTriton(x)
     x <- checkManta(x)

@@ -1,3 +1,7 @@
+# PAMscapes 0.4.1
+
+- Added `loadMantaNc` function to support MANTA NetCDF file input
+
 # PAMscapes 0.4.0
 
 - Added `createOctaveLevel` function and updated tutorial doc to include it

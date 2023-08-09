@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: Tools for Summarising and Analysing Soundscape Data
-Version: 0.4.0
+Version: 0.4.1
 Authors@R: 
     person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre"))
 Description: This package contains a variety of tools relevant to the analysis
@@ -29,6 +29,7 @@ Imports:
     geosphere,
     sf,
     hoardr,
-    PAMmisc
+    PAMmisc,
+    ncdf4
 Suggests:
     testthat
