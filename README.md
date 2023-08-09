@@ -1,5 +1,15 @@
 # **Biotic, Abiotic, and Anthropogenic Contributors to Soundscapes: Development of an Open-Source Method for Data Integration & Visualization**
 
+# **Installation**
+
+As of 2023-08-09 `PAMscapes` is only available on GitHub, and can be installed with:
+
+```{r}
+devtools::install_github('TaikiSan21/PAMscapes')
+```
+
+In the future it will be available on CRAN.
+
 # **Background**
 
 There is increased awareness that the ocean soundscape provides valuable insight into the health of the marine environment, and the increase in passive acoustic monitoring provides expanded opportunities to integrate soundscape analysis into existing or emerging studies. With increased consideration of sustainable development related to offshore renewable energy, it is important that NOAA provides data products in a transparent and reproducible manner.
