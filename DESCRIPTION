@@ -3,7 +3,7 @@ Title: Tools for Summarising and Analysing Soundscape Data
 Version: 0.4.1
 Authors@R: 
     person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre"))
-Description: This package contains a variety of tools relevant to the analysis
+Description: A variety of tools relevant to the analysis
     of marine soundscape data. There are tools for downloading AIS data from MarineCadastre.gov,
     connecting AIS data to a set of GPS coordinates, plotting summaries of various soundscape
     measurements, downloading relevant environmental variables (wind, swell height), and more.
