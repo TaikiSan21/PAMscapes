@@ -62,10 +62,10 @@ Software can currently be installed from this repository and will be available o
 
 ## **References**
 
-Archer, Frederick. 2023. "Banter: BioAcoustic eveNT classifiER." <https://cran.r-project.org/web/packages/banter/index.html>.
+Archer, Frederick. 2023. "Banter: BioAcoustic eveNT classifiER." <https://CRAN.R-project.org/package=banter>.
 
-Sakai, Taiki. 2023a. "PAMmisc: Miscellaneous Functions for Passive Acoustic Analysis." <https://cran.r-project.org/web/packages/PAMmisc/index.html>
+Sakai, Taiki. 2023a. "PAMmisc: Miscellaneous Functions for Passive Acoustic Analysis." <https://CRAN.R-project.org/package=PAMmisc>
 
-Sakai, Taiki. 2023b. "PAMpal: Load and Process Passive Acoustic Data." <https://cran.r-project.org/web/packages/PAMpal/index.html>.
+Sakai, Taiki. 2023b. "PAMpal: Load and Process Passive Acoustic Data." <https://CRAN.R-project.org/package=PAMpal>.
 
 Simons, R.A. 2020. ERDDAP. NOAA/NMFS/SWFSC/ERD, Monterey, California, <https://coastwatch.pfeg.noaa.gov/erddap>.
