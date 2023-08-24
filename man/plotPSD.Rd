@@ -13,7 +13,7 @@ plotPSD(
   freqRange = NULL,
   dbRange = NULL,
   dbInt = 1,
-  units = "dB re: 1uPa",
+  units = "dB re: 1uPa^2/Hz",
   cmap = viridis_pal()(25),
   title = NULL
 )
