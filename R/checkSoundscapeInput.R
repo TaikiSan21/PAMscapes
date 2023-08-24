@@ -1,0 +1,127 @@
+#' @title Check Proper Formatting for Soundscape Inputs
+#'
+#' @description Reads and checks data to ensure formatting will work
+#'   for other \code{PAMscapes} functions. Will read and check the
+#'   formatting of CSV files, or check the formatting of dataframes.
+#'   Can also read in MANTA NetCDF files and format the data
+#'   appropriately.
+#'
+#' @param x a dataframe, path to a CSV file, or path to a MANTA
+#'   NetCDF file
+#' @param needCols names of columns that must be present in \code{x},
+#'   if any are missing will trigger an error
+#'
+#' @details Files created by MANTA and Triton software will be
+#'   reformatted to have consisitent formatting. The first column
+#'   will be renamed to "UTC", and columns containing soundscape
+#'   metrics will be named using the convention "TYPE_FREQUENCY",
+#'   e.g. "HMD_1", "HMD_2" for Manta hybrid millidecade mesaurements.
+#'
+#'   Inputs from sources other than MANTA or Triton can be accepted
+#'   in either "wide" or "long" format. Wide format must follow
+#'   the conventions above - first column "UTC", other columns
+#'   named by "TYPE_FREQUENCY" where TYPE is consistent across all
+#'   columns and FREQUENCY is in Hertz. Long format data must have
+#'   the following columns:
+#'   \itemize{
+#'     \item{"UTC"}{ - time of the measurement, in UTC timezone}
+#'     \item{"type"}{ - the type of soundscape measurement e.g.
+#'       PSD or OL, must be the same for all}
+#'     \item{"frequency"}{ - the frequency of the measurement, in Hertz}
+#'     \item{"value"}{ - the soundscape measurement value, usually dB}
+#'   }
+#'
+#' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
+#'
+#' @return a dataframe
+#'
+#' @export
+#'
+#' @importFrom readr read_csv
+#'
+checkSoundscapeInput <- function(x, needCols=c('UTC')) {
+    if(is.character(x)) {
+        if(!file.exists(x)) {
+            stop('File ', x, ' does not exist.')
+        }
+        if(grepl('csv$', x, ignore.case=TRUE)) {
+            x <- read_csv(x, show_col_types=FALSE)
+        } else if(grepl('nc$', x, ignore.case=TRUE)) {
+            x <- loadMantaNc(x)
+        }
+    }
+    x <- checkTriton(x)
+    x <- checkManta(x)
+    x <- checkInfinite(x)
+    missingCols <- needCols[!needCols %in% colnames(x)]
+    if(length(missingCols) > 0) {
+        stop('Required columns ', paste0(missingCols, collapse=', '),
+             ' are missing.')
+    }
+    if(is.character(x$UTC)) {
+        x$UTC <- parseToUTC(x$UTC)
+    }
+    if(!isWide(x) && !isLong(x)) {
+        stop('Input "x" could not be formatted properly.')
+    }
+    x
+}
+
+checkInfinite <- function(x) {
+    infCols <- apply(x[2:ncol(x)], 2, function(c) any(is.infinite(c)))
+    if(!any(infCols)) {
+        return(x)
+    }
+    infIx <- which(infCols) + 1
+    warning('Found infinite values in "x", they will be replaced with NA.')
+    for(i in infIx) {
+        x[[i]][is.infinite(x[[i]])] <- NA
+    }
+    x
+}
+
+checkTriton <- function(x) {
+    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
+    if(tritonTime %in% colnames(x)) {
+        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
+    }
+    x
+}
+
+# colnames are d-m-y h:m:s, 0, 0-freq end
+checkManta <- function(x) {
+    if(all(grepl('^X', colnames(x)))) {
+        colnames(x) <- gsub('^X', '', colnames(x))
+    }
+    dateCol <- colnames(x)[1]
+    mantaFormat <- c('%d-%b-%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S',
+                     '%d.%b.%Y.%H.%M.%S', '%m.%d.%Y.%H.%M.%S')
+    tryConvert <- suppressWarnings(parse_date_time(dateCol, orders=mantaFormat, tz='UTC', truncated=2))
+    # manta has the date as first column name, if we couldnt convert
+    # then this isnt manta
+    if(is.na(tryConvert)) {
+        return(x)
+    }
+    # manta second col is seconds? only sometimes
+    checkSeconds <- all(x[[2]] <= 60)
+    secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
+        (colnames(x)[2] == '0' & colnames(x)[3] == '0.1')
+    checkSeconds <- checkSeconds & secondCol
+    if(isTRUE(checkSeconds )) {
+        x[[2]] <- NULL
+        colnames(x)[2] <- '0'
+    }
+    # manta should have columns named just frequency for 2:ncol
+    # if we cant convert w/o NA, then its not manta
+    freqCols <- colnames(x)[2:ncol(x)]
+    tryFreq <- suppressWarnings(as.numeric(freqCols))
+    if(anyNA(tryFreq)) {
+        return(x)
+    }
+    colnames(x)[1] <- 'UTC'
+    if(is.character(x$UTC)) {
+        x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
+    }
+    colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
+    x
+}

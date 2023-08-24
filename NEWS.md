@@ -1,3 +1,9 @@
+# PAMscapes 0.5.0
+
+- Adding `plotPSD` function
+- Exporting `checkSoundscapeInput` so that others can use it to load data
+- Adding both of these updates to the tutorial doc
+
 # PAMscapes 0.4.1
 
 - Added `loadMantaNc` function to support MANTA NetCDF file input

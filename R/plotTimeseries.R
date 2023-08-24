@@ -39,7 +39,7 @@
 plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uPa',
                            style=c('line', 'heatmap'), q=0, by=NULL,
                            cmap=viridis_pal()(25), toTz='UTC') {
-    x <- checkSoundscapeInput(x, needCols='UTC')
+    x <- checkSimple(x, needCols='UTC')
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$timeBin <- floor_date(x$UTC, unit=bin)
     switch(match.arg(style),

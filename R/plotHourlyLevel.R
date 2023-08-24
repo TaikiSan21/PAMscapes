@@ -81,9 +81,14 @@ plotHourlyLevel <- function(x, title=NULL, units='dB re: 1uPa',
                       xmin=.data$freq_low,
                       xmax=.data$frequency,
                       fill=.data$value)) +
-        scale_x_continuous(trans=scale, expand=c(0,0), limits=c(freqMin, max(freqVals))) +
+        # scale_x_continuous(trans=scale, expand=c(0,0), limits=c(freqMin, max(freqVals))) +
         scale_y_continuous(expand = c(0,0)) +
         scale_fill_gradientn(colors=cmap)
+    if(scale == 'log10') {
+        g <- myLog10Scale(g, range=c(freqMin, max(freqVals)), dim='x')
+    } else {
+        g <- g + scale_x_continuous(expand=c(0, 0), limits=c(freqMin, max(freqVals)))
+    }
     g <- g +
         ggtitle(title) +
         labs(x='Frequency (Hz)',

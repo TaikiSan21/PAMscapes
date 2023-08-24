@@ -73,7 +73,16 @@ they do not follow this convention. Typical MANTA output has the first column as
 remaining columns named by just frequency, with no `NAME_` prefix. MANTA data processed with `PAMscapes`
 may have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
 appended to the frequency column names. NetCDF files from MANTA are also accepted by `PAMscapes`
-functions, users can load these as dataframes using the `loadMantaNc` function.
+functions, users can load these as dataframes using the `loadMantaNc` function. Users can also use
+the `checkSoundscapeInput` function to read in their data to make sure it is compatible. Most `PAMscapes` 
+functions will use this internally to check for proper formatting, but it can also be useful for users
+to check and make sure things are working for themselves first, or to just format the data and use for their 
+own purposes.
+
+```{r}
+ol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_OL_sim.csv'))
+str(ol)
+```
 
 #### Creating Third Octave Level & Octave Level Measurements
 
@@ -283,6 +292,41 @@ you can change the color palette used with the `cmap` option.
          plotHourlyLevel(ol, title='Octave Level', units='Octave Level dB'))
 ```
 
+#### plotPSD - Plot Power Spectral Density Across Frequency
+
+One common way of summarising soundscape metrics is just to simply plot the distribution
+of sound levels across frequency. `plotPSD` can plot this information either as just the
+median level with optional quantiles (similar to `plotTimeseries` above), or the full 
+density distribution. Normally full PSD resolution inputs would be used for this, but for
+the sake of size for the example data we will just plot octave level metrics for illustrative
+purposes.
+
+```{r}
+(plotPSD(ol, style='quantile', q=.05)) /
+    (plotPSD(ol, style='density'))
+```
+
+Like other plotting functions, we can set the range of frequencies shown with the `freqRange`
+parameter and the range of values shown with the `dbRange` parameter. We can also change the
+color of the line and quantile ribbon with `color` and the palette used for density with `cmap`.
+
+```{r}
+(plotPSD(ol, style='quantile', q=.05, color='red', freqRange=c(100, 1e4))) /
+    (plotPSD(ol, style='density', cmap=scales::viridis_pal(option='B')(25), dbRange=c(60, 100)))
+```
+
+Labels for the Y-axis can also be changed with `units` and a title can be added with `title`, and the
+frequency scale can be set to either linear or log (default).
+
+```{r}
+plotPSD(ol, style='density', units='TOL dB re 1uPa', title='Linear Plot', scale='linear')
+```
+ You can also plot the quantile lines overlaid on top of the density heatmap.
+
+```{r}
+plotPSD(ol, style=c('quantile', 'density'), q=.05, color='white')
+```
+
 #### plotScaledTimeseries & PAMpal::timeJoin - Data With Different Ranges
 
 Before using `plotScaledTimeseries`, we'll connect some of our soundscape metrics directly
@@ -428,6 +472,3 @@ regions, which can be useful for situations with many overlapping frequency and 
 plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.8) /
     plotAcousticScene(clicks, typeCol='detectorName', freqMap=freqMap, bin='15min', alpha=.5)
 ```
-
-### MANTA Examples
-

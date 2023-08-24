@@ -63,7 +63,7 @@
 plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
                                  cpal=hue_pal(), lwd=.5, minVals=NA, relMax=1,
                                  toTz='UTC') {
-    x <- checkSoundscapeInput(x, needCols='UTC')
+    x <- checkSimple(x, needCols='UTC')
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     if(length(minVals) == 1) {
         minVals <- rep(minVals, length(columns))
@@ -71,19 +71,11 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
     if(length(lwd) == 1) {
         lwd <- rep(lwd, length(columns))
     }
-    if(is.character(cpal)) {
-        if(length(cpal) < length(columns)) {
-            stop('Must specify enough colors for each column.')
-        }
-        plotColors <- cpal
-    }
     if(is.null(units)) {
         units <- 'Value'
     }
-    if(is.function(cpal)) {
-        plotColors <- cpal(length(columns))
-    }
-    names(plotColors) <- columns
+    cpal <- checkCpal(cpal, length(columns))
+    names(cpal) <- columns
     if(length(columns) > 1) {
         for(i in 2:length(columns)) {
             x[[columns[i]]] <- doRescale(x[[columns[i]]], target=c(minVals[1], x[[columns[1]]]), min=minVals[i], relMax=relMax)
@@ -95,7 +87,7 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
     x$Type <- factor(x$Type, levels=columns)
     g <- ggplot(data=x, aes(x=.data$UTC, y=.data$value, col=.data$Type, lwd=.data$Type)) +
         geom_line() +
-        scale_color_manual(values=plotColors) +
+        scale_color_manual(values=cpal) +
         scale_linewidth_manual(values=lwd)
     g <- g + ggtitle(title) +
         labs(y=units, x=paste0('Date (', toTz, ')'))

@@ -32,7 +32,7 @@
 plotAcousticScene <- function(x, freqMap, typeCol='species',
                               title=NULL, bin='1day', scale=c('log', 'linear'), freqMin=NULL,
                               alpha=1) {
-    x <- checkSoundscapeInput(x, needCols=c('UTC', typeCol))
+    x <- checkSimple(x, needCols=c('UTC', typeCol))
     x$plotStart <- floor_date(x$UTC, unit=bin)
     thisPeriod <- unitToPeriod(bin)
     x$plotEnd <- x$plotStart + thisPeriod
@@ -66,8 +66,11 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
                       ymin=.data$freqMin,
                       ymax=.data$freqMax,
                       fill=.data[[typeCol]]),
-                  alpha=alpha) +
-        scale_y_continuous(trans=scale)
+                  alpha=alpha)
+        # scale_y_continuous(trans=scale)
+    if(scale == 'log10') {
+        g <- myLog10Scale(g, range=c(freqMin, max(x$freqMax)), dim='y')
+    }
     g <- g +
         ggtitle(title) +
         labs(y='Frequency (Hz)',

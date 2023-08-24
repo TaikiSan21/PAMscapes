@@ -27,7 +27,7 @@
 #' @export
 #'
 addAISSummary <- function(x, ais, distance=10e3) {
-    x <- checkSoundscapeInput(x, needCols=c('UTC', 'Latitude', 'Longitude'))
+    x <- checkSimple(x, needCols=c('UTC', 'Latitude', 'Longitude'))
     aisCols <- c('MMSI', 'vesselLength', 'vesselType', 'SOG',
                  'shipLat', 'shipLong', 'shipDist')
     nonAisCols <- colnames(x)[!colnames(x) %in% aisCols]

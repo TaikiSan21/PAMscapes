@@ -1,78 +1,5 @@
 # util functions
 
-#' @importFrom readr read_csv
-#'
-checkSoundscapeInput <- function(x, needCols=c('UTC')) {
-    if(is.character(x)) {
-        if(!file.exists(x)) {
-            stop('File ', x, ' does not exist.')
-        }
-        if(grepl('csv$', x, ignore.case=TRUE)) {
-            x <- read_csv(x, show_col_types=FALSE)
-        } else if(grepl('nc$', x, ignore.case=TRUE)) {
-            x <- loadMantaNc(x)
-        }
-    }
-    x <- checkTriton(x)
-    x <- checkManta(x)
-    missingCols <- needCols[!needCols %in% colnames(x)]
-    if(length(missingCols) > 0) {
-        stop('Required columns ', paste0(missingCols, collapse=', '),
-             ' are missing.')
-    }
-    if(is.character(x$UTC)) {
-        x$UTC <- parseToUTC(x$UTC)
-    }
-    x
-}
-
-checkTriton <- function(x) {
-    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
-    if(tritonTime %in% colnames(x)) {
-        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
-    }
-    x
-}
-
-# colnames are d-m-y h:m:s, 0, 0-freq end
-checkManta <- function(x) {
-    if(all(grepl('^X', colnames(x)))) {
-        colnames(x) <- gsub('^X', '', colnames(x))
-    }
-    dateCol <- colnames(x)[1]
-    mantaFormat <- c('%d-%b-%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S',
-                     '%d.%b.%Y.%H.%M.%S', '%m.%d.%Y.%H.%M.%S')
-    tryConvert <- suppressWarnings(parse_date_time(dateCol, orders=mantaFormat, tz='UTC', truncated=2))
-    # manta has the date as first column name, if we couldnt convert
-    # then this isnt manta
-    if(is.na(tryConvert)) {
-        return(x)
-    }
-    # manta second col is seconds? only sometimes
-    checkSeconds <- all(x[[2]] <= 60)
-    secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
-        (colnames(x)[2] == '0' & colnames(x)[3] == '0.1')
-    checkSeconds <- checkSeconds & secondCol
-    if(isTRUE(checkSeconds )) {
-        x[[2]] <- NULL
-        colnames(x)[2] <- '0'
-    }
-
-    # manta should have columns named just frequency for 2:ncol
-    # if we cant convert w/o NA, then its not manta
-    freqCols <- colnames(x)[2:ncol(x)]
-    tryFreq <- suppressWarnings(as.numeric(freqCols))
-    if(anyNA(tryFreq)) {
-        return(x)
-    }
-    colnames(x)[1] <- 'UTC'
-    if(is.character(x$UTC)) {
-        x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
-    }
-    colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
-    x
-}
-
 #' @importFrom hoardr hoard
 #'
 fileNameManager <- function(fileName=NULL, suffix=NULL) {
@@ -149,9 +76,7 @@ parseToUTC <- function(x,
 #' @importFrom tidyr pivot_longer
 #'
 toLong <- function(x) {
-    longCols <- c('UTC', 'frequency', 'value')
-    # already long'd
-    if(all(longCols %in% colnames(x))) {
+    if(isLong(x)) {
         return(x)
     }
     type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[2:ncol(x)]))
@@ -178,11 +103,29 @@ toLong <- function(x) {
     x
 }
 
+checkCpal <- function(cpal, n) {
+    if(is.null(cpal)) {
+        cpal <- hue_pal()
+    }
+    if(is.character(cpal)) {
+        if(length(cpal) == 1) {
+            cpal <- rep(cpal, n)
+        }
+        if(length(cpal) < n) {
+            stop('Must specify enough colors for each different item.')
+        }
+        plotColors <- cpal
+    }
+    if(is.function(cpal)) {
+        plotColors <- cpal(n)
+    }
+    plotColors
+}
+
 #' @importFrom tidyr pivot_wider
 #'
 toWide <- function(x) {
-    needCols <- c('UTC', 'frequency', 'value', 'type')
-    if(!all(needCols %in% colnames(x))) {
+    if(isWide(x)) {
         return(x)
     }
     x <- pivot_wider(x, names_from=c('type', 'frequency'), names_sep='_', values_from='value')
@@ -209,4 +152,74 @@ unitToPeriod <- function(x) {
 
 isLong <- function(x) {
     all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
+}
+
+isWide <- function(x) {
+    freqCols <- colnames(x)[2:ncol(x)]
+    all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
+}
+
+myLog10Scale <- function(g, range, dim=c('x', 'y')) {
+    major <- logSeq(c(1,5))
+    useMajor <- which(major >= range[1] & major <= range[2])
+    maxMajor <- 6
+    if(length(useMajor) > maxMajor) {
+        major <- logSeq(1)
+    }
+    minor <- logSeq(1:9)
+    maxMinor <- maxMajor * 10
+    useMinor <- which(minor >= range[1] & minor <= range[2])
+    if(length(useMinor) > maxMinor) {
+        minor <- logSeq(c(1,5))
+    }
+    dim <- match.arg(dim)
+    if(dim == 'x') {
+        g +
+        scale_x_continuous(trans='log10',
+                           breaks = major,
+                           minor_breaks = minor,
+                           labels = scientific_10,
+                           limits = range,
+                           expand = c(0, 0)) +
+        annotation_logticks(sides='b')
+    } else {
+        g +
+            scale_y_continuous(trans='log10',
+                               breaks = major,
+                               minor_breaks = minor,
+                               labels = scientific_10,
+                               limits = range,
+                               expand = c(0, 0)) +
+            annotation_logticks(sides='l')
+    }
+}
+
+#' @importFrom scales scientific_format
+#'
+scientific_10 <- function(x) {
+    parse(text=gsub("e\\+{0,1}", " %*% 10^", scientific_format()(x)))
+}
+
+logSeq <- function(x) {
+    min <- -1
+    max <- 8
+    exps <- seq(from=min, to=max, by=1)
+    as.vector(sapply(exps, function(e) {
+        x * 10 ^ e
+    }))
+}
+
+checkSimple <- function(x, needCols='UTC') {
+    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
+    if(tritonTime %in% colnames(x)) {
+        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
+    }
+    x
+    if(!all(needCols %in% colnames(x))) {
+        stop('"x" must have columns ', paste0(needCols, collapse=', '))
+    }
+    if(is.character(x$UTC)) {
+        x$UTC <- parseToUTC(x$UTC)
+    }
+    x
 }
