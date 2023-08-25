@@ -1,3 +1,8 @@
+# PAMscapes 0.5.1 
+
+- Bug fix for `addAIS` for `interptype='all'` and `interpType='close'` where
+it was accidentally creating extra duplicate NA valued rows
+
 # PAMscapes 0.5.0
 
 - Adding `plotPSD` function

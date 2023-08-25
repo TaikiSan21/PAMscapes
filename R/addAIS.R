@@ -41,26 +41,39 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
         lapply(
             # split(ais, list(ais$MMSI, ais$group)), function(x) {
             split(ais, ais$MMSI), function(oneAis) {
-                # if no time interp happening
+                # only do more if interp close
                 if(interpType == 'none' ||
-                   interpTime == 0) {
+                   interpTime == 0 ||
+                   interpType == 'all') {
                     return(oneAddAIS(x, oneAis))
                 }
                 byGroup <- split(oneAis, oneAis$group)
-                result <- lapply(byGroup, function(oneGroup) {
+                interpData <- bind_rows(lapply(byGroup, function(oneGroup) {
+                    tRange <- range(oneGroup$UTC) + c(-1, 1) * interpTime
                     if(isFALSE(oneGroup$inDist[1])) {
-                        return(oneAddAIS(x, oneGroup))
+                        return(x[x$UTC >= tRange[1] & x$UTC <= tRange[2], ])
                     }
-                    interpTime <- 60
-                    interpData <- interpLocations(x, from=min(oneGroup$UTC)-interpTime,
-                                                  to=max(oneGroup$UTC)+interpTime,
-                                                  diff=interpTime,
-                                                  includeEnd=TRUE,
-                                                  interpCols=interpCols)
-                    oneAddAIS(interpData, oneGroup)
-                })
-                bind_rows(result)
-
+                    interpLocations(x, from=tRange[1],
+                                    to=tRange[2],
+                                    diff=interpTime,
+                                    includeEnd=TRUE,
+                                    interpCols=interpCols)
+                }))
+                interpData <- arrange(interpData, .data$UTC)
+                oneAddAIS(interpData, oneAis)
+                # result <- lapply(byGroup, function(oneGroup) {
+                #     if(isFALSE(oneGroup$inDist[1])) {
+                #         return(oneAddAIS(x, oneGroup))
+                #     }
+                #     # interpTime <- 60
+                #     interpData <- interpLocations(x, from=min(oneGroup$UTC)-interpTime,
+                #                                   to=max(oneGroup$UTC)+interpTime,
+                #                                   diff=interpTime,
+                #                                   includeEnd=TRUE,
+                #                                   interpCols=interpCols)
+                #     oneAddAIS(interpData, oneGroup)
+                # })
+                # bind_rows(result)
             }))
 }
 
