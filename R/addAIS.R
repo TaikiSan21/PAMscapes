@@ -28,6 +28,17 @@
 #' @export
 #'
 addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, interpCols=NULL) {
+    # if no ais just fill in columns as NA for consistencys
+    if(nrow(ais) == 0) {
+        x$MMSI <- NA
+        x$vesselLength <- NA
+        x$vesselType <- NA
+        x$SOG <- NA
+        x$shipLat <- NA
+        x$shipLong <- NA
+        x$shipDist <- NA
+        return(x)
+    }
     interpType <- match.arg(interpType)
     # if(!all(c('Latitude', 'Longitude') %in% colnames(x))) {
     #     interpType <- 'none'

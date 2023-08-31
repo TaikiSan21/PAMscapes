@@ -37,7 +37,8 @@
 #'
 #' @export
 #'
-#' @importFrom readr read_csv
+#' @importFrom readr read_csv read_lines
+#' @importFrom data.table fread setDF
 #'
 checkSoundscapeInput <- function(x, needCols=c('UTC')) {
     if(is.character(x)) {
@@ -45,7 +46,13 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
             stop('File ', x, ' does not exist.')
         }
         if(grepl('csv$', x, ignore.case=TRUE)) {
-            x <- read_csv(x, show_col_types=FALSE)
+            head <- strsplit(read_lines(x, n_max = 1), ', ')[[1]]
+            first <- strsplit(read_lines(x, n_max=1, skip=1), ', ')[[1]]
+            if(length(head) < length(first)) {
+                stop('File ', x, ' has more data columns than column headers. Cannot load.')
+            }
+            x <- fread(x, header=TRUE)
+            setDF(x)
         } else if(grepl('nc$', x, ignore.case=TRUE)) {
             x <- loadMantaNc(x)
         }
@@ -105,7 +112,7 @@ checkManta <- function(x) {
     # manta second col is seconds? only sometimes
     checkSeconds <- all(x[[2]] <= 60)
     secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
-        (colnames(x)[2] == '0' & colnames(x)[3] == '0.1')
+        (colnames(x)[2] == '0' & colnames(x)[3] %in% c('0', '0.1'))
     checkSeconds <- checkSeconds & secondCol
     if(isTRUE(checkSeconds )) {
         x[[2]] <- NULL

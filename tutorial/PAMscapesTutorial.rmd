@@ -80,7 +80,10 @@ to check and make sure things are working for themselves first, or to just forma
 own purposes.
 
 ```{r}
+# Can load MANTA NetCDF using this
+manta <- checkSoundscapeInput(here('tutorial/MANTAExample.nc'))
 ol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_OL_sim.csv'))
+cat(str(manta, list.len=10))
 str(ol)
 ```
 
@@ -94,11 +97,10 @@ Often it is enough to use the Third Octave Level (TOL) or Octave Level (OL) meas
 observe patterns in the soundscape. `PAMscapes` includes a function `createOctaveLevel` that
 allows users to to generate these octave level measurements from their finer scale inputs.
 
-Here we'll show how this works for a very small subset of MANTA data, which outputs in HMD
-resolution. The original MANTA data has 2180 columns.
+Here we'll show how this works for the small set of MANTA data we just loaded, which outputs in HMD
+resolution.
 
 ```{r}
-manta <- read_csv(here('tutorial/MANTAExampleSmall1.csv'), show_col_types = FALSE)
 ncol(manta)
 ```
 The `createOctaveLevel` function takes this larger file as input, then we use the `type`
@@ -171,6 +173,7 @@ a `windMag` column to get the overall wind magnitude instead of just the compone
 gps$windMag <- sqrt(gps$windU^2 + gps$windV^2)
 str(gps)
 ```
+
 Now we'll use the `addAISSummary` function to add columns that summarise the AIS activity at each time in our GPS
 track. This function is a little different than the `addAIS` function explained in detail in the other tutorial,
 instead of adding all the raw AIS data (and creating many additional rows of data), this function just adds
@@ -292,39 +295,99 @@ you can change the color palette used with the `cmap` option.
          plotHourlyLevel(ol, title='Octave Level', units='Octave Level dB'))
 ```
 
-#### plotPSD - Plot Power Spectral Density Across Frequency
+#### plotPSD and prepPSDData - Plot Power Spectral Density Summary Across Frequency
 
 One common way of summarising soundscape metrics is just to simply plot the distribution
 of sound levels across frequency. `plotPSD` can plot this information either as just the
-median level with optional quantiles (similar to `plotTimeseries` above), or the full 
-density distribution. Normally full PSD resolution inputs would be used for this, but for
-the sake of size for the example data we will just plot octave level metrics for illustrative
-purposes.
+median level with optional quantiles (`style='quantile'`, similar to `plotTimeseries` above), or the full 
+density distribution (`style='density'`). The MANTA data has a "0" frequency, and we can't show 0 on a
+log scaled frequency axis (the default), so we're going to get some warnings here - that's okay.
 
 ```{r}
-(plotPSD(ol, style='quantile', q=.05)) /
-    (plotPSD(ol, style='density'))
+(plotPSD(manta, style='quantile', q=.05)) /
+    (plotPSD(manta, style='density'))
 ```
 
-Like other plotting functions, we can set the range of frequencies shown with the `freqRange`
-parameter and the range of values shown with the `dbRange` parameter. We can also change the
-color of the line and quantile ribbon with `color` and the palette used for density with `cmap`.
+PSD data can be quite large depending on the frequency and time resolution, so `PAMscapes`
+provides the `prepPSDData` function so that users can load and process their data for plotting
+(which can be time consuming for large files) separately from plotting. This means that it is
+much faster to fiddle with plot settings since users aren't waiting for the data loading each
+time they change the quantile level or color scheme.
 
 ```{r}
-(plotPSD(ol, style='quantile', q=.05, color='red', freqRange=c(100, 1e4))) /
-    (plotPSD(ol, style='density', cmap=scales::viridis_pal(option='B')(25), dbRange=c(60, 100)))
+psdData <- prepPSDData(manta)
+(plotPSD(psdData, style='quantile', q=.1, color='orange') + 
+        plotPSD(psdData, style='quantile', q=.2, color='red')) /
+    (plotPSD(psdData, style='density', freqRange=c(100, 4e3)) +
+         plotPSD(psdData, style='density', freqRange=c(100,1e3)))
+```
+
+Another important function of `prepPSDData` is that we can give it multiple files or dataframes
+of data, and it will combine and summarise them. We may want to combine multiple large PSD files
+from the same region into one plot, but dealing with many large files in `R` can be tricky. With
+`prepPSDData` you can just give it a vector of file names and it will combine them for you so
+that they can then be plotted. Alternatively you can give it a list of dataframes if you've
+already loaded multiple files into `R` that you want to combine and plot. The only requirement
+is that the data must all have measurements at the exact same frequency levels. Here we can try
+to combine the two different octave level measurements we've made/loaded from this tutorial.
+
+```{r}
+combinedOl <- prepPSDData(list(ol, mantaOl))
+```
+
+We get a warning that they cannot be combined - even though the octave level measurements are present
+at the same intervals, the `mantaOl` measurements stop at 4kHz. We can get around this by limiting `ol`
+to the columns up to 4kHz.
+
+```{r}
+combinedOl <- prepPSDData(list(ol[1:6], mantaOl))
+(plotPSD(ol, style='density', dbRange=c(50, 130)) +
+    plotPSD(mantaOl, style='density', dbRange=c(50, 130))) /
+    plotPSD(combinedOl, style='density', dbRange=c(50, 130))
+```
+
+This example is a little forced for the sake of the tutorial since it is inconvenient to
+upload full resolution PSD data, and the plots look a little strange with octave level 
+resolution data. Below is a sample code snippet of how you might use this functionality
+for a folder of large PSD files.
+
+```{r, eval=FALSE}
+# sample workflow for use on a folder of PSD files - code is not meant to be run for tutorial
+psdFolder <- 'folder/of/large/psd'
+psdFiles <- list.files(psdFolder, pattern='csv$', full.names=TRUE)
+# this can take a long time for large files
+psdData <- prepPSDData(psdFiles)
+# save this so you don't have to re-process in the future
+saveRDS(psdData, 'CombinedPSDPlottingData.rds')
+plotPSD(psdData)
+```
+
+There are a number of styling options for `plotPSD`. Like other plotting functions, we can set 
+the range of frequencies shown with the `freqRange` parameter and the range of values shown 
+with the `dbRange` parameter. We can also change the color of the line and quantile ribbon with 
+`color` and the palette used for density with `cmap`. The `q` parameter for quantile plots
+controls the ribbon shown. A value of 0 or 1 will show no ribbon, only the median line. A
+length one `q` will plot a ribbon from `q` to `1-q`, e.g. `q=.05` will plot the 5th and
+95th percent quantiles. A length 2 `q` will plot a ribbon between the specified bounds.
+
+```{r}
+(plotPSD(manta, style='quantile', q=0, freqRange=c(100,1e4)) + 
+     plotPSD(manta, style='quantile', q=c(.01, .8), color='red', freqRange=c(100, 1e4))) /
+    (plotPSD(manta, style='density', cmap=scales::viridis_pal(option='B')(25), dbRange=c(30, 120)) +
+         plotPSD(manta, style='density', cmap=scales::viridis_pal(option='mako')(25), freqRange=c(1e2, 1e3)))
 ```
 
 Labels for the Y-axis can also be changed with `units` and a title can be added with `title`, and the
 frequency scale can be set to either linear or log (default).
 
 ```{r}
-plotPSD(ol, style='density', units='TOL dB re 1uPa', title='Linear Plot', scale='linear')
+plotPSD(manta, style='density', units='TOL dB re 1uPa', title='Linear Plot', scale='linear')
 ```
- You can also plot the quantile lines overlaid on top of the density heatmap.
+
+You can also plot the quantile lines overlaid on top of the density heatmap.
 
 ```{r}
-plotPSD(ol, style=c('quantile', 'density'), q=.05, color='white')
+plotPSD(manta, style=c('quantile', 'density'), q=.05, color='red')
 ```
 
 #### plotScaledTimeseries & PAMpal::timeJoin - Data With Different Ranges

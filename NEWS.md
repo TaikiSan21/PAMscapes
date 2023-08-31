@@ -1,3 +1,8 @@
+# PAMscapes 0.5.2
+
+- Exporting `prepPSDData` so people can use to make summarised data
+separate from the plotting portion
+
 # PAMscapes 0.5.1 
 
 - Bug fix for `addAIS` for `interptype='all'` and `interpType='close'` where

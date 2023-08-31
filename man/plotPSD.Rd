@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotPSD.R
 \name{plotPSD}
 \alias{plotPSD}
+\alias{prepPSDData}
 \title{Plot Power Spectral Density}
 \usage{
 plotPSD(
@@ -15,11 +16,21 @@ plotPSD(
   dbInt = 1,
   units = "dB re: 1uPa^2/Hz",
   cmap = viridis_pal()(25),
-  title = NULL
+  title = NULL,
+  progress = TRUE
+)
+
+prepPSDData(
+  x,
+  freqRange = NULL,
+  style = c("density", "quantile"),
+  dbInt = 1,
+  progress = TRUE
 )
 }
 \arguments{
-\item{x}{a dataframe}
+\item{x}{a dataframe or list of dataframes, or file path or vector
+of file paths, or the output from \code{prepPSDData}}
 
 \item{style}{character specifying plot style to create, either
 "quantile", "density", or a vector with both}
@@ -41,14 +52,42 @@ plotPSD(
 \item{cmap}{color map to use for density plot}
 
 \item{title}{optional title for plot}
+
+\item{progress}{logical flag to show progress bar}
 }
 \value{
-a ggplot object
+a ggplot object for \code{plotPSD}, see details for \code{prepPSDData}
 }
 \description{
 Plots the distribution of summarised sound levels
 across frequency, either as lines of quantile levels or a
-heatmap showing the full distribution
+heatmap showing the full distribution. Multiple PSD sources
+can be combined and plotted as long as they have identical
+frequency levels.
+}
+\details{
+\code{prepPSDData} is called by the plotting code, and
+does not necessarily need to be called separately from
+\code{plotPSD}. Loading PSD data can be time consuming, so
+it may be useful to load the data first, then it is easier
+to spend time adjusting plot settings.
+
+The output of \code{prepPSDData} is a list with 5 elements:
+\itemize{
+\item{frequency}{ - the frequency values of the input data}
+\item{freqRange}{ - the value of the "freqRange" parameter if
+it was supplied}
+\item{dbVals}{ - the dB values of breakpoints used for "density"
+plotting}
+\item{quantileData}{ - the data used for quantile plots. These
+are stored as "tidgest" objects serialized using
+\link[tdigest]{as.list.tdigest}, from which quantiles can
+be computed}
+\item{densityData}{ - the data used fro quantile plots. These
+are stored as a matrix of bin counts - each column corresponds
+to the "frequency" output, each row corresponds to bins defined
+using "dbVals" as boundaries}
+}
 }
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
