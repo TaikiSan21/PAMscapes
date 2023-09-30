@@ -11,6 +11,12 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#' # no sample NetCDF provided (too large)
+#' \dontrun{
+#' manta <- loadMantaNc('MANTA.nc')
+#' }
+#'
 #' @export
 #'
 #' @importFrom ncdf4 nc_open nc_close ncvar_get

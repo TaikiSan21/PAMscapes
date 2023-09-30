@@ -15,6 +15,15 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#'
+#' # don't run-files dont exist (too large)
+#' \dontrun{
+#' localFiles <- subsetMarCadAIS('AISData', outDir='AIS_West',
+#'                               latRange=c(20, 50), lonRange=c(-140, -110),
+#'                               name='West_')
+#' }
+#'
 #' @importFrom data.table fread setkeyv fwrite
 #' @importFrom utils txtProgressBar setTxtProgressBar globalVariables
 #' @importFrom stats sd

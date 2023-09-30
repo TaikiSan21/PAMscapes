@@ -21,6 +21,16 @@ same dataframe as \code{x} but with some values replaced with \code{NA}
 Marks values within a soundscape dataframe as NA
 according to provided time and (optionally) frequency values
 }
+\examples{
+manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+naDf <- data.frame(start=min(manta$UTC),
+                   end=max(manta$UTC),
+                   freqMin=100,
+                   freqMax=500)
+plotHourlyLevel(manta)
+plotHourlyLevel(markNA(manta, na=naDf))
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

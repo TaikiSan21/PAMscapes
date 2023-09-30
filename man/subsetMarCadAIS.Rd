@@ -36,6 +36,16 @@ invisibly return new file names
 Subsets the full download files from Marine Cadastre to a
 smaller region so that they are easier to work with
 }
+\examples{
+
+# don't run-files dont exist (too large)
+\dontrun{
+localFiles <- subsetMarCadAIS('AISData', outDir='AIS_West',
+                              latRange=c(20, 50), lonRange=c(-140, -110),
+                              name='West_')
+}
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

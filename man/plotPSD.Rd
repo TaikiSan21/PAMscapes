@@ -89,6 +89,13 @@ to the "frequency" output, each row corresponds to bins defined
 using "dbVals" as boundaries}
 }
 }
+\examples{
+
+psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+plotPSD(psd, style='density')
+plotPSD(psd, style='quantile', q=.05)
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

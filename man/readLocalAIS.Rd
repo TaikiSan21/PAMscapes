@@ -29,6 +29,18 @@ ship tracks that come within a certain distance of a given GPS
 track. Also calculates the distance to the GPS track for each
 AIS point
 }
+\examples{
+gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
+                  Longitude=c(-118.1, -118.4, -119),
+                  UTC=as.POSIXct(
+                    c('2022-04-28 05:00:00',
+                      '2022-04-28 10:00:00',
+                      '2022-04-28 20:00:00'),
+                    tz='UTC'))
+ais <- readLocalAIS(gps, aisDir=system.file('extdata/ais', package='PAMscapes'), distance=20e3)
+str(ais)
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

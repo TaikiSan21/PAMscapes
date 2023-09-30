@@ -19,6 +19,14 @@
 #'
 #' @export
 #'
+#' @examnples
+#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' str(psd)
+#' tol <- createOctaveLevel(psd, type='tol')
+#' str(tol)
+#' ol <- createOctaveLevel(tol, type='ol')
+#' str(ol)
+#'
 #' @importFrom dplyr group_by summarise ungroup rename
 #'
 createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('sum', 'mean')) {

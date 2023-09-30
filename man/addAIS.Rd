@@ -41,6 +41,23 @@ any non-constant columns not specified to \code{interpCols} will be removed
 Adds matching AIS data downloaded from Marine Cadastre
 to a dataframe containing location information
 }
+\examples{
+gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
+                  Longitude=c(-118.1, -118.4, -119),
+                  UTC=as.POSIXct(
+                    c('2022-04-28 05:00:00',
+                      '2022-04-28 10:00:00',
+                      '2022-04-28 20:00:00'),
+                    tz='UTC'))
+ais <- readLocalAIS(gps, aisDir=system.file('extdata/ais', package='PAMscapes'), distance=20e3)
+gpsNoInterp <- addAIS(gps, ais, interpType='none')
+str(gpsNoInterp)
+gpsClose <- addAIS(gps, ais, interpType='close')
+str(gpsClose)
+gpsAllInterp <- addAIS(gps, ais, interpType='all')
+str(gpsAllInterp)
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

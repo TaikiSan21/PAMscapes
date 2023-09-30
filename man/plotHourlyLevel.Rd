@@ -45,6 +45,10 @@ the \code{value} column for each hour/frequency pairing across the dataset.
 This function is designed to work with sound level outputs with consistent
 frequency bins measured across time
 }
+\examples{
+plotHourlyLevel(system.file('extdata/OLSmall.csv', package='PAMscapes'))
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

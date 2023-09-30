@@ -22,6 +22,9 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#' plotHourlyLevel(system.file('extdata/OLSmall.csv', package='PAMscapes'))
+#'
 #' @return a ggplot object
 #'
 #' @importFrom scales viridis_pal

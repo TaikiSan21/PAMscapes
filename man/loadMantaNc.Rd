@@ -18,6 +18,13 @@ Reads in hybrid millidecade data from a MANTA
 NetCDF output file and formats it into the dataframe format
 required for use in other PAMscapes functions
 }
+\examples{
+# no sample NetCDF provided (too large)
+\dontrun{
+manta <- loadMantaNc('MANTA.nc')
+}
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

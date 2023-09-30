@@ -1,3 +1,7 @@
+# PAMscapes 0.5.3
+
+- Added examples for all functions and a small AIS file for use in examples
+
 # PAMscapes 0.5.2
 
 - Exporting `prepPSDData` so people can use to make summarised data

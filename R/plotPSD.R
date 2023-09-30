@@ -48,6 +48,12 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#'
+#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' plotPSD(psd, style='density')
+#' plotPSD(psd, style='quantile', q=.05)
+#'
 #' @importFrom graphics hist
 #'
 #' @export

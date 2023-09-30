@@ -30,6 +30,10 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#' manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall2.csv', package='PAMscapes'))
+#' plotTimeseries(manta, bin='1minute', column='HMD_150')
+#'
 #' @importFrom lubridate floor_date hour minute
 #' @importFrom stats quantile
 #' @importFrom scales viridis_pal

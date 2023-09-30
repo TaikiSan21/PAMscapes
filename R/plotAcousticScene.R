@@ -25,6 +25,20 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#' detDf <- data.frame(
+#'    UTC=as.POSIXct(c('2023-01-01 00:00:00',
+#'                     '2023-01-03 00:00:00',
+#'                     '2023-01-02 12:00:00',
+#'                     '2023-01-04 00:00:00'),
+#'                   tz='UTC'),
+#'   species = c('Dolphin', 'Whale', 'Whale', 'Dolphin'))
+#' freqMap <- data.frame(type=c('Dolphin', 'Whale'),
+#'                       freqMin=c(10e3, 100),
+#'                       freqMax=c(30e3, 400),
+#'                       color=c('darkgreen', 'blue'))
+#' plotAcousticScene(detDf, freqMap=freqMap, typeCol='species', bin='1day')
+#'
 #' @importFrom dplyr left_join join_by distinct
 #'
 #' @export

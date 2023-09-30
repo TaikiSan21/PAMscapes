@@ -35,6 +35,15 @@
 #'
 #' @return a dataframe
 #'
+#' @examples
+#'
+#' manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' str(manta)
+#' ol <- checkSoundscapeInput(system.file('extdata/OLSmall.csv', package='PAMscapes'))
+#' str(ol)
+#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' str(psd)
+#'
 #' @export
 #'
 #' @importFrom readr read_csv read_lines

@@ -16,6 +16,19 @@
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
+#' @examples
+#' # dont run example because causes large download
+#' \dontrun{
+#' gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
+#'                   Longitude=c(-118.1, -118.4, -119),
+#'                   UTC=as.POSIXct(
+#'                     c('2022-04-28 05:00:00',
+#'                       '2022-04-28 10:00:00',
+#'                       '2022-04-28 20:00:00'),
+#'                     tz='UTC'))
+#' marcadFiles <- downloadMarCadAIS(gps, outDir='AISData')
+#' }
+#'
 #' @importFrom httr GET progress write_disk
 #' @importFrom lubridate year
 #'

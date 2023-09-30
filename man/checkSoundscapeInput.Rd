@@ -44,6 +44,16 @@ PSD or OL, must be the same for all}
 \item{"value"}{ - the soundscape measurement value, usually dB}
 }
 }
+\examples{
+
+manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+str(manta)
+ol <- checkSoundscapeInput(system.file('extdata/OLSmall.csv', package='PAMscapes'))
+str(ol)
+psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+str(psd)
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

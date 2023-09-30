@@ -57,6 +57,11 @@ a ggplot object
 \description{
 Plot simple timeseries of values
 }
+\examples{
+manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall2.csv', package='PAMscapes'))
+plotTimeseries(manta, bin='1minute', column='HMD_150')
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }
