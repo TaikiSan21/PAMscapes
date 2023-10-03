@@ -16,7 +16,8 @@ a dataframe with wind and precipitation rate columns added
 \description{
 Downloads and matches wind and precipitation data
 from the Global Forecast System (GFS) weather model. Data is
-downloaded from the UCAR data server
+downloaded from the National Center for Atmospheric Research
+data server \url{https://rda.ucar.edu/datasets/ds084.1/}
 }
 \examples{
 gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
@@ -25,10 +26,7 @@ gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
                     c('2022-04-28 05:00:00',
                       '2022-04-28 10:00:00',
                       '2022-04-28 20:00:00'), tz='UTC'))
-# not run because of data download
-\dontrun{
 gps <- matchGFS(gps)
-}
 
 }
 \author{

@@ -19,7 +19,7 @@
 #'
 #' @export
 #'
-#' @examnples
+#' @examples
 #' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
 #' str(psd)
 #' tol <- createOctaveLevel(psd, type='tol')

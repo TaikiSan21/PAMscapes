@@ -32,6 +32,15 @@ Creates octave or third octave level measurements from finer
 resolution soundscape metrics, like Power Spectral Density (PSD) or
 Hybrid Millidecade (HMD) measures
 }
+\examples{
+psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+str(psd)
+tol <- createOctaveLevel(psd, type='tol')
+str(tol)
+ol <- createOctaveLevel(tol, type='ol')
+str(ol)
+
+}
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

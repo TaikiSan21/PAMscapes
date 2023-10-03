@@ -8,10 +8,12 @@ Authors@R: c(
     MM = person("Megan", "McKenna", role = c("ctb")),
     KP = person("Kaitlin", "Palmer", role = c("ctb")))
 Description: A variety of tools relevant to the analysis
-    of marine soundscape data. There are tools for downloading AIS data from MarineCadastre.gov,
-    connecting AIS data to a set of GPS coordinates, plotting summaries of various soundscape
-    measurements, downloading relevant environmental variables (wind, swell height), and more.
-    Most tools were developed to work well with output from Triton software, but can be adapted
+    of marine soundscape data. There are tools for downloading AIS (automatic identification system)
+    data from Marine Cadastre <https://marinecadastre.gov/ais/>,
+    connecting AIS data to GPS coordinates, plotting summaries of various soundscape
+    measurements, and downloading relevant environmental variables (wind, swell height) from the
+    National Center for Atmospheric Research data server <https://rda.ucar.edu/datasets/ds084.1/>.
+    Most tools were developed to work well with output from 'Triton' software, but can be adapted
     to work with any similar measurements.
 License: GNU General Public License
 Encoding: UTF-8

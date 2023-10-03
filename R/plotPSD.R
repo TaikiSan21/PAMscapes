@@ -51,8 +51,9 @@
 #' @examples
 #'
 #' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
-#' plotPSD(psd, style='density')
-#' plotPSD(psd, style='quantile', q=.05)
+#' # Plotting only first 1000 columns for brevity
+#' plotPSD(psd[1:1000], style='density')
+#' plotPSD(psd[1:1000], style='quantile', q=.05)
 #'
 #' @importFrom graphics hist
 #'

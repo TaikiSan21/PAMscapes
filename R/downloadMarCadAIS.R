@@ -17,8 +17,8 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
-#' # dont run example because causes large download
-#' \dontrun{
+#' # note this example downloads a ~500MB file
+#' \donttest{
 #' gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
 #'                   Longitude=c(-118.1, -118.4, -119),
 #'                   UTC=as.POSIXct(
@@ -26,7 +26,8 @@
 #'                       '2022-04-28 10:00:00',
 #'                       '2022-04-28 20:00:00'),
 #'                     tz='UTC'))
-#' marcadFiles <- downloadMarCadAIS(gps, outDir='AISData')
+#' tempDir <- tempdir()
+#' marcadFiles <- downloadMarCadAIS(gps, outDir=tempDir)
 #' }
 #'
 #' @importFrom httr GET progress write_disk
@@ -34,7 +35,7 @@
 #'
 #' @export
 #'
-downloadMarCadAIS <- function(x, outDir='.', overwrite=FALSE, unzip=TRUE,
+downloadMarCadAIS <- function(x, outDir, overwrite=FALSE, unzip=TRUE,
                               verbose=TRUE) {
     allDays <- getDaySequence(x$UTC)
     years <- year(allDays)

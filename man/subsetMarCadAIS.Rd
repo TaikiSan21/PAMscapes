@@ -38,9 +38,9 @@ smaller region so that they are easier to work with
 }
 \examples{
 
-# don't run-files dont exist (too large)
-\dontrun{
-localFiles <- subsetMarCadAIS('AISData', outDir='AIS_West',
+\donttest{
+outDir <- tempdir()
+localFiles <- subsetMarCadAIS('AISData', outDir=outDir,
                               latRange=c(20, 50), lonRange=c(-140, -110),
                               name='West_')
 }

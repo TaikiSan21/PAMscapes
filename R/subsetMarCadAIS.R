@@ -17,9 +17,9 @@
 #'
 #' @examples
 #'
-#' # don't run-files dont exist (too large)
-#' \dontrun{
-#' localFiles <- subsetMarCadAIS('AISData', outDir='AIS_West',
+#' \donttest{
+#' outDir <- tempdir()
+#' localFiles <- subsetMarCadAIS('AISData', outDir=outDir,
 #'                               latRange=c(20, 50), lonRange=c(-140, -110),
 #'                               name='West_')
 #' }
@@ -36,6 +36,9 @@ subsetMarCadAIS <- function(inDir, outDir, latRange=c(20, 50), lonRange=c(-140, 
         dir.create(outDir)
     }
     aisFiles <- list.files(inDir, pattern='AIS_[0-9]{4}_[0-9]{1,2}_[0-9]{1,2}\\.csv$', full.names=TRUE)
+    if(length(aisFiles) == 0) {
+        return(character(0))
+    }
     if(progress) {
         pb <- txtProgressBar(min=0, max=length(aisFiles), style=3)
     }

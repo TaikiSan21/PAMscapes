@@ -2,7 +2,8 @@
 #'
 #' @description Downloads and matches wind and precipitation data
 #'   from the Global Forecast System (GFS) weather model. Data is
-#'   downloaded from the UCAR data server
+#'   downloaded from the National Center for Atmospheric Research
+#'   data server \url{https://rda.ucar.edu/datasets/ds084.1/}
 #'
 #' @param x a dataframe with columns \code{UTC}, \code{Latitude} and
 #'   \code{Longitude} to add environmental data to
@@ -18,10 +19,7 @@
 #'                     c('2022-04-28 05:00:00',
 #'                       '2022-04-28 10:00:00',
 #'                       '2022-04-28 20:00:00'), tz='UTC'))
-#' # not run because of data download
-#' \dontrun{
 #' gps <- matchGFS(gps)
-#' }
 #'
 #' @importFrom PAMmisc ncToData
 #' @importFrom lubridate round_date
