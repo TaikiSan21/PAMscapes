@@ -13,7 +13,7 @@
 #'
 #' @examples
 #' # no sample NetCDF provided (too large)
-#' \dontrun{
+#' \donttest{
 #' manta <- loadMantaNc('MANTA.nc')
 #' }
 #'
@@ -22,6 +22,10 @@
 #' @importFrom ncdf4 nc_open nc_close ncvar_get
 #'
 loadMantaNc <- function(x) {
+    if(!file.exists(x)) {
+        message('File ', x, ' does not exist.')
+        return(NULL)
+    }
     nc <- nc_open(x)
     on.exit(nc_close(nc))
     dimNames <- c('time', 'frequency')

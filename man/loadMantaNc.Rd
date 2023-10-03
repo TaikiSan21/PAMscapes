@@ -20,7 +20,7 @@ required for use in other PAMscapes functions
 }
 \examples{
 # no sample NetCDF provided (too large)
-\dontrun{
+\donttest{
 manta <- loadMantaNc('MANTA.nc')
 }
 
