@@ -38,6 +38,11 @@
 #' @export
 #'
 readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=0) {
+    if(nrow(gps) == 1 &&
+       timeBuff == 0) {
+        stop('Cannot match AIS to a single point in time, either ',
+             'increase "timeBuff" or add more "UTC" rows.')
+    }
     daySeq <- getDaySequence(gps$UTC)
     dayChar <- format(daySeq, format='%Y_%m_%d')
     aisFiles <- list.files(aisDir, pattern='.*AIS.*csv$', full.names=TRUE)
@@ -56,8 +61,8 @@ readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=0) {
     }))
     bufferBound <- st_as_sf(gps[,c('Longitude', 'Latitude', 'UTC')],
                             coords=c('Longitude', 'Latitude'), crs=4326) %>%
-        st_bbox() %>%
-        st_as_sfc() %>%
+        # st_bbox() %>%
+        # st_as_sfc() %>%
         st_buffer(dist=distance) %>%
         st_bbox()
     mmsiNear <- unique(ais[Longitude >= bufferBound['xmin'] &
@@ -66,8 +71,15 @@ readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=0) {
                                Latitude <= bufferBound['ymax'], 'MMSI'][[1]])
     ais <- ais[ais$MMSI %in% mmsiNear, ]
     setkeyv(ais, 'UTC')
-    ais$buoyLat <- approx(x=gps$UTC, y=gps$Latitude, xout=ais$UTC)$y
-    ais$buoyLon <- approx(x=gps$UTC, y=gps$Longitude, xout=ais$UTC)$y
+    if(nrow(gps) == 1) {
+        approxMethod <- 'constant'
+        approxRule <- 2
+    } else {
+        approxMethod <- 'linear'
+        approxRule <- 1
+    }
+    ais$buoyLat <- approx(x=gps$UTC, y=gps$Latitude, xout=ais$UTC, method=approxMethod, rule=approxRule)$y
+    ais$buoyLon <- approx(x=gps$UTC, y=gps$Longitude, xout=ais$UTC, method=approxMethod, rule=approxRule)$y
     ais$buoyDist <- distGeo(matrix(c(ais$Longitude, ais$Latitude), ncol=2),
                             matrix(c(ais$buoyLon, ais$buoyLat), ncol=2))
     ais$inDist <- ais$buoyDist <= distance

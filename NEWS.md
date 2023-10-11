@@ -1,3 +1,7 @@
+# PAMscapes 0.5.4
+
+- Updates for `readLocalAIS` to work better with stationary deployments
+
 # PAMscapes 0.5.3
 
 - Added examples for all functions and a small AIS file for use in examples
