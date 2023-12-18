@@ -101,6 +101,10 @@ checkTriton <- function(x) {
     if(tritonTime %in% colnames(x)) {
         colnames(x)[colnames(x) == tritonTime] <- 'UTC'
     }
+    alternate <- 'yyyy.mm.ddTHH.MM.SSZ'
+    if(alternate %in% colnames(x)) {
+        colnames(x)[colnames(x) == alternate] <- 'UTC'
+    }
     x
 }
 

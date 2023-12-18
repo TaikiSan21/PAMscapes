@@ -5,6 +5,11 @@
 #'   required for use in other PAMscapes functions
 #'
 #' @param x path to .nc file
+#' @param keepQuals quality flag values to keep. Accepts vector of
+#'   integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+#'   "Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+#'   HMD levels for points with data quality flags outside of \code{keepQuals}
+#'   will be marked as \code{NA}.
 #'
 #' @return a dataframe with first column UTC and other columns
 #'   named HMD_Frequency
@@ -18,10 +23,9 @@
 #' }
 #'
 #' @export
-#'
 #' @importFrom ncdf4 nc_open nc_close ncvar_get
 #'
-loadMantaNc <- function(x) {
+loadMantaNc <- function(x, keepQuals=c(1)) {
     if(!file.exists(x)) {
         message('File ', x, ' does not exist.')
         return(NULL)
@@ -38,6 +42,23 @@ loadMantaNc <- function(x) {
              ' "psd" variable.')
     }
     hmd <- ncvar_get(nc, varid='psd', start=c(1, 1), count=c(-1, -1))
+    # if qual flags present, replace some HMD with NA
+    if('quality_flag' %in% names(nc$var)) {
+        quality <- ncvar_get(nc, varid='quality_flag', start=c(1, 1), count=c(-1, -1))
+        qTypes <- unique(as.vector(quality))
+        if(!all(keepQuals %in% c(1,2,3,4))) {
+            warning('"keepQuals" expects values from (1, 2, 3, 4)')
+            keepQuals <- keepQuals[keepQuals %in% c(1, 2, 3, 4)]
+        }
+        dqLevels <- c('Good', 'Not evaluated/Unknown', 'Compromised/Questionable', 'Unusable/Bad')
+        dqDrop <- qTypes[!qTypes %in% keepQuals]
+        if(length(dqDrop) > 0) {
+            message('Data quality flags ', paste0(dqLevels, collapse=', '),
+                    ' found in data, corresponding levels marked as NA.')
+        }
+        dropIx <- matrix(!quality %in% keepQuals, nrow=nrow(quality))
+        hmd[dropIx] <- NA
+    }
     UTC <- nc$dim$time$vals
     UTC <- ncTimeToPosix(UTC, units=nc$dim$time$units)
     hmd <- data.frame(t(hmd))

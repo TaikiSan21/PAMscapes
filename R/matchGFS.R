@@ -3,12 +3,14 @@
 #' @description Downloads and matches wind and precipitation data
 #'   from the Global Forecast System (GFS) weather model. Data is
 #'   downloaded from the National Center for Atmospheric Research
-#'   data server \url{https://rda.ucar.edu/datasets/ds084.1/}
+#'   data server \url{https://rda.ucar.edu/datasets/ds084.1/}.
+#'   The particular GFS dataset downloaded is the closest "forecast"
+#'   dataset to the particular time (e.g. .f000 or .f003)
 #'
 #' @param x a dataframe with columns \code{UTC}, \code{Latitude} and
 #'   \code{Longitude} to add environmental data to
 #'
-#' @return a dataframe with wind and precipitation rate columns added
+#' @return a dataframe with wind (m/s) and precipitation rate (kg/m^2/s) columns added
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'

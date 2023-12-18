@@ -4,10 +4,16 @@
 \alias{loadMantaNc}
 \title{Load MANTA NetCDF File}
 \usage{
-loadMantaNc(x)
+loadMantaNc(x, keepQuals = c(1))
 }
 \arguments{
 \item{x}{path to .nc file}
+
+\item{keepQuals}{quality flag values to keep. Accepts vector of
+integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+"Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+HMD levels for points with data quality flags outside of \code{keepQuals}
+will be marked as \code{NA}.}
 }
 \value{
 a dataframe with first column UTC and other columns

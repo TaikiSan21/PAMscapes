@@ -1,7 +1,8 @@
 ---
 title: "PAMscapes Tutorial"
 author: "Taiki Sakai"
-output: html_document
+# output: html_document
+output: pdf_document
 date: 2023-08-04
 ---
 
@@ -151,7 +152,8 @@ some additional information. First we'll use `matchGFS` to add wind and precipit
 data to our GPS coordinates from the Global Forecast System (GFS) weather model. 
 This will download relevant data from the 
 [UCAR data server](https://rda.ucar.edu/datasets/ds084.1/) and pair it with the appropriate
-GPS coordinates. Other environmental data products from either ERDDAP or HYCOM data servers
+GPS coordinates. The particular GFS datasets downloaded are the closest "forecast" datasets
+to each point in time (e.g. \*.f000 or \*.f003). Other environmental data products from either ERDDAP or HYCOM data servers
 can be added using the `matchEnvData` function from the `PAMmisc` package, more information
 is available on the [PAMpal tutorial website](https://taikisan21.github.io/PAMpal/NextStepsProcessing.html#adding-environmental-data).
 
@@ -161,9 +163,9 @@ gps <- matchGFS(gps)
 
 This function has added columns:
 
-- `windU` eastward wind velocity
-- `windV` northward wind velocity
-- `precRate` average surface precipitation rate
+- `windU` eastward wind velocity (meters / second)
+- `windV` northward wind velocity (meters / second)
+- `precRate` average surface precipitation rate (kg / m^2 / s)
 - `matchLong/Lat/Time_mean` the coordinate value in the NetCDF file your data was matched to
 
 We'll also create
@@ -388,6 +390,31 @@ You can also plot the quantile lines overlaid on top of the density heatmap.
 
 ```{r}
 plotPSD(manta, style=c('quantile', 'density'), q=.05, color='red')
+```
+
+`plotPSD` also has the option to plot separate quantiles on the same plot using the `by` 
+option. `by` specifies the column name that should be used for differentiating between 
+the different types to plot. Note that this option only works if all data are already 
+combined into a single dataframe, and also note that typically the presence of a extra 
+column for labeling in the soundscape data will cause issues for other functions that
+are not expecting it.
+
+Here we'll some TOL data from MANTA on the same plot as some TOL metrics from Triton.
+We need to specify the colors to use for the separate lines with the `color` argument,
+either as a vector of the number of colors or as a palette function. We can also show
+the quantile ribbons like normal.
+
+```{r}
+tolManta <- createOctaveLevel(manta, type='tol', freqRange=c(125, 4e3))
+# we'll use the "Source" column for our labeling
+tolManta$Source <- 'MANTA'
+tol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_TOL_sim.csv'))
+tol$Source <- 'Triton'
+# columns 18-24 contain frequency higher than the 4kHz upper limit of our
+# MANTA data, so we'll remove them before combining
+combined <- rbind(tolManta, tol[-(18:24)])
+plotPSD(combined, by='Source', color=c('blue', 'darkgreen')) /
+    plotPSD(combined, by='Source', color=scales::hue_pal(), q=.05)
 ```
 
 #### plotScaledTimeseries & PAMpal::timeJoin - Data With Different Ranges

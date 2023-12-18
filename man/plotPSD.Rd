@@ -16,6 +16,7 @@ plotPSD(
   dbInt = 1,
   units = "dB re: 1uPa^2/Hz",
   cmap = viridis_pal()(25),
+  by = NULL,
   title = NULL,
   progress = TRUE
 )
@@ -50,6 +51,9 @@ of file paths, or the output from \code{prepPSDData}}
 \item{units}{units for dB axis of plot}
 
 \item{cmap}{color map to use for density plot}
+
+\item{by}{optional column to plot different quantile lines by, only affects
+\code{style='quantile'}}
 
 \item{title}{optional title for plot}
 

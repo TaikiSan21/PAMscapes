@@ -1,3 +1,10 @@
+# PAMscapes 0.5.5
+
+- Adding `by` option for `plotPSD`
+
+- Adding `keepQuals` option for `loadMantaNc` to honor
+data quality flags
+
 # PAMscapes 0.5.4
 
 - Updates for `readLocalAIS` to work better with stationary deployments
