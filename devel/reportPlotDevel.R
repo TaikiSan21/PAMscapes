@@ -25,6 +25,7 @@ adriftTol <- bind_rows(lapply(tolFiles, function(x) {
 saveRDS(adriftTol, 'ADRIFT_TOL.rds')
 adriftTol <- readRDS('ADRIFT_TOL.rds')
 noiseData <- read_xlsx(noiseLog)
+noiseData <- readRDS('ADRIFT_NoiseLog.rds')
 noiseData <- rename(noiseData, start='Start time', end = 'End time')
 formatNumber <- function(x) {
     outs <- as.character(x)
@@ -50,6 +51,8 @@ getDepDetails <- function(x) {
     data
 }
 depDet <- getDepDetails('../DriftWatch/SPOTGPS_Logger.sqlite3')
+saveRDS(depDet, file='DeployDetails.rds')
+depDet <- readRDS('DeployDetails.rds')
 # table(depDet$DeploymentSite[depDet$DriftName %in% adriftTol$driftName])
 adriftTol <- left_join(adriftTol, depDet[c('DriftName', 'DeploymentSite')],
                        by=c('driftName' = 'DriftName'))
