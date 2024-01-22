@@ -37,3 +37,15 @@ test_that('Test octave', {
     filtDiff <- createOctaveLevel(manta, type='ol', freqRange = c(200, 8000))
     expect_identical(filtOl[['OL_250']], filtDiff[['OL_250']])
 })
+
+test_that('Test long wide', {
+    manta <- system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes')
+    ol <- createOctaveLevel(manta, type='ol')
+    expect_identical(ol, toWide(ol))
+    expect_identical(ol, toWide(toLong(ol)))
+    olLong <- toLong(ol)
+    expect_identical(olLong, toLong(olLong))
+    expect_identical(olLong, toLong(toWide(olLong)))
+    ol$ADDSHIT <- runif(nrow(ol))
+    expect_identical(ol, toWide(toLong(ol))[colnames(ol)])
+})

@@ -79,20 +79,21 @@ toLong <- function(x) {
     if(isLong(x)) {
         return(x)
     }
-    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[2:ncol(x)]))
+    whichFreq <- whichFreqCols(x)
+    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
     if(length(type) != 1) {
         stop('"x" must be in long format with columns "UTC", "frequency", and "value" OR',
              ' columns 2:n must named in format TYPE_FREQUENCY.')
     }
     if(type != 'BB') {
-        colnames(x)[2:ncol(x)] <- gsub('[A-z]+_', '', colnames(x)[2:ncol(x)])
-        x <- pivot_longer(x, cols=2:ncol(x), names_to='frequency', values_to='value')
+        colnames(x)[whichFreq] <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
+        x <- pivot_longer(x, cols=all_of(whichFreq), names_to='frequency', values_to='value')
         x$frequency <- as.numeric(x$frequency)
         # x$type <- gsub('_[0-9-]+', '', x$type)
         x$type <- type
     }
     if(type == 'BB') {
-        freqRange <- gsub('BB_', '', colnames(x)[2])
+        freqRange <- gsub('BB_', '', colnames(x)[whichFreq[1]])
         # freqs <- as.numeric(strsplit(freqRange, '-')[[1]])
         x$type <- 'BB'
         colnames(x)[grepl('BB_', colnames(x))] <- 'value'
@@ -101,25 +102,6 @@ toLong <- function(x) {
         x$frequency <- freqRange
     }
     x
-}
-
-checkCpal <- function(cpal, n) {
-    if(is.null(cpal)) {
-        cpal <- hue_pal()
-    }
-    if(is.character(cpal)) {
-        if(length(cpal) == 1) {
-            cpal <- rep(cpal, n)
-        }
-        if(length(cpal) < n) {
-            stop('Must specify enough colors for each different item.')
-        }
-        plotColors <- cpal
-    }
-    if(is.function(cpal)) {
-        plotColors <- cpal(n)
-    }
-    plotColors
 }
 
 #' @importFrom tidyr pivot_wider
@@ -155,8 +137,20 @@ isLong <- function(x) {
 }
 
 isWide <- function(x) {
-    freqCols <- colnames(x)[2:ncol(x)]
-    all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
+    freqCols <- whichFreqCols(x)
+    # all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
+    length(freqCols) > 1
+}
+
+whichFreqCols <- function(x) {
+    x <- colnames(x)
+    isFreq <- grepl('^[A-z]+_[0-9\\.\\-]+$', x)
+    colSplit <- split(x[isFreq], '_')
+    type <- colSplit[[1]][1]
+    sameBase <- sapply(colSplit, function(x) {
+        x[1] == type
+    })
+    which(isFreq)[sameBase]
 }
 
 myLog10Scale <- function(g, range, dim=c('x', 'y')) {
@@ -222,4 +216,23 @@ checkSimple <- function(x, needCols='UTC') {
         x$UTC <- parseToUTC(x$UTC)
     }
     x
+}
+
+checkCpal <- function(cpal, n) {
+    if(is.null(cpal)) {
+        cpal <- hue_pal()
+    }
+    if(is.character(cpal)) {
+        if(length(cpal) == 1) {
+            cpal <- rep(cpal, n)
+        }
+        if(length(cpal) < n) {
+            stop('Must specify enough colors for each different item.')
+        }
+        plotColors <- cpal
+    }
+    if(is.function(cpal)) {
+        plotColors <- cpal(n)
+    }
+    plotColors
 }

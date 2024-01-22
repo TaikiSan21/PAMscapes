@@ -162,10 +162,16 @@ slide6 <- function(x, bin='1hour', column, ci=0, title=NULL, by=NULL, slim=FALSE
 
 ```{r}
 gps <- read_csv(here('testData/ADRIFT_017_GPS.csv'))
+library(sf)
+gps_sf <- st_sfc(st_linestring(matrix(c(gps$Longitude, gps$Latitude), ncol=2)))
+gps_sf <- st_as_sf(gps_sf, crs=4326)
 slide6(tol, bin='2hour', column='TOL_160') /
     slide6(tol, bin='2hour', column='TOL_160', ci=.05, title='TOL160 with 95% quantiles')
-(ggplot(gps, aes(x=Longitude, y=Latitude)) +
-    geom_path()) /
+gpsPlot <- ggplot() + 
+    geom_sf(data=gps_sf)
+gpsPlot <- ggplot() +
+    geom_path(data=gps, aes(x=Longitude, y=Latitude))
+gpsPlot /
     slide6(tol, bin='2hour', column='TOL_160') +
     plot_layout(heights=c(4,1))
 
