@@ -1,3 +1,7 @@
+# PAMscapes 0.5.6
+
+- Adding `by` option for `markNA`
+
 # PAMscapes 0.5.5
 
 - Adding `by` option for `plotPSD`

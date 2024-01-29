@@ -4,7 +4,7 @@
 \alias{markNA}
 \title{Mark NA Values by Time and Frequency}
 \usage{
-markNA(x, na)
+markNA(x, na, by = NULL)
 }
 \arguments{
 \item{x}{dataframe of soundscape data to mark NAs in}
@@ -13,6 +13,11 @@ markNA(x, na)
 and \code{end} in UTC listing time ranges. Can also have columns \code{freqMin}
 and \code{freqMax} to also have accompanying frequency ranges, otherwise
 all frequency values within the time range will be set to NA}
+
+\item{by}{optional column name in both \code{x} and \code{na} if only certain
+rows of \code{na} should apply to certain rows of \code{x} (e.g. if these
+contain multiple deployments overlapping in time, a "DeploymentName" column
+can be used to only mark appropriate times)}
 }
 \value{
 same dataframe as \code{x} but with some values replaced with \code{NA}

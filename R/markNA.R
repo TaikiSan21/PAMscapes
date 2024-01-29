@@ -8,6 +8,10 @@
 #'   and \code{end} in UTC listing time ranges. Can also have columns \code{freqMin}
 #'   and \code{freqMax} to also have accompanying frequency ranges, otherwise
 #'   all frequency values within the time range will be set to NA
+#' @param by optional column name in both \code{x} and \code{na} if only certain
+#'   rows of \code{na} should apply to certain rows of \code{x} (e.g. if these
+#'   contain multiple deployments overlapping in time, a "DeploymentName" column
+#'   can be used to only mark appropriate times)
 #'
 #' @return same dataframe as \code{x} but with some values replaced with \code{NA}
 #'
@@ -24,9 +28,23 @@
 #'
 #' @export
 #'
-markNA <- function(x, na) {
+markNA <- function(x, na, by=NULL) {
     na <- checkNaDf(na)
     x <- checkSoundscapeInput(x, 'UTC')
+    if(!is.null(by)) {
+        if(!by %in% colnames(x) ||
+           !by %in% colnames(na)) {
+            stop('"by" must be present in both dataframes')
+        }
+        return(bind_rows(lapply(split(x, x[[by]]), function(y) {
+            thisNa <- na[na[[by]] == y[[by]][1], ]
+            if(is.null(thisNa) || nrow(thisNa) == 0) {
+                return(y)
+            }
+            y <- markNA(y, na=thisNa[c('start', 'end')], by=NULL)
+            y
+        })))
+    }
     startLong <- isLong(x)
     x <- toLong(x)
     naFreq <- all(c('freqMin', 'freqMax') %in% colnames(na))
