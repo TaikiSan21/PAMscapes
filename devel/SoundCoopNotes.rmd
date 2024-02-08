@@ -1,0 +1,174 @@
+# Day 1
+
+## Intro
+
+Do we need to read some MANTA metadata from NetCDF? Not sure if needed
+for PAMscapes plots...
+
+Probably need to read data quality flag from MANTA netcdf to mark out
+unuseable/bad sections. Maybe `loadMantaNc` needs to print
+comment if any are found
+
+Double check pypam compatiblity
+
+```{r}
+# check manta nc
+library(ncdf4)
+library(here)
+ncFile <- here('testData/nrs_products_sound_level_metrics_11_nrs_11_20191023-20211004_hmd_data_NRS11_H5R6.1.5000_20191024_DAILY_MILLIDEC_MinRes.nc')
+nc <- nc_open(ncFile)
+```
+
+Checking for data quality comments (`varid=0` gets global atts) and
+reading qual flag matrix (1 = Good, 2 = Not evaluated/Unknown, 3 =  Compromised/Questionable , 4 = Unusable / Bad)
+
+```{r}
+ncatt_get(nc, 'comment', varid=0)
+dataQual <- ncvar_get(nc, 'quality_flag', start=c(1,1), count=c(-1, -1))
+dataQual <- t(dataQual)
+dqLevels <- c('Good', 'Not evaluated/Unknown', 'Compromised/Questionable', 'Unusable/Bad')
+dqHas <- unique(as.vector(dataQual))
+dqLevels[dqHas]
+```
+
+ Testing using data quality flags to remove selected sections of data (user selects
+ which ones they want to keep)
+ 
+```{r}
+library(patchwork)
+manta <- loadMantaNc(ncFile)
+mantaDq <- manta
+keepQuals <- c(1)
+dropIx <- matrix(!dataQual %in% keepQuals, nrow=nrow(dataQual))
+mantaDq[2:ncol(mantaDq)][dropIx] <- NA
+plotPSD(manta, style='density') /
+    plotPSD(mantaDq, style='density')
+
+
+```
+
+Manta NC also stores image file? lets see..
+
+```{r}
+mantaPng <- ncvar_get(nc, 'psd_image', start=c(1,1), count=c(-1, -1))
+pngColors <- ncvar_get(nc, 'psd_image_colormap', start=c(1,1), count=c(-1,-1))
+image(t(mantaPng)[, nrow(mantaPng):1])
+mantaPct <- ncvar_get(nc, 'percentile_image', start=c(1,1), count=c(-1,-1))
+image(t(mantaPct)[, nrow(mantaPct):1], xaxt='n')
+plotPSD(manta, style='quantile', q=c(.01), 
+        freqRange=c(10, 2e3))
+```
+
+
+
+## MANTA
+
+Stand alone app exists for Mac/windows to process data. Supports easy 
+batch processing on as many cpus available. Stand alone can support
+different app imports (GPL detector, other detectors, etc.)
+
+Fancier RavenX version also exists to better schedule jobs and apply
+multiple algorithms. RavenX lets you run multiple detection/summary
+algs. RavenX reqs matlab written algorithms, but once they are written
+can easily incorporate new things. 
+
+## PyPAM
+
+Will do example notebook day 2. Computes stuff like manta, has
+hydrophone calibration settings stored in objects (for SoundTrap
+it will take serial number and pull from website)
+
+## Future needs discussion
+
+What is kurtosis lol
+
+# Day 2
+
+Case studies & notebooks later
+
+## Megan acoustic scene analysis
+
+DCASE group detection classification of acoustic scenes
+
+Worried about data augmention (bird+insect = birdinsect) causing
+overfitting, but idk if thats necessarily true? not sure how
+theyre presenting their accuracy results, i would assume they 
+have a real val set
+
+IDK if relevant, Carly linked biodiversity + acoustics paper https://storage.googleapis.com/rfcx-wordpress-media/2023/09/f78fca73-harnessing-the-power-of-sound-and-ai-to-track-global-biodiversity-framework-gbf-targets.pdf
+
+Talking a lot about how granular an acoustic scene cateogry needs to go, im
+skeptical that species-level scenes are going to be realistic. Mo betta seems
+a higher level (healthy reef, heavy vessel, etc.) and then that could
+potentially inform a classification you might do at a lower level step.
+
+Seems like could maybe be used to help rule out false positives? but also
+if you do have a lone TP, that is likely not enough to influence a scene
+
+lol `plotAcousticScene` is not related to this definition of acoustic scene
+
+## Axiom data science people - soundcoop portal
+
+sensors.ioos.us has enviro sensors
+soundcoop.portal.axds.co is their demo for investigating datasets+buoy data
+github.com/ioos/soundcoop
+
+# TODO STUFF
+
+- `checkSoundscapeInput` for a folder of files?
+- Should probs download a year or month or something of Manta HMD data
+for testing some things
+- Add column name reqs (UTC, Latitude, Longitude) to tutorial doc for `matchGFS`
+- Send Megan `matchEnvData` example for ERDDAP
+- AIS summary stuff worry about vessel length for computing summary metrics
+- Add ability to control dB scale for `plotTimeseries` color scaling (so different
+datasets could have exact same color scale ranged from 80-120dB or whatever)
+- Order of PAMscapesTutorial.rmd is all over the place
+- Add multiple base urls to cycle through for `erddapToEdinfo` or whatever it is,
+not just default upwell but will try others on initial fail
+- HMD option for `createOctaveLevel`? to try from full PSD
+- `matchGFS` probably needs to be deprecated and migrated to `PAMmisc::matchEnvData`
+for consistency. Can just call it internall if `dataset='GFS'` or something like
+that.
+- Probably add a similar path for `dataset='HYCOM'` so that it is easier
+- Easier pathway for different erddap server - can do something like baseurl::dataset?
+- Add frequency limits for PSD reading stuff maybe
+- https://erddap.sensors.ioos.us/erddap matches sensors.ioos.us
+- example of `plotPSD(by=)` with their wind > 8 wind < 8 whatever
+cutoffs
+- Awkward path to get enviro directly on soundscape - need to add
+lat/long columns, but then all my funs will get mad with extra columns. I probably
+need to have a better column checker that can auto-drop extras instead of
+just taking a dump. Hm, but then `toLong/toWide` will also take a dump? Carefully
+^ maybe add a lat/long option to `matchEnvData` for people with stationary
+things?
+- Jupyter R notebook showing some of our pamscapes / env data stuff?
+- Add sum and divide by bandwidth option to `createOctaveLevel`
+- Bug Sam about GCP costs for hosting Viame video shizz
+
+# PAM Archive Day
+
+Expanding KBs work to others for pre-filling DB - how to extend this to
+be useful for others? Have a master list of various fields, for others
+need to point to potential source of those data. Currently for us all
+in spreadsheets/dataframes. Potentially others are in a database. Could have
+something like a passiveMapper that creates the source-field map for different
+types, then you can save that and then just say go later. Could be shared
+for any R users, not suuuuuuuper sure how it would work.
+
+^^ Hm. Maybe start as a json file listing all fields, then format the
+source:location for each field like `df:column` or `spreadsheet:column`
+or `db:table:column`. source could be labeled like db1 db2 or whatever,
+then separate file saying the exact file that goes for db1 etc. Could
+also have something to list what rows of that you want to add, in addition
+to checking for existing based on project ID. Hm tricky if multiple sources
+bc different indices so not straight forward to ensure alignment. Would
+need a source-source joining column. Marie brought up good point about
+errors in spreadsheets, not sure what kind of error checking could be
+embedded in this sort of thing. 
+
+www.ncei.noaa.gov/products/passive-acoustic-data
+
+Google bioacoustics Perch group - creating open source models
+for ecologists to work with
+github.com/google-research/perch
