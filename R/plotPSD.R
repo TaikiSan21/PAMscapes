@@ -224,12 +224,13 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
             data <- toWide(data)
         }
         freqCols <- whichFreqCols(data)
-        data <- data[c(1, freqCols)]
         freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
+        data <- data[c(1, freqCols)]
         if(!is.null(freqRange)) {
             goodFreqs <- freqs >= freqRange[1] & freqs <= freqRange[2]
             goodIx <- 1 + which(goodFreqs)
             data <- data[c(1, goodIx)]
+            freqCols <- whichFreqCols(data)
             freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
         }
         # checking compatibility of all file freq vals

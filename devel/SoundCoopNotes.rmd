@@ -172,3 +172,25 @@ www.ncei.noaa.gov/products/passive-acoustic-data
 Google bioacoustics Perch group - creating open source models
 for ecologists to work with
 github.com/google-research/perch
+
+# Passive Packer Later Meeting Feb2024
+
+Our approach is to fill most automatically, Kourtney started by filling
+one in using PassivePacker, then we looked at the database to see what
+columns our data went into. Then she mapped those database columns to
+the columns in our various spreadsheets. Not all of our data is actually
+stored in places, some just needs to be manual (e.g people, places,
+funding). So we pre-fill what we can, then finish off in PP tool. Even
+if it was all present, we think it is valuable to have someone look at it.
+
+## Thoughts for tool
+
+Sampling effort will be hard - probably needs its own tool.
+
+Might need a row index option for inputs
+
+Fully automating is a little scary because if your input formats change 
+and you don't remember, you'll package and send it all
+
+TALK TO MARIE ABOUT ADAPTING TETHYS MAPPER TOOL FOR THIS SO I DONT
+HAVE TO DO ALL THE WORK
