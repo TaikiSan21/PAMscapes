@@ -1,3 +1,94 @@
+#### CREATING NEW MODELS ####
+source('devel/selPredBanterFunctions.R')
+newPreds <- readr::read_csv('../../beaker-wigner-class/preds/adrift_bads3pct/ADRIFT_Wigner_FixedCombined_pred11.csv')
+preds <- readr::read_csv('../../beaker-wigner-class/adrift_test576/ADRIFT_Wigner_FixedCombined_pred.csv')
+preds5_15 <- readr::read_csv('../../beaker-wigner-class/preds/adrift_bads5pct/ADRIFT_Wigner_FixedCombined_pred15.csv')
+preds8_13 <- readr::read_csv('../../beaker-wigner-class/preds/adrift_bads8pct/ADRIFT_Wigner_FixedCombined_pred13.csv')
+data_wGPS <- readRDS('../Data/MTC_CV/ADRIFT_studyFinal220.rds')
+data_wGPS <- setSpecies(data_wGPS, 'pamguard')
+
+library(ggplot2)
+library(patchwork)
+#### Looking at distribution of sel scores and num dropped ####
+goodSp <- c('ZC', 'MS', 'NotBW', 'BW43', 'BB', 'BW39V')
+(newPreds %>% 
+        filter(eventLabel %in% goodSp) %>% 
+        ggplot() +
+        geom_density(aes(x=sel_prob, col=eventLabel)) +
+        facet_wrap(~eventLabel, scales='free')) /
+    
+    (preds5_15 %>% 
+         filter(eventLabel %in% goodSp) %>% 
+         ggplot() +
+         geom_density(aes(x=sel_prob, col=eventLabel)) +
+         facet_wrap(~eventLabel, scales='free'))
+
+selThresh <- 0.3
+preds5_15 %>% 
+    group_by(eventId, eventLabel) %>% 
+    summarise(n=n(),
+              nThresh = sum(sel_prob > selThresh)) %>% 
+    View
+
+##### new sel net model event level ####
+newBantNS <- fitSelPredBanter(data_wGPS,
+                              preds=preds8_13,
+                              selMin=0,
+                              angleMin=0,
+                              ntree=5e3,
+                              importance=TRUE)
+newBantNS@model
+
+##### sel filter ####
+newBantSelEv <- fitSelPredBanter(data_wGPS,
+                                 preds=preds5_15,
+                                 selMin=0.3,
+                                 angleMin=0,
+                                 ntree=5e3,
+                                 importance=TRUE)
+newBantSelEv@model
+##### try with angle cutoffs too i guess ####
+bantNSAngle8_13 <- newBantNSAngle
+newBantNSAngle <- fitSelPredBanter(data_wGPS,
+                                   preds = preds,
+                                   angleMin = pi/2,
+                                   selMin = 0,
+                                   ntree=5e3,
+                                   importance=TRUE)
+newBantNSAngle@model
+newBantNSAngleSel <- fitSelPredBanter(data_wGPS,
+                                      preds=preds5_15,
+                                      angleMin = pi/2,
+                                      selMin = 0.3,
+                                      ntree=5e3, 
+                                      importance=TRUE)
+newBantNSAngleSel@model
+
+newBantSelPredMin <- fitSelPredBanter(data_wGPS,
+                                      preds=preds5_15,
+                                      angleMin=0,
+                                      selMin=0,
+                                      ntree=5e3,
+                                      importance=TRUE,
+                                      selPredMin = .15)
+newBantSelPredMin@model
+plotBanterScores(newBantSelPredMin)
+#### looking at predictions ####
+ns <- plotBanterScores(newBantNS)
+
+nSummary <- newPreds %>% 
+    group_by(eventId) %>% 
+    summarise(n=n(),
+              nThresh = sum(sel_prob > selThresh))
+cvEvNS <- makeSelEv(newPreds, angleMin=0, selMin=0)
+cvEvNS <- left_join(cvEvNS, cp, by=join_by('eventId' == 'id')) %>% 
+    left_join(nSummary, join_by('eventId' == 'eventId'))
+View(cvEvNS)
+ggplot(cvEvNS) +
+    geom_histogram(aes(x=nThresh, fill=is.correct)) +
+    facet_wrap(~predicted, scales='free')
+
+#### PREDICTING ON NEW DATA ####
 preds24 <- readr::read_csv('../../beaker-wigner-class/adrift_test576/ADRIFT024_Wigner288_pred_orig.csv')
 data24 <- readRDS('../Data/MTC_CV/ADRIFT_024Study.rds')
 
