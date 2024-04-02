@@ -80,7 +80,8 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
                       ymin=.data$freqMin,
                       ymax=.data$freqMax,
                       fill=.data[[typeCol]]),
-                  alpha=alpha)
+                  alpha=alpha) +
+        scale_x_datetime()
         # scale_y_continuous(trans=scale)
     if(scale == 'log10') {
         g <- myLog10Scale(g, range=c(freqMin, max(x$freqMax)), dim='y')
