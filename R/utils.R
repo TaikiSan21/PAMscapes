@@ -138,6 +138,10 @@ isLong <- function(x) {
 
 isWide <- function(x) {
     freqCols <- whichFreqCols(x)
+    if(length(freqCols) == 1 &&
+       grepl('BB', colnames(x)[freqCols])) {
+        return(TRUE)
+    }
     # all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
     if(length(freqCols) == 1 &&
        grepl('BB', colnames(x)[freqCols])) {
