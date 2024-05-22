@@ -38,6 +38,7 @@ matchGFS <- function(x) {
     maxTime <- nowUTC() - 36*3600
     origCols <- colnames(x)
     splitDf <- split(x, round_date(x$UTC, unit='3hour'))
+
     splitDf <- lapply(splitDf, function(df) {
         if(round_date(df$UTC[1], unit='3hour') < minTime ||
            round_date(df$UTC[1], unit='3hour') > maxTime) {
@@ -55,6 +56,11 @@ matchGFS <- function(x) {
         vars <- url$vars
         file <- fileNameManager()
         dl <- GET(url$url, write_disk(file, overwrite = TRUE), progress())
+        on.exit({
+          tempCache <- getTempCacheDir(create=FALSE)
+          tempFiles <- list.files(tempCache, full.names=TRUE)
+          unlink(tempFiles, force=TRUE)
+        })
         if(dl$status_code != 200) {
             warning('URL ', url$url, ' is invalid, pasting this into a browser may give more information.')
             df$windU <- NA

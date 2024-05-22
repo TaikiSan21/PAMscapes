@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: Tools for Summarising and Analysing Soundscape Data
-Version: 0.5.7
+Version: 0.5.8
 Authors@R: c(
     TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
     AS = person("Anne", "Simonis", role = c("ctb")),
@@ -18,7 +18,7 @@ Description: A variety of tools relevant to the analysis
 License: GNU General Public License
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Depends:
     R (>= 3.5.0)
 Imports:
@@ -34,7 +34,6 @@ Imports:
     data.table,
     geosphere,
     sf,
-    hoardr,
     PAMmisc,
     ncdf4,
     tdigest,

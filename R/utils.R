@@ -1,13 +1,19 @@
 # util functions
 
-#' @importFrom hoardr hoard
-#'
+#' @importFrom tools R_user_dir
+#' 
+getTempCacheDir <- function(create=TRUE) {
+  tempDir <- R_user_dir("PAMscapes", which = "cache")
+  if(create &&
+     !dir.exists(tempDir)) {
+    dir.create(tempDir, recursive=TRUE)
+  }
+  tempDir
+}
+  
 fileNameManager <- function(fileName=NULL, suffix=NULL) {
     if(is.null(fileName)) {
-        tempDir <- hoard()$cache_path_set('PAMmisc')
-        if(!dir.exists(tempDir)) {
-            dir.create(tempDir, recursive = TRUE)
-        }
+        tempDir <- getTempCacheDir(create=TRUE)
         fileName <- paste0(tempDir, '/TEMPFILE.nc')
     }
     if(!is.null(suffix)) {
