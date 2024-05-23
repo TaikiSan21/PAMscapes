@@ -13,7 +13,7 @@
 #'   to spend time adjusting plot settings.
 #'
 #'   The output of \code{prepPSDData} is a list with 5 elements:
-#'   \itemize{
+#'   \describe{
 #'      \item{frequency}{ - the frequency values of the input data}
 #'      \item{freqRange}{ - the value of the "freqRange" parameter if
 #'        it was supplied}

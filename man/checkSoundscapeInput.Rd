@@ -36,7 +36,7 @@ the conventions above - first column "UTC", other columns
 named by "TYPE_FREQUENCY" where TYPE is consistent across all
 columns and FREQUENCY is in Hertz. Long format data must have
 the following columns:
-\itemize{
+\describe{
 \item{"UTC"}{ - time of the measurement, in UTC timezone}
 \item{"type"}{ - the type of soundscape measurement e.g.
 PSD or OL, must be the same for all}
