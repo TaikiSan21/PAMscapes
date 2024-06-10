@@ -15,6 +15,8 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
+#' # API response may be slow for this example
+#' \donttest{
 #' gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
 #'                   Longitude=c(-118.1, -118.4, -119),
 #'                   UTC=as.POSIXct(
@@ -22,6 +24,7 @@
 #'                       '2022-04-28 10:00:00',
 #'                       '2022-04-28 20:00:00'), tz='UTC'))
 #' gps <- matchGFS(gps)
+#' }
 #'
 #' @importFrom PAMmisc ncToData
 #' @importFrom lubridate round_date

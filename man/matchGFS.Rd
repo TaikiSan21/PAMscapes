@@ -22,6 +22,8 @@ The particular GFS dataset downloaded is the closest "forecast"
 dataset to the particular time (e.g. .f000 or .f003)
 }
 \examples{
+# API response may be slow for this example
+\donttest{
 gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
                   Longitude=c(-118.1, -118.4, -119),
                   UTC=as.POSIXct(
@@ -29,6 +31,7 @@ gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
                       '2022-04-28 10:00:00',
                       '2022-04-28 20:00:00'), tz='UTC'))
 gps <- matchGFS(gps)
+}
 
 }
 \author{
