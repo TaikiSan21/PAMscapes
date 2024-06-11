@@ -12,6 +12,7 @@ plotAcousticScene(
   bin = "1day",
   scale = c("log", "linear"),
   freqMin = NULL,
+  freqMax = NULL,
   alpha = 1
 )
 }
@@ -36,6 +37,8 @@ be displayed as covering this amount of time}
 the plot}
 
 \item{freqMin}{optional minimum frequency for plot, useful for log scale}
+
+\item{freqMax}{optional maximum frequency for plot}
 
 \item{alpha}{transparency percentage for plotting, values less than 1
 will allow multiple overlapping colors to be seen}
