@@ -1,7 +1,7 @@
 # util functions
 
 #' @importFrom tools R_user_dir
-#' 
+#'
 getTempCacheDir <- function(create=TRUE) {
   tempDir <- R_user_dir("PAMscapes", which = "cache")
   if(create &&
@@ -10,7 +10,7 @@ getTempCacheDir <- function(create=TRUE) {
   }
   tempDir
 }
-  
+
 fileNameManager <- function(fileName=NULL, suffix=NULL) {
     if(is.null(fileName)) {
         tempDir <- getTempCacheDir(create=TRUE)
@@ -92,9 +92,15 @@ toLong <- function(x) {
              ' columns 2:n must named in format TYPE_FREQUENCY.')
     }
     if(type != 'BB') {
-        colnames(x)[whichFreq] <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
-        x <- pivot_longer(x, cols=all_of(whichFreq), names_to='frequency', values_to='value')
-        x$frequency <- as.numeric(x$frequency)
+        freqCols <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
+        # freqVals <- as.numeric(freqCols)
+        # names(freqVals) <- freqCols
+        colnames(x)[whichFreq] <- freqCols
+        # colnames(x)[whichFreq] <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
+        x <- pivot_longer(x, cols=all_of(whichFreq), names_to='frequency', values_to='value',
+                          names_transform = as.numeric)
+        # x$frequency <- as.numeric(x$frequency)
+        # x$frequency <- freqVals[x$frequency]
         # x$type <- gsub('_[0-9-]+', '', x$type)
         x$type <- type
     }
@@ -120,6 +126,20 @@ toWide <- function(x) {
     x
 }
 
+isLong <- function(x) {
+    all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
+}
+
+isWide <- function(x) {
+    freqCols <- whichFreqCols(x)
+    # all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
+    if(length(freqCols) == 1 &&
+       grepl('BB', colnames(x)[freqCols])) {
+        return(TRUE)
+    }
+    length(freqCols) > 1
+}
+
 nowUTC <- function() {
     now <- Sys.time()
     attr(now, 'tzone') <- 'UTC'
@@ -136,20 +156,6 @@ unitToPeriod <- function(x) {
         x[1] <- '1'
     }
     period(as.numeric(x[1]), units=x[2])
-}
-
-isLong <- function(x) {
-    all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
-}
-
-isWide <- function(x) {
-    freqCols <- whichFreqCols(x)
-    # all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
-    if(length(freqCols) == 1 &&
-       grepl('BB', colnames(x)[freqCols])) {
-        return(TRUE)
-    }
-    length(freqCols) > 1
 }
 
 whichFreqCols <- function(x) {
@@ -245,4 +251,15 @@ checkCpal <- function(cpal, n) {
         plotColors <- cpal(n)
     }
     plotColors
+}
+
+# convert TOL, PSD, etc. to db re whatever units
+typeToUnits <- function(type) {
+    switch(type,
+           'OL' = 'dB re: 1uPa',
+           'TOL' = 'dB re: 1uPa',
+           'PSD' = 'dB re: 1uPa^2/Hz',
+           'HMD' = 'dB re: 1uPa^2/Hz',
+           NULL
+    )
 }

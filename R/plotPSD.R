@@ -225,13 +225,17 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
         }
         freqCols <- whichFreqCols(data)
         freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
-        data <- data[c(1, freqCols)]
+        # data <- data[c(1, freqCols)]
+        data <- data[freqCols]
         if(!is.null(freqRange)) {
             goodFreqs <- freqs >= freqRange[1] & freqs <= freqRange[2]
-            goodIx <- 1 + which(goodFreqs)
-            data <- data[c(1, goodIx)]
+            # goodIx <- 1 + which(goodFreqs)
+            # data <- data[c(1, goodIx)]
+            goodIx <- which(goodFreqs)
+            data <- data[c(goodIx)]
             freqCols <- whichFreqCols(data)
-            freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
+            # freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
+            freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)))
         }
         # checking compatibility of all file freq vals
         if(f == 1) {
@@ -259,7 +263,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
             #tdigest quantile adding per
             # return tdigest @ frequency for each, then td_merge them into one
             # then quantile of the merged tds
-            thisQuantile <- prepQuantileData(data, q)
+            thisQuantile <- prepQuantileData(data)
             if(f == 1) {
                 quantileData <- thisQuantile
             } else {
@@ -281,6 +285,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
             quantileData[[q]] <- as.list(quantileData[[q]])
         }
     }
+    # just forcing these bc PSD can be large
     rm(data)
     gc()
     list(frequency=firstFreq, freqRange=freqRange, dbVals=dbVals,
@@ -375,7 +380,8 @@ formatQuantileData <- function(x, q, frequency=NULL, freqRange=NULL, scale) {
 
 prepDensityData <- function(x, dbVals) {
     nOOB <- 0
-    counts <- apply(x[2:ncol(x)], 2, function(y) {
+    # counts <- apply(x[2:ncol(x)], 2, function(y) {
+    counts <- sapply(x, function(y) {
         # findInterval will put stuff outside range into outer bins, so need to filter
         inBounds <- y >= dbVals[1] & y <= dbVals[length(dbVals)]
         naVals <- is.na(inBounds)
@@ -393,8 +399,9 @@ prepDensityData <- function(x, dbVals) {
     counts
 }
 
-prepQuantileData <- function(x, q=.1) {
-    qtd <- apply(x[2:ncol(x)], 2, tdigest)
+prepQuantileData <- function(x) {
+    # qtd <- apply(x[2:ncol(x)], 2, tdigest)
+    qtd <- lapply(x, tdigest)
     qtd
 }
 

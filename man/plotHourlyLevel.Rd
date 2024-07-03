@@ -7,7 +7,7 @@
 plotHourlyLevel(
   x,
   title = NULL,
-  units = "dB re: 1uPa",
+  units = NULL,
   scale = c("log", "linear"),
   freqMin = NULL,
   toTz = "UTC",

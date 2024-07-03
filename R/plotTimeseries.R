@@ -40,12 +40,15 @@
 #'
 #' @export
 #'
-plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uPa',
+plotTimeseries <- function(x, bin='1hour', column, title=NULL, units=NULL,
                            style=c('line', 'heatmap'), q=0, by=NULL,
                            cmap=viridis_pal()(25), toTz='UTC') {
     x <- checkSimple(x, needCols='UTC')
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$timeBin <- floor_date(x$UTC, unit=bin)
+    if(is.null(units)) {
+        units <- colToUnits(column)
+    }
     switch(match.arg(style),
            'line' = {
                if(length(q) == 1) {
@@ -95,7 +98,8 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uP
                                  ymax = .data$day + 3600*24,
                                  fill = .data$med)) +
                    scale_fill_gradientn(colors=cmap) +
-                   scale_x_continuous(limits=c(0,24), expand=c(0,0))
+                   scale_x_continuous(limits=c(0,24), expand=c(0,0)) +
+                   scale_y_datetime()
                g <- g +
                    labs(x=paste0('Hour (', toTz, ')'),
                         y='Date',
@@ -111,29 +115,16 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units='dB re: 1uP
     g
 }
 
-# slide5 <- function(x, column, title=NULL, cmap=scales::viridis_pal()(25)) {
-#     # x <- checkSoundscapeInput(x, needCols='UTC')
-#     # x$hour <- hour(x$UTC)
-#     x$day <- floor_date(x$UTC, unit='1day')
-#     # if(is.null(title)) {
-#     #     title <- column
-#     # }
-#     plotData <- group_by(x, .data$day, .data$hour) %>%
-#         summarise(med = median(.data[[column]], na.rm=TRUE), .groups='drop')
-#     g <- ggplot(plotData) +
-#         geom_rect(aes(xmin=.data$hour,
-#                       xmax = .data$hour + 1,
-#                       ymin = .data$day,
-#                       ymax = .data$day + 3600*24,
-#                       fill = .data$med)) +
-#         scale_fill_gradientn(colors=cmap) +
-#         scale_x_continuous(limits=c(0,24), expand=c(0,0))
-#     g <- g +
-#         labs(x='Hour',
-#              y='Date',
-#              fill = 'dB re: 1uPa') +
-#         theme(legend.title = element_text(angle=90)) +
-#         guides(fill=guide_colorbar(title.position='right', barheight=10, title.hjust=.5)) +
-#         ggtitle(title)
-#     g
-# }
+# try to convert column name to metric type and then unit
+colToUnits <- function(x) {
+    x <- strsplit(x, '_')[[1]]
+    if(length(x) == 1) {
+        return(NULL)
+    }
+    # assume if type of XXX__### then XXX is metric type
+    if(length(x) == 2 &&
+       !is.na(suppressWarnings(as.numeric(x[2])))) {
+        return(typeToUnits(x[1]))
+    }
+    NULL
+}

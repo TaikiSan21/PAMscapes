@@ -21,6 +21,9 @@ test_that('Test MANTA load', {
     readr2 <- checkSoundscapeInput(readr2)
     expect_equal(base1, data.frame(readr1))
     expect_equal(base2, data.frame(readr2))
+    readr1[3, 10] <- Inf
+    expect_warning(readr1 <- checkSoundscapeInput(readr1))
+    expect_true(is.na(readr1[3, 10, drop=TRUE]))
 })
 
 test_that('Test octave', {

@@ -9,7 +9,7 @@ plotTimeseries(
   bin = "1hour",
   column,
   title = NULL,
-  units = "dB re: 1uPa",
+  units = NULL,
   style = c("line", "heatmap"),
   q = 0,
   by = NULL,

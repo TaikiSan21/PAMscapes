@@ -37,15 +37,19 @@
 #'
 #' @export
 #'
-plotHourlyLevel <- function(x, title=NULL, units='dB re: 1uPa',
+plotHourlyLevel <- function(x, title=NULL, units=NULL,
                             scale=c('log', 'linear'), freqMin=NULL, toTz='UTC',
                             cmap=viridis_pal()(25)) {
     scale <- match.arg(scale)
     x <- checkSoundscapeInput(x, needCols='UTC')
     x <- toLong(x)
-    if('type' %in% colnames(x) &&
-       x$type[1] == 'BB') {
-        stop('Broadband data inappropriate for this plot.')
+    if('type' %in% colnames(x)) {
+        if(x$type[1] == 'BB') {
+            stop('Broadband data inappropriate for this plot.')
+        }
+        if(is.null(units)) {
+            units <- typeToUnits(x$type[1])
+        }
     }
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$hour <- hour(x$UTC)
@@ -74,6 +78,7 @@ plotHourlyLevel <- function(x, title=NULL, units='dB re: 1uPa',
     if(freqMin < 1 && scale == 'log') {
         freqMin <- 1
     }
+    summByHour <- dplyr::filter(summByHour, .data$freq_low >= freqMin)
     scale <- switch(match.arg(scale),
                     'log' = 'log10',
                     'identity'

@@ -17,8 +17,6 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
-#' # note this example downloads a ~500MB file
-#' \donttest{
 #' gps <- data.frame(Latitude=c(33.2, 33.5,33.6),
 #'                   Longitude=c(-118.1, -118.4, -119),
 #'                   UTC=as.POSIXct(
@@ -27,8 +25,9 @@
 #'                       '2022-04-28 20:00:00'),
 #'                     tz='UTC'))
 #' tempDir <- tempdir()
-#' marcadFiles <- downloadMarCadAIS(gps, outDir=tempDir)
-#' }
+#' # Commented out because running this will download
+#' # a ~500mb file
+#' # marcadFiles <- downloadMarCadAIS(gps, outDir=tempDir)
 #'
 #' @importFrom httr GET progress write_disk
 #' @importFrom lubridate year

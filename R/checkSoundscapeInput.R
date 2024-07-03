@@ -84,11 +84,11 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
 }
 
 checkInfinite <- function(x) {
-    infCols <- apply(x[2:ncol(x)], 2, function(c) any(is.infinite(c)))
+    infCols <- sapply(x, function(c) any(is.infinite(c)))
     if(!any(infCols)) {
         return(x)
     }
-    infIx <- which(infCols) + 1
+    infIx <- which(infCols)
     warning('Found infinite values in "x", they will be replaced with NA.')
     for(i in infIx) {
         x[[i]][is.infinite(x[[i]])] <- NA
