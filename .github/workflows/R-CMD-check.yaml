@@ -40,6 +40,12 @@ jobs:
         run: |
           sudo /usr/bin/Xvfb $DISPLAY -screen 0 1280x1024x24 &
 
+      - name: Setting dontte
+        if: runner.os == 'Linux'
+        run: |
+          echo "_R_CHECK_DONTTEST_EXAMPLES_=TRUE" >> $GITHUB_ENV
+          echo "_R_CHECK_THINGS_IN_OTHER_DIRS_=TRUE" >> $GITHUB_ENV
+
       - name: Install XQuarts macOS
         if: runner.os == 'macOS'
         run: brew install xquartz --cask
@@ -61,7 +67,7 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
-          args: 'c("--no-manual", "--as-cran", "--run-donttest")'
+          args: 'c("--no-manual", "--as-cran")'
 
       - name: Show testthat output
         if: always()
