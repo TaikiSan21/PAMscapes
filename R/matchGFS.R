@@ -61,9 +61,9 @@ matchGFS <- function(x) {
         dl <- GET(url$url, write_disk(file, overwrite = TRUE), progress())
         on.exit({
           tempCache <- getTempCacheDir(create=FALSE)
-          tempFiles <- list.files(tempCache, full.names=TRUE)
-          unlink(tempFiles, force=TRUE)
-          # unlink(tempCache, force=TRUE, recursive=TRUE)
+          # tempFiles <- list.files(tempCache, full.names=TRUE)
+          # unlink(tempFiles, force=TRUE)
+          unlink(tempCache, force=TRUE, recursive=TRUE)
         })
         if(dl$status_code != 200) {
             warning('URL ', url$url, ' is invalid, pasting this into a browser may give more information.')
