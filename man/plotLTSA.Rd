@@ -42,10 +42,24 @@ scaling of dB values in the plot}
 \item{toTz}{timezone to use for the time axis (input data must be UTC).
 Specification must be from \link{OlsonNames}}
 }
+\value{
+ggplot object of the LTSA plot
+}
 \description{
 Creates a long-term spectral average (LTSA) style plot
 of the data, a plot where the x-axis is time and the y-axis is frequency.
 Color represents the magnitude of sound. In order to compress the
 time axis, data are binned into time chunks and the median value
 within that time bin is displayed
+}
+\examples{
+hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+# time range is too small for nice plots
+plotLTSA(hmd, bin='1min', title='Every Minute')
+plotLTSA(hmd, bin='2min', title='2 Minute Bins')
+
+
+}
+\author{
+Taiki Sakai \email{taiki.sakai@noaa.gov}
 }

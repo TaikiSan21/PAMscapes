@@ -23,6 +23,17 @@
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
 #'
+#' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
+#'
+#' @return ggplot object of the LTSA plot
+#'
+#' @examples
+#' hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' # time range is too small for nice plots
+#' plotLTSA(hmd, bin='1min', title='Every Minute')
+#' plotLTSA(hmd, bin='2min', title='2 Minute Bins')
+#'
+#'
 #' @importFrom scales squish
 #' @importFrom data.table setDT setkeyv setDF .SD
 #'

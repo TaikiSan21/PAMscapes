@@ -58,6 +58,9 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
             warning('"keepQuals" expects values from (1, 2, 3, 4)')
             keepQuals <- keepQuals[keepQuals %in% c(1, 2, 3, 4)]
         }
+        # manuscript https://cdn.ioos.noaa.gov/media/2017/12/QARTOD_PassiveAcousticsManual_Final_V1.0_signed.pdf
+        # these should be
+        # "Pass", "Not Evaulated", "Suspect or High Interest", "Fail", "Missing Data"=9
         dqLevels <- c('Good', 'Not evaluated/Unknown', 'Compromised/Questionable', 'Unusable/Bad')
         dqDrop <- qTypes[!qTypes %in% keepQuals]
         if(length(dqDrop) > 0) {

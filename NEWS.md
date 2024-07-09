@@ -1,3 +1,11 @@
+# PAMscapes 0.6.0
+
+- Fixing CRAN checking issue with `matchGFS` example
+
+- Added `plotLTSA` function
+
+- Speed improvements for many functions
+
 # PAMscapes 0.5.8
 
 - dropping `hoardr` and trying to fix cache path on MacOS for CRAN
