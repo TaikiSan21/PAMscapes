@@ -43,7 +43,29 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                      title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
                      cmap=viridis_pal()(25), toTz='UTC') {
     x <- checkSoundscapeInput(x, needCols='UTC')
-    x <- toLong(x)
+    scale <- match.arg(scale)
+    # we need a freqLow column later for the geom_, this block
+    # is just making this faster by passing pivot_longer a
+    # spec df for how to do the long-ing
+    whichFreq <- whichFreqCols(x)
+    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
+    freqVals <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
+    longSpec <- data.frame(.name=freqVals, .value='value')
+    freqVals <- as.numeric(freqVals)
+    longSpec$frequency <- freqVals
+    longSpec$type <- type
+    freqDiffs <- diff(freqVals)
+    lowFreq <- switch(scale,
+                      'log' = {
+                          freqDiffs[1] / (freqDiffs[2]/freqDiffs[1])
+                      },
+                      'linear' = freqDiffs[1]
+    )
+    freqDiffs <- c(lowFreq, freqDiffs)
+    freqLows <- freqVals - freqDiffs
+    longSpec$freqLow <- freqLows
+    x <- toLong(x, spec=longSpec)
+    # we could move this earlier but it doesnt actually take much time
     if(!is.null(freqRange)) {
         if(length(freqRange) != 2) {
             freqRange <- range(x$frequency)
@@ -63,28 +85,11 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     if(is.null(units)) {
         units <- typeToUnits(x$type[1])
     }
-    scale <- match.arg(scale)
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$plotTime <- floor_date(x[['UTC']], unit=bin)
     setDT(x)
-    # setkeyv(x, c('frequency', 'plotTime'))
-    x <- x[, .('value'=median(.SD$value)), by=c('frequency', 'plotTime')]
+    x <- x[, lapply(.SD, median), .SDcols='value', by=c('frequency', 'freqLow', 'plotTime')]
     setDF(x)
-    # x <- group_by(x, frequency, plotTime) %>%
-    #     summarise(value = median(value)) %>%
-    #     ungroup()
-    freqVals <- sort(unique(x$frequency))
-    freqDiffs <- diff(freqVals)
-    lowFreq <- switch(scale,
-                      'log' = {
-                          freqDiffs[1] / (freqDiffs[2]/freqDiffs[1])
-                      },
-                      'linear' = freqDiffs[1]
-    )
-    freqDiffs <- c(lowFreq, freqDiffs)
-    names(freqDiffs) <- as.character(freqVals)
-    # making geom_rect endpoints for x and y
-    x$freq_low <- x$frequency - freqDiffs[as.character(x$frequency)]
     x$UTCend <- x$plotTime + unitToPeriod(bin)
     if(is.function(cmap)) {
         cmap <- cmap(25)
@@ -93,17 +98,12 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         dbRange <- range(x$value)
     }
     if(scale == 'log') {
-        x <- dplyr::filter(x, .data$freq_low > 0)
+        x <- dplyr::filter(x, .data$freqLow > 0)
     }
     ggplot(x) +
-        # geom_raster(aes(x=.data$plotTime,
-        #               # xmax=.data$UTCend,
-        #               # ymin=.data$freq_low,
-        #               y=.data$frequency,
-        #               fill=.data$value)) +
         geom_rect(aes(xmin=.data$plotTime,
                       xmax=.data$UTCend,
-                      ymin=.data$freq_low,
+                      ymin=.data$freqLow,
                       ymax=.data$frequency,
                       fill=.data$value)) +
         scale_fill_gradientn(colors=cmap,
@@ -114,5 +114,3 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         labs(fill=units) +
         ggtitle(title)
 }
-
-globalVariables('.')

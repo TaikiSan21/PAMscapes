@@ -79,9 +79,9 @@ parseToUTC <- function(x,
     with_tz(origTz, tzone='UTC')
 }
 
-#' @importFrom tidyr pivot_longer
+#' @importFrom tidyr pivot_longer_spec pivot_longer
 #'
-toLong <- function(x) {
+toLong <- function(x, spec=NULL) {
     if(isLong(x)) {
         return(x)
     }
@@ -93,15 +93,13 @@ toLong <- function(x) {
     }
     if(type != 'BB') {
         freqCols <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
-        # freqVals <- as.numeric(freqCols)
-        # names(freqVals) <- freqCols
         colnames(x)[whichFreq] <- freqCols
-        # colnames(x)[whichFreq] <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
-        x <- pivot_longer(x, cols=all_of(whichFreq), names_to='frequency', values_to='value',
-                          names_transform = as.numeric)
-        # x$frequency <- as.numeric(x$frequency)
-        # x$frequency <- freqVals[x$frequency]
-        # x$type <- gsub('_[0-9-]+', '', x$type)
+        if(is.null(spec)) {
+            spec <- data.frame(.name=freqCols, .value='value', frequency=as.numeric(freqCols))
+        }
+        # x <- pivot_longer(x, cols=all_of(whichFreq), names_to='frequency', values_to='value',
+        #                   names_transform = as.numeric)
+        x <- pivot_longer_spec(x, spec=spec)
         x$type <- type
     }
     if(type == 'BB') {
