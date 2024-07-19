@@ -82,6 +82,16 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
     names(cpal) <- columns
     if(length(columns) > 1) {
         for(i in 2:length(columns)) {
+            if(i == 2) {
+                min2 <- min(c(x[[columns[2]]], minVals[2]), na.rm=TRUE)
+                min1 <- min(c(x[[columns[1]]], minVals[1]), na.rm=TRUE)
+                diff2 <- diff(range(c(x[[columns[2]]], minVals[2]), na.rm=TRUE))
+                diff1 <- diff(range(c(x[[columns[1]]], minVals[1]), na.rm=TRUE))
+
+                col2Trans <- function(y) {
+                    (y - min1) / diff1 * diff2 / relMax + min2
+                }
+            }
             x[[columns[i]]] <- doRescale(x[[columns[i]]], target=c(minVals[1], x[[columns[1]]]), min=minVals[i], relMax=relMax)
         }
     }
@@ -95,6 +105,11 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
         scale_linewidth_manual(values=lwd)
     g <- g + ggtitle(title) +
         labs(y=units, x=paste0('Date (', toTz, ')'))
+    if(length(columns) > 1) {
+        g <- g +
+            scale_y_continuous(limits=range(c(minVals[1], x$value[x$Type == columns[1]]), na.rm=TRUE),
+                               sec.axis = sec_axis(name=columns[2], transform=col2Trans))
+    }
     g
 }
 

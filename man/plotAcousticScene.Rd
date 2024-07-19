@@ -13,7 +13,9 @@ plotAcousticScene(
   scale = c("log", "linear"),
   freqMin = NULL,
   freqMax = NULL,
-  alpha = 1
+  fill = TRUE,
+  alpha = 1,
+  add = FALSE
 )
 }
 \arguments{
@@ -40,8 +42,14 @@ the plot}
 
 \item{freqMax}{optional maximum frequency for plot}
 
+\item{fill}{logical flag if \code{TRUE} then filled boxes will be plotted,
+if \code{FALSE} then only outlines will be plotted}
+
 \item{alpha}{transparency percentage for plotting, values less than 1
 will allow multiple overlapping colors to be seen}
+
+\item{add}{logical flag if \code{FALSE} plots normally if \code{TRUE}
+then the output can be (maybe) added to an existing ggplot object}
 }
 \value{
 a ggplot object

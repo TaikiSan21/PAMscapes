@@ -29,7 +29,7 @@
 #'
 #' @importFrom dplyr group_by summarise ungroup rename
 #'
-createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('sum', 'mean')) {
+createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('sum', 'mean', 'median')) {
     x <- checkSoundscapeInput(x)
     startLong <- isLong(x)
     x <- toLong(x)
@@ -47,12 +47,12 @@ createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('
     x$value <- 10^(x$value / 10)
     FUN <- switch(match.arg(method),
                   'sum' = sum,
-                  'mean' = mean
+                  'mean' = mean,
+                  'median' = median
     )
-    x <- x %>%
-        group_by(.data$UTC, .data$octave) %>%
-        summarise(value = FUN(.data$value)) %>%
-        ungroup()
+    setDT(x)
+    x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave')]
+    setDF(x)
     x$type <- toupper(type)
     x <- rename(x, frequency = 'octave')
     x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]

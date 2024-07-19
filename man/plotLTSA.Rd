@@ -13,7 +13,8 @@ plotLTSA(
   dbRange = NULL,
   units = NULL,
   cmap = viridis_pal()(25),
-  toTz = "UTC"
+  toTz = "UTC",
+  alpha = 1
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ scaling of dB values in the plot}
 
 \item{toTz}{timezone to use for the time axis (input data must be UTC).
 Specification must be from \link{OlsonNames}}
+
+\item{alpha}{alpha to use for the plot fill}
 }
 \value{
 ggplot object of the LTSA plot

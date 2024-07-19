@@ -19,8 +19,12 @@
 #'   the plot
 #' @param freqMin optional minimum frequency for plot, useful for log scale
 #' @param freqMax optional maximum frequency for plot
+#' @param fill logical flag if \code{TRUE} then filled boxes will be plotted,
+#'   if \code{FALSE} then only outlines will be plotted
 #' @param alpha transparency percentage for plotting, values less than 1
 #'   will allow multiple overlapping colors to be seen
+#' @param add logical flag if \code{FALSE} plots normally if \code{TRUE}
+#'   then the output can be (maybe) added to an existing ggplot object
 #'
 #' @return a ggplot object
 #'
@@ -47,7 +51,8 @@
 plotAcousticScene <- function(x, freqMap, typeCol='species',
                               title=NULL, bin='1day', scale=c('log', 'linear'),
                               freqMin=NULL, freqMax=NULL,
-                              alpha=1) {
+                              fill=TRUE,
+                              alpha=1, add=FALSE) {
     x <- checkSimple(x, needCols=c('UTC', typeCol))
     x$plotStart <- floor_date(x$UTC, unit=bin)
     thisPeriod <- unitToPeriod(bin)
@@ -70,6 +75,21 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
 
     x <- x[!is.na(x[['freqMin']]), ]
     x <- distinct(x[c('plotStart', 'plotEnd', 'freqMin', 'freqMax', typeCol)])
+    x <- bind_rows(lapply(split(x, x[[typeCol]]), function(d) {
+        if(nrow(d) == 1) {
+            return(d)
+        }
+        d$difftime <- TRUE
+        d$difftime[2:nrow(d)] <- d$plotStart[2:nrow(d)] != d$plotEnd[1:(nrow(d)-1)]
+        d$group <- cumsum(d$difftime)
+        d <- group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax) %>%
+            summarise(plotStart = min(.data$plotStart),
+                      plotEnd = max(.data$plotEnd)) %>%
+            ungroup()
+        d$group <- NULL
+        d
+    }))
+
     if(is.null(freqMin)) {
         freqMin <- min(x[['freqMin']])
     }
@@ -79,28 +99,61 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
     if(freqMin < 1 && scale == 'log10') {
         freqMin <- 1
     }
-    g <- ggplot(x) +
-        geom_rect(aes(xmin=.data$plotStart,
-                      xmax=.data$plotEnd,
-                      ymin=.data$freqMin,
-                      ymax=.data$freqMax,
-                      fill=.data[[typeCol]]),
-                  alpha=alpha) +
-        scale_x_datetime()
-        # scale_y_continuous(trans=scale)
-    if(scale == 'log10') {
-        g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')
+    if(isFALSE(add)) {
+        g <- ggplot()
+    } else {
+        if(!inherits(add, 'ggplot')) {
+            stop('"add" must be FALSE or a ggplot object')
+        }
+        g <- add
+        fill <- FALSE
     }
-    g <- g +
-        ggtitle(title) +
-        labs(y='Frequency (Hz)',
-             x='Date',
-             fill='Sound Type')
+    if(isTRUE(fill)) {
+        g <- g +
+            geom_rect(data=x,
+                      aes(xmin=.data$plotStart,
+                          xmax=.data$plotEnd,
+                          ymin=.data$freqMin,
+                          ymax=.data$freqMax,
+                          fill=.data[[typeCol]]),
+                      alpha=alpha)
+    } else { # or only color
+        g <- g +
+            geom_rect(data=x,
+                      aes(xmin=.data$plotStart,
+                          xmax=.data$plotEnd,
+                          ymin=.data$freqMin,
+                          ymax=.data$freqMax,
+                          color=.data[[typeCol]]),
+                      fill=NA,
+                      alpha=alpha)
+    }
+    # g <- g +
+    #     scale_x_datetime()
+    # scale_y_continuous(trans=scale)
+
+    if(isFALSE(add)) {
+        if(scale == 'log10') {
+            g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')
+        }
+        g <- g +
+            ggtitle(title) +
+            labs(y='Frequency (Hz)',
+                 x='Date',
+                 fill='Sound Type') +
+            scale_x_datetime()
+
+    }
     if('color' %in% colnames(freqMap)) {
         colNames <- freqMap[['color']]
         names(colNames) <- freqMap[['type']]
-        g <- g +
-            scale_fill_manual(values=colNames)
+        if(isTRUE(fill)) {
+            g <- g +
+                scale_fill_manual(values=colNames, name='Sound Type')
+        } else {
+            g <- g +
+                scale_color_manual(values = colNames, name='Sound Type')
+        }
     }
     g
 }

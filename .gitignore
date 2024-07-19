@@ -51,3 +51,6 @@ rsconnect/
 # big data files
 /AIS*/
 testData/
+
+# secrets
+/.secrets

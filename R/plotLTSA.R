@@ -22,6 +22,7 @@
 #' @param cmap color palette map to use for plot, default is \link[scales]{viridis_pal}
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
+#' @param alpha alpha to use for the plot fill
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -41,7 +42,7 @@
 #'
 plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                      title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
-                     cmap=viridis_pal()(25), toTz='UTC') {
+                     cmap=viridis_pal()(25), toTz='UTC', alpha=1) {
     x <- checkSoundscapeInput(x, needCols='UTC')
     scale <- match.arg(scale)
     # we need a freqLow column later for the geom_, this block
@@ -105,7 +106,8 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                       xmax=.data$UTCend,
                       ymin=.data$freqLow,
                       ymax=.data$frequency,
-                      fill=.data$value)) +
+                      fill=.data$value),
+                  alpha=alpha) +
         scale_fill_gradientn(colors=cmap,
                              limits=dbRange,
                              oob=squish) +

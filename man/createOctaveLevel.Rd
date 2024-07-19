@@ -8,7 +8,7 @@ createOctaveLevel(
   x,
   type = c("ol", "tol"),
   freqRange = NULL,
-  method = c("sum", "mean")
+  method = c("sum", "mean", "median")
 )
 }
 \arguments{
