@@ -1,3 +1,7 @@
+# PAMscapes 0.6.1
+
+- Adding `matchSeascape` function
+
 # PAMscapes 0.6.0
 
 - Fixing CRAN checking issue with `matchGFS` example

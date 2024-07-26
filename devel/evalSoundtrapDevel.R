@@ -10,11 +10,13 @@ evaluateSoundtrapPerformance <- function(dir, sampleWindow=c(60, 60),
     # need to parse wav file times and track
     octaves <- PAMscapes:::getOctaveLevels(match.arg(octave), freqRange=freqRange)
     tol <- lapply(wavFiles, function(x) {
-        wavClip <- tuneR::readWave(x, from=sampleWindow[1], to=sum(sampleWindow), units='seconds', toWaveMC = TRUE)
-        nfft <- wavClip@samp.rate
-        # wavClip <- audio::load.wave(x, from=sampleWindow[1], to=sum(sampleWindow))
-        # wavClip <- PAMmisc::fastReadWave(x, from=sampleWindow[1], to=sum(sampleWindow))
-        # nfft <- wavClip$rate
+        if(packageVersion('PAMmisc') >= '1.2.2') {
+            wavClip <- PAMmisc::fastReadWave(x, from=sampleWindow[1], to=sum(sampleWindow))
+            nfft <- wavClip$rate
+        } else {
+            wavClip <- tuneR::readWave(x, from=sampleWindow[1], to=sum(sampleWindow), units='seconds', toWaveMC = TRUE)
+            nfft <- wavClip@samp.rate
+        }
         welch <- pwelch(wavClip, nfft=nfft, noverlap=0, demean='long', channel=1)
         tolBins <- cut(welch$freq, octaves$limits, octaves$labels)
         tolVals <- lapply(split(welch$spec, tolBins), function(p) {
@@ -33,11 +35,8 @@ evaluateSoundtrapPerformance <- function(dir, sampleWindow=c(60, 60),
             geom_line()
         print(tolPlot)
     }
-    times <- PAMpal:::wavsToRanges(wavFiles, progress=FALSE)
     tol
 }
-
-
 
 wavToTime <- function(x) {
     x <- basename(x)
@@ -105,4 +104,3 @@ wavToTime <- function(x) {
     }
     posix + millis
 }
-wavToTime(wavFiles[3])

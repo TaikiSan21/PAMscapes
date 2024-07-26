@@ -8,3 +8,4 @@
 .RData
 .github
 ^tutorial/
+^.secrets
