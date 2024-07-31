@@ -119,10 +119,10 @@ plotPSD <- function(x, style=c('quantile', 'density'),
     }
 
 
-    plotData <- prepPSDData(x, freqRange=freqRange, style=style, dbInt=dbInt, progress=progress)
+    x <- prepPSDData(x, freqRange=freqRange, style=style, dbInt=dbInt, progress=progress)
     g <- ggplot()
     if('density' %in% style) {
-        plotDensity <- formatDensityData(plotData,
+        plotDensity <- formatDensityData(x,
                                          freqRange = freqRange,
                                          scale=scale)
         g <- g +
@@ -136,14 +136,10 @@ plotPSD <- function(x, style=c('quantile', 'density'),
             labs(fill='Density')
     }
     if('quantile' %in% style) {
-        plotQuant <- formatQuantileData(plotData,
+        plotQuant <- formatQuantileData(x,
                                         q=q,
                                         freqRange=freqRange,
                                         scale=scale)
-        # g <- g +
-        #     geom_line(
-        #         data=plotQuant,
-        #         aes(x=.data$frequency, y=.data$qmed, color=color), lwd=1)
         if(!is.null(by)) {
             g <- g +
                 geom_line(
@@ -161,9 +157,6 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                 geom_ribbon(
                     data=plotQuant,
                     aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh), fill=color, alpha=.1)
-            # scale_color_manual(values=color) +
-            # scale_fill_manual(values=color) +
-            # guides(color='none', fill='none')
         }
     }
 
@@ -172,13 +165,13 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         ggtitle(title) +
         labs(x='Frequency (Hz)', color='Quantile', y=units)
     if(is.null(freqRange)) {
-        freqRange <- range(plotData$frequency)
+        freqRange <- range(x$frequency)
         if('density' %in% style) {
             freqRange[1] <- min(plotDensity$freqLow)
         }
     }
     if(is.infinite(freqRange[2])) {
-        freqRange[2] <- max(plotData$frequency)
+        freqRange[2] <- max(x$frequency)
     }
     if(scale == 'log') {
         if(freqRange[1] == 0) {
