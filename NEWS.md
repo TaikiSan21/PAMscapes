@@ -1,3 +1,15 @@
+# PAMscapes 0.6.2
+
+- Adding `by` option for `plotPSD`
+
+- Improving performance for large datasets in `plotPSD` when they are provided
+as a single dataframe
+
+- Adding `binSoundscapeData` function to summarise data by a smaller
+unit of time
+
+- Added binning options directly to `checkSoundscapeInput`
+
 # PAMscapes 0.6.1
 
 - Adding `matchSeascape` function
