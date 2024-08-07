@@ -2,6 +2,7 @@
 
 export(addAIS)
 export(addAISSummary)
+export(binSoundscapeData)
 export(checkSoundscapeInput)
 export(createOctaveLevel)
 export(downloadMarCadAIS)

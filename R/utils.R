@@ -3,12 +3,12 @@
 #' @importFrom tools R_user_dir
 #'
 getTempCacheDir <- function(create=TRUE) {
-  tempDir <- R_user_dir("PAMscapes", which = "cache")
-  if(create &&
-     !dir.exists(tempDir)) {
-    dir.create(tempDir, recursive=TRUE)
-  }
-  tempDir
+    tempDir <- R_user_dir("PAMscapes", which = "cache")
+    if(create &&
+       !dir.exists(tempDir)) {
+        dir.create(tempDir, recursive=TRUE)
+    }
+    tempDir
 }
 
 fileNameManager <- function(fileName=NULL, suffix=NULL) {
@@ -125,7 +125,10 @@ toWide <- function(x) {
 }
 
 isLong <- function(x) {
-    all(c('UTC', 'type', 'value', 'frequency') %in% colnames(x))
+    if(is.data.frame(x)) {
+        x <- colnames(x)
+    }
+    all(c('UTC', 'type', 'value', 'frequency') %in% x)
 }
 
 isWide <- function(x) {
@@ -157,7 +160,9 @@ unitToPeriod <- function(x) {
 }
 
 whichFreqCols <- function(x) {
-    x <- colnames(x)
+    if(is.data.frame(x)) {
+        x <- colnames(x)
+    }
     isFreq <- grepl('^[A-z]+_[0-9\\.\\-]+$', x)
     colSplit <- split(x[isFreq], '_')
     type <- colSplit[[1]][1]
@@ -183,13 +188,13 @@ myLog10Scale <- function(g, range, dim=c('x', 'y')) {
     dim <- match.arg(dim)
     if(dim == 'x') {
         g +
-        scale_x_continuous(trans='log10',
-                           breaks = major,
-                           minor_breaks = minor,
-                           labels = scientific_10,
-                           limits = range,
-                           expand = c(0, 0)) +
-        annotation_logticks(sides='b')
+            scale_x_continuous(trans='log10',
+                               breaks = major,
+                               minor_breaks = minor,
+                               labels = scientific_10,
+                               limits = range,
+                               expand = c(0, 0)) +
+            annotation_logticks(sides='b')
     } else {
         g +
             scale_y_continuous(trans='log10',
@@ -260,4 +265,12 @@ typeToUnits <- function(type) {
            'HMD' = 'dB re: 1uPa^2/Hz',
            NULL
     )
+}
+
+colsToFreqs <- function(x) {
+    if(is.data.frame(x)) {
+        whichFreq <- whichFreqCols(colnames(x))
+        x <- colnames(x)[whichFreq]
+    }
+    as.numeric(gsub('[A-z]+_', '', x))
 }

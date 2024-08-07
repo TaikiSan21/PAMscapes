@@ -10,6 +10,11 @@
 #'   NetCDF file
 #' @param needCols names of columns that must be present in \code{x},
 #'   if any are missing will trigger an error
+#' @param skipCheck logical flag to skip some data checking, recommended
+#'   to keep as \code{FALSE}
+#' @param timeBin amount of time to bin data by, format can
+#'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
+#' @param binFunction summary function to apply to data in each time bin
 #'
 #' @details Files created by MANTA and Triton software will be
 #'   reformatted to have consisitent formatting. The first column
@@ -49,7 +54,8 @@
 #' @importFrom readr read_csv read_lines
 #' @importFrom data.table fread setDF
 #'
-checkSoundscapeInput <- function(x, needCols=c('UTC')) {
+checkSoundscapeInput <- function(x, needCols=c('UTC'), skipCheck=FALSE,
+                                 timeBin=NULL, binFunction=median) {
     if(is.character(x)) {
         if(!file.exists(x)) {
             stop('File ', x, ' does not exist.')
@@ -66,9 +72,11 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
             x <- loadMantaNc(x)
         }
     }
-    x <- checkTriton(x)
-    x <- checkManta(x)
-    x <- checkInfinite(x)
+    if(isFALSE(skipCheck)) {
+        x <- checkTriton(x)
+        x <- checkManta(x)
+        x <- checkInfinite(x)
+    }
     missingCols <- needCols[!needCols %in% colnames(x)]
     if(length(missingCols) > 0) {
         stop('Required columns ', paste0(missingCols, collapse=', '),
@@ -77,8 +85,11 @@ checkSoundscapeInput <- function(x, needCols=c('UTC')) {
     if(is.character(x$UTC)) {
         x$UTC <- parseToUTC(x$UTC)
     }
-    if(!isWide(x) && !isLong(x)) {
+    if(!isWide(colnames(x)) && !isLong(colnames(x))) {
         stop('Input "x" could not be formatted properly.')
+    }
+    if(!is.null(timeBin)) {
+        x <- binSoundscapeData(x, bin=timeBin, FUN=binFunction)
     }
     x
 }

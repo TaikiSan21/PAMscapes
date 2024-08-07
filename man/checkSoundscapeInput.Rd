@@ -4,7 +4,13 @@
 \alias{checkSoundscapeInput}
 \title{Check Proper Formatting for Soundscape Inputs}
 \usage{
-checkSoundscapeInput(x, needCols = c("UTC"))
+checkSoundscapeInput(
+  x,
+  needCols = c("UTC"),
+  skipCheck = FALSE,
+  timeBin = NULL,
+  binFunction = median
+)
 }
 \arguments{
 \item{x}{a dataframe, path to a CSV file, or path to a MANTA
@@ -12,6 +18,14 @@ NetCDF file}
 
 \item{needCols}{names of columns that must be present in \code{x},
 if any are missing will trigger an error}
+
+\item{skipCheck}{logical flag to skip some data checking, recommended
+to keep as \code{FALSE}}
+
+\item{timeBin}{amount of time to bin data by, format can
+be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
+
+\item{binFunction}{summary function to apply to data in each time bin}
 }
 \value{
 a dataframe

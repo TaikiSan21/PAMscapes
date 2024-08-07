@@ -49,6 +49,12 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     # is just making this faster by passing pivot_longer a
     # spec df for how to do the long-ing
     whichFreq <- whichFreqCols(x)
+    x$UTC <- with_tz(x$UTC, tzone=toTz)
+    x$UTC <- floor_date(x[['UTC']], unit=bin)
+    setDT(x)
+    x <- x[, lapply(.SD, median), .SDcols=colnames(x)[whichFreq], by=c('UTC')]
+    setDF(x)
+    # x <- binSoundscapeData(x, bin=bin, FUN=median)
     type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
     freqVals <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
     longSpec <- data.frame(.name=freqVals, .value='value')
@@ -65,6 +71,8 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     freqDiffs <- c(lowFreq, freqDiffs)
     freqLows <- freqVals - freqDiffs
     longSpec$freqLow <- freqLows
+    # the spec is to make it faster char->numeric conversion and add freqLow column
+    # only need to specify here bc freqLow column
     x <- toLong(x, spec=longSpec)
     # we could move this earlier but it doesnt actually take much time
     if(!is.null(freqRange)) {
@@ -86,12 +94,7 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     if(is.null(units)) {
         units <- typeToUnits(x$type[1])
     }
-    x$UTC <- with_tz(x$UTC, tzone=toTz)
-    x$plotTime <- floor_date(x[['UTC']], unit=bin)
-    setDT(x)
-    x <- x[, lapply(.SD, median), .SDcols='value', by=c('frequency', 'freqLow', 'plotTime')]
-    setDF(x)
-    x$UTCend <- x$plotTime + unitToPeriod(bin)
+    x$UTCend <- x$UTC + unitToPeriod(bin)
     if(is.function(cmap)) {
         cmap <- cmap(25)
     }
@@ -102,7 +105,7 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         x <- dplyr::filter(x, .data$freqLow > 0)
     }
     ggplot(x) +
-        geom_rect(aes(xmin=.data$plotTime,
+        geom_rect(aes(xmin=.data$UTC,
                       xmax=.data$UTCend,
                       ymin=.data$freqLow,
                       ymax=.data$frequency,
