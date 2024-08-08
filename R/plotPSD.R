@@ -43,7 +43,9 @@
 #' @param units units for dB axis of plot
 #' @param cmap color map to use for density plot
 #' @param by optional column to plot different quantile lines by, only affects
-#'   \code{style='quantile'}
+#'   \code{style='quantile'}. If \code{x} is a data.frame, \code{by} can also
+#'   be one of \code{'hour'}, \code{'month'}, or \code{'year'} and that column
+#'   will be created automatically if not present.
 #' @param compression compression factor for \link[tdigest]{tdigest}, lower
 #'   values are less accurate but will compute faster. Only relevant for
 #'   \code{style='quantile'} when loading and combining multiple datasets
@@ -63,6 +65,7 @@
 #'
 #' @importFrom graphics hist
 #' @importFrom scales hue_pal squish
+#' @importFrom lubridate hour month year
 #'
 #' @export
 #'
@@ -86,6 +89,16 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         if('density' %in% style) {
             warning('Plots with "by" can only show quantile, not density')
             style <- 'quantile'
+        }
+        # have builtin options for by without needing column
+        if(is.data.frame(x) &&
+           by %in% c('hour', 'month', 'year') &&
+           !by %in% colnames(x)) {
+            x[[by]] <- switch(by,
+                              'hour' = hour(x$UTC),
+                              'month' = month(x$UTC),
+                              'year' = year(x$UTC)
+            )
         }
         if(is.data.frame(x) &&
            !by %in% colnames(x)) {
@@ -164,7 +177,7 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         }
         if(is.null(densityRange)) {
             g <- g +
-            scale_fill_gradientn(colors=cmap, na.value = 'transparent')
+                scale_fill_gradientn(colors=cmap, na.value = 'transparent')
         } else {
             g <- g +
                 scale_fill_gradientn(colors=cmap, na.value='transparent',

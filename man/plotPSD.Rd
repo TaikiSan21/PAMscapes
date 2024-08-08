@@ -58,7 +58,9 @@ of file paths, or the output from \code{prepPSDData}}
 \item{cmap}{color map to use for density plot}
 
 \item{by}{optional column to plot different quantile lines by, only affects
-\code{style='quantile'}}
+\code{style='quantile'}. If \code{x} is a data.frame, \code{by} can also
+be one of \code{'hour'}, \code{'month'}, or \code{'year'} and that column
+will be created automatically if not present.}
 
 \item{title}{optional title for plot}
 
