@@ -19,6 +19,8 @@
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
 #' @param cmap color palette map to use for plot, default is \link[scales]{viridis_pal}
+#' @param returnData if \code{TRUE} then no plot will be generated, instead the
+#'   dataframe that would normally be used to make the plot will be returned
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -39,7 +41,8 @@
 #'
 plotHourlyLevel <- function(x, title=NULL, units=NULL,
                             scale=c('log', 'linear'), freqMin=NULL, toTz='UTC',
-                            cmap=viridis_pal()(25)) {
+                            cmap=viridis_pal()(25),
+                            returnData=FALSE) {
     scale <- match.arg(scale)
     x <- checkSoundscapeInput(x, needCols='UTC')
     x <- toLong(x)
@@ -83,6 +86,9 @@ plotHourlyLevel <- function(x, title=NULL, units=NULL,
                     'log' = 'log10',
                     'identity'
     )
+    if(isTRUE(returnData)) {
+        return(summByHour)
+    }
     g <- ggplot(summByHour) +
         geom_rect(aes(ymin=.data$hour,
                       ymax=.data$hour_end,

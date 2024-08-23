@@ -14,7 +14,8 @@ plotLTSA(
   units = NULL,
   cmap = viridis_pal()(25),
   toTz = "UTC",
-  alpha = 1
+  alpha = 1,
+  returnData = FALSE
 )
 }
 \arguments{
@@ -44,6 +45,9 @@ scaling of dB values in the plot}
 Specification must be from \link{OlsonNames}}
 
 \item{alpha}{alpha to use for the plot fill}
+
+\item{returnData}{if \code{TRUE} then no plot will be generated, instead the
+dataframe that would normally be used to make the plot will be returned}
 }
 \value{
 ggplot object of the LTSA plot

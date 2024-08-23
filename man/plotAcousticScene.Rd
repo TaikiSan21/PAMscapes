@@ -15,6 +15,7 @@ plotAcousticScene(
   freqMax = NULL,
   fill = TRUE,
   alpha = 1,
+  returnData = FALSE,
   add = FALSE
 )
 }
@@ -47,6 +48,9 @@ if \code{FALSE} then only outlines will be plotted}
 
 \item{alpha}{transparency percentage for plotting, values less than 1
 will allow multiple overlapping colors to be seen}
+
+\item{returnData}{if \code{TRUE} then no plot will be generated, instead the
+dataframe that would normally be used to make the plot will be returned}
 
 \item{add}{logical flag if \code{FALSE} plots normally if \code{TRUE}
 then the output can be (maybe) added to an existing ggplot object}

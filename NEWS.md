@@ -10,6 +10,9 @@ unit of time
 
 - Added binning options directly to `checkSoundscapeInput`
 
+- Adding `returnData` option for most plotting functions to return the
+plotted data instead of a plot
+
 # PAMscapes 0.6.1
 
 - Adding `matchSeascape` function

@@ -11,7 +11,8 @@ plotHourlyLevel(
   scale = c("log", "linear"),
   freqMin = NULL,
   toTz = "UTC",
-  cmap = viridis_pal()(25)
+  cmap = viridis_pal()(25),
+  returnData = FALSE
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ than the minimum frequency of the data}
 Specification must be from \link{OlsonNames}}
 
 \item{cmap}{color palette map to use for plot, default is \link[scales]{viridis_pal}}
+
+\item{returnData}{if \code{TRUE} then no plot will be generated, instead the
+dataframe that would normally be used to make the plot will be returned}
 }
 \value{
 a ggplot object

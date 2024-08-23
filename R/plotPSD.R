@@ -50,6 +50,8 @@
 #'   values are less accurate but will compute faster. Only relevant for
 #'   \code{style='quantile'} when loading and combining multiple datasets
 #' @param title optional title for plot
+#' @param returnData if \code{TRUE} then no plot will be generated, instead the
+#'   dataframe that would normally be used to make the plot will be returned
 #' @param progress logical flag to show progress bar
 #'
 #' @return a ggplot object for \code{plotPSD}, see details for \code{prepPSDData}
@@ -79,11 +81,18 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                     cmap=viridis_pal()(25),
                     by=NULL,
                     title=NULL,
+                    returnData=FALSE,
                     progress=TRUE) {
     scale <- match.arg(scale)
     if(!is.null(dbRange) &&
        length(dbRange) > 2) {
         dbRange <- range(dbRange, na.rm=TRUE)
+    }
+    if(isTRUE(returnData) &&
+       length(style) != 1) {
+        warning('Can only return data for a single "style", select ',
+                'one of either "quantile" or "density".')
+        return(NULL)
     }
     if(!is.null(by)) {
         if('density' %in% style) {
@@ -137,6 +146,9 @@ plotPSD <- function(x, style=c('quantile', 'density'),
             x$frequency <- freqVals
         }
         # x is frequency, qlow, qmed, qhigh
+        if(isTRUE(returnData)) {
+            return(x)
+        }
         g <- addQuantilePlot(g, x=x, by=by, color=color)
 
         if(is.null(freqRange)) {
@@ -162,6 +174,9 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                                            freqRange = x$freqRange,
                                            dbVals=x$dbVals,
                                            scale=scale)
+        if(isTRUE(returnData)) {
+            return(x$densityData)
+        }
         g <- g +
             geom_rect(data=x$densityData,
                       aes(xmin=.data$freqLow,
@@ -192,6 +207,9 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                                              q=q,
                                              freqRange=x$freqRange,
                                              scale=scale)
+        if(isTRUE(returnData)) {
+            return(x$quantileData)
+        }
         g <- addQuantilePlot(g, x=x$quantileData, by=by, color=color)
     }
 

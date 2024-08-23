@@ -19,6 +19,7 @@ plotPSD(
   cmap = viridis_pal()(25),
   by = NULL,
   title = NULL,
+  returnData = FALSE,
   progress = TRUE
 )
 
@@ -63,6 +64,9 @@ be one of \code{'hour'}, \code{'month'}, or \code{'year'} and that column
 will be created automatically if not present.}
 
 \item{title}{optional title for plot}
+
+\item{returnData}{if \code{TRUE} then no plot will be generated, instead the
+dataframe that would normally be used to make the plot will be returned}
 
 \item{progress}{logical flag to show progress bar}
 

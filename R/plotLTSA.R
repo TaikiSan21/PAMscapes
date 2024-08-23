@@ -23,6 +23,8 @@
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
 #' @param alpha alpha to use for the plot fill
+#' @param returnData if \code{TRUE} then no plot will be generated, instead the
+#'   dataframe that would normally be used to make the plot will be returned
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -42,7 +44,8 @@
 #'
 plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                      title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
-                     cmap=viridis_pal()(25), toTz='UTC', alpha=1) {
+                     cmap=viridis_pal()(25), toTz='UTC', alpha=1,
+                     returnData=FALSE) {
     x <- checkSoundscapeInput(x, needCols='UTC')
     scale <- match.arg(scale)
     # we need a freqLow column later for the geom_, this block
@@ -103,6 +106,9 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     }
     if(scale == 'log') {
         x <- dplyr::filter(x, .data$freqLow > 0)
+    }
+    if(isTRUE(returnData)) {
+        return(x)
     }
     ggplot(x) +
         geom_rect(aes(xmin=.data$UTC,
