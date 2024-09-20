@@ -59,12 +59,17 @@ readLocalAIS <- function(gps, aisDir, distance=10e3, timeBuff=0) {
                        UTC <= (max(gps$UTC) + timeBuff), ]
         tmp
     }))
-    bufferBound <- st_as_sf(gps[,c('Longitude', 'Latitude', 'UTC')],
-                            coords=c('Longitude', 'Latitude'), crs=4326) %>%
-        # st_bbox() %>%
-        # st_as_sfc() %>%
-        st_buffer(dist=distance) %>%
-        st_bbox()
+    # bufferBound <- st_as_sf(gps[,c('Longitude', 'Latitude', 'UTC')],
+    #                         coords=c('Longitude', 'Latitude'), crs=4326) %>%
+    #     st_buffer(dist=distance) %>%
+    #     st_bbox()
+    bufferBound <- st_bbox(
+        st_buffer(
+            st_as_sf(
+                gps[,c('Longitude', 'Latitude', 'UTC')],
+                coords=c('Longitude', 'Latitude'), crs=4326),
+        dist=distance)
+    )
     mmsiNear <- unique(ais[Longitude >= bufferBound['xmin'] &
                                Longitude <= bufferBound['xmax'] &
                                Latitude >= bufferBound['ymin'] &

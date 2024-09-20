@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: Tools for Summarising and Analysing Soundscape Data
-Version: 0.6.2
+Version: 0.7.0
 Authors@R: c(
     TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
     AS = person("Anne", "Simonis", role = c("ctb")),
@@ -27,9 +27,7 @@ Imports:
     ggplot2,
     lubridate,
     scales,
-    magrittr,
     tidyr,
-    readr, 
     httr,
     data.table,
     geosphere,
@@ -37,6 +35,7 @@ Imports:
     PAMmisc,
     ncdf4,
     tdigest,
-    purrr
+    purrr,
+    shiny
 Suggests:
     testthat

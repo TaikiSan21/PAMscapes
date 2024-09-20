@@ -23,6 +23,11 @@
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
 #' @param alpha alpha to use for the plot fill
+#' @param maxBins the maximum number of time bins to create for the plot. If
+#'   \code{bin} would divide the range of dates in \code{x} into more than
+#'   \code{maxBins}, then a warning will be given and a larger time bin
+#'   will be used that reduces the number of time bins plotted. Trying to
+#'   show a large number of bins will cause this function to be much slower
 #' @param returnData if \code{TRUE} then no plot will be generated, instead the
 #'   dataframe that would normally be used to make the plot will be returned
 #'
@@ -45,8 +50,16 @@
 plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                      title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
                      cmap=viridis_pal()(25), toTz='UTC', alpha=1,
+                     maxBins=800,
                      returnData=FALSE) {
     x <- checkSoundscapeInput(x, needCols='UTC')
+    maxBin <- calcSliceLength(range(x$UTC), maxBins)
+    if(maxBin > unitToPeriod(bin)) {
+        warning('Selected bin size "', bin, '" results in more than ',
+                'the maximum number of time slices (maxBins=', maxBins,
+                '), a larger time bin (', as.character(maxBin), ') will be used.')
+        bin <- maxBin
+    }
     scale <- match.arg(scale)
     # we need a freqLow column later for the geom_, this block
     # is just making this faster by passing pivot_longer a
@@ -102,7 +115,13 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         cmap <- cmap(25)
     }
     if(is.null(dbRange)) {
-        dbRange <- range(x$value)
+        dbRange <- range(x$value, na.rm=TRUE)
+    }
+    if(is.na(dbRange[1])) {
+        dbRange[1] <- min(x$value, na.rm=TRUE)
+    }
+    if(is.na(dbRange[2])) {
+        dbRange[2] <- max(x$value, na.rm=TRUE)
     }
     if(scale == 'log') {
         x <- dplyr::filter(x, .data$freqLow > 0)
@@ -123,5 +142,7 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         scale_x_datetime(expand=c(0,0)) +
         scale_y_log10(expand=c(0,0)) +
         labs(fill=units) +
+        theme(legend.title = element_text(angle=90)) +
+        guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5)) +
         ggtitle(title)
 }

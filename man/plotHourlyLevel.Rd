@@ -10,6 +10,7 @@ plotHourlyLevel(
   units = NULL,
   scale = c("log", "linear"),
   freqMin = NULL,
+  dbRange = NULL,
   toTz = "UTC",
   cmap = viridis_pal()(25),
   returnData = FALSE
@@ -30,6 +31,8 @@ the frequency axis}
 
 \item{freqMin}{minimum frequency for the plot range, if desired to be different
 than the minimum frequency of the data}
+
+\item{dbRange}{range of dB values to plot}
 
 \item{toTz}{timezone to use for the time axis (input data must be UTC).
 Specification must be from \link{OlsonNames}}

@@ -1,3 +1,15 @@
+# PAMscapes 0.7.0
+
+- Adding new `runSoundscapeExplorer` function that launches a `shiny` 
+app to explore the various visualization options for soundscape data
+
+# PAMscapes 0.6.3
+
+- Adding `tz` option for `checkSoundscapeInput` if data are not already in
+UTC timezone
+
+- `checkSoundscapeInput` combines multiple files by default
+
 # PAMscapes 0.6.2
 
 - Adding `by` option for `plotPSD`

@@ -79,40 +79,6 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     hmd
 }
 
-checkFreqType <- function(freq) {
-    if(is.character(freq)) {
-        nc <- ncdf4::nc_open(freq)
-        freq <- nc$dim$frequency$vals
-        if(is.null(freq)) {
-            warning('No frequency dimension')
-            return(NULL)
-        }
-        ncdf4::nc_close(nc)
-    }
-    regDiff <- round(diff(freq), 1)
-    isOne <- regDiff == 1
-    if(all(isOne)) {
-        return('PSD')
-    }
-    # possible weirdness of others having 0, 1, 2? but not a lot
-    if(sum(isOne) > 2) {
-        return('HMD')
-    }
-
-    multDiff <- round(freq[2:length(freq)] / freq[1:(length(freq)-1)], 1)
-    if(all(multDiff == 2)) {
-        return('OL')
-    }
-    thirds <- seq(from=1, to=length(freq), by=3)
-    freq <- freq[thirds]
-    multDiff <- round(freq[2:length(freq)] / freq[1:(length(freq)-1)], 1)
-    if(all(multDiff == 2)) {
-        return('TOL')
-    }
-    warning('Could not parse frequency type')
-    'FREQ'
-}
-
 #' @importFrom lubridate parse_date_time
 #'
 ncTimeToPosix <- function(vals, units) {

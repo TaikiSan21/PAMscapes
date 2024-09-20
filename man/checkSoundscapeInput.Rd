@@ -9,12 +9,14 @@ checkSoundscapeInput(
   needCols = c("UTC"),
   skipCheck = FALSE,
   timeBin = NULL,
-  binFunction = median
+  binFunction = median,
+  tz = "UTC"
 )
 }
 \arguments{
 \item{x}{a dataframe, path to a CSV file, or path to a MANTA
-NetCDF file}
+NetCDF file. If \code{x} is a vector of file paths then all will
+be read in and combined}
 
 \item{needCols}{names of columns that must be present in \code{x},
 if any are missing will trigger an error}
@@ -26,6 +28,9 @@ to keep as \code{FALSE}}
 be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
 
 \item{binFunction}{summary function to apply to data in each time bin}
+
+\item{tz}{timezone of the data being loaded, will be converted to UTC
+after load}
 }
 \value{
 a dataframe

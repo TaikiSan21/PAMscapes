@@ -95,9 +95,15 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
             x[[columns[i]]] <- doRescale(x[[columns[i]]], target=c(minVals[1], x[[columns[1]]]), min=minVals[i], relMax=relMax)
         }
     }
-    x <- select(x, all_of(c('UTC', columns))) %>%
-        pivot_longer(cols=columns,
-                            names_to='Type', values_to='value')
+    # x <- select(x, all_of(c('UTC', columns))) %>%
+    #     pivot_longer(cols=columns,
+    #                         names_to='Type', values_to='value')
+    x <- pivot_longer(
+        select(x, all_of(c('UTC', columns))),
+        cols=columns,
+        names_to='Type',
+        values_to='value'
+    )
     x$Type <- factor(x$Type, levels=columns)
     g <- ggplot(data=x, aes(x=.data$UTC, y=.data$value, col=.data$Type, lwd=.data$Type)) +
         geom_line() +

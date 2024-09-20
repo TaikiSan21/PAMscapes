@@ -7,7 +7,8 @@
 #'   appropriately.
 #'
 #' @param x a dataframe, path to a CSV file, or path to a MANTA
-#'   NetCDF file
+#'   NetCDF file. If \code{x} is a vector of file paths then all will
+#'   be read in and combined
 #' @param needCols names of columns that must be present in \code{x},
 #'   if any are missing will trigger an error
 #' @param skipCheck logical flag to skip some data checking, recommended
@@ -15,6 +16,8 @@
 #' @param timeBin amount of time to bin data by, format can
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
 #' @param binFunction summary function to apply to data in each time bin
+#' @param tz timezone of the data being loaded, will be converted to UTC
+#'   after load
 #'
 #' @details Files created by MANTA and Triton software will be
 #'   reformatted to have consisitent formatting. The first column
@@ -51,20 +54,32 @@
 #'
 #' @export
 #'
-#' @importFrom readr read_csv read_lines
 #' @importFrom data.table fread setDF
+#' @importFrom lubridate force_tz with_tz
 #'
 checkSoundscapeInput <- function(x, needCols=c('UTC'), skipCheck=FALSE,
-                                 timeBin=NULL, binFunction=median) {
+                                 timeBin=NULL, binFunction=median, tz='UTC') {
+    # combine if multiple files
+    if(is.character(x) &&
+       length(x) > 1) {
+        return(bind_rows(lapply(x, function(f) {
+            checkSoundscapeInput(f, needCols=needCols, skipCheck=skipCheck,
+                                 timeBin=timeBin, binFunction=binFunction,
+                                 tz=tz)
+        })))
+    }
     if(is.character(x)) {
         if(!file.exists(x)) {
-            stop('File ', x, ' does not exist.')
+            warning('File ', x, ' does not exist.')
+            return(NULL)
         }
         if(grepl('csv$', x, ignore.case=TRUE)) {
-            head <- strsplit(read_lines(x, n_max = 1), ', ')[[1]]
-            first <- strsplit(read_lines(x, n_max=1, skip=1), ', ')[[1]]
-            if(length(head) < length(first)) {
-                stop('File ', x, ' has more data columns than column headers. Cannot load.')
+            # head <- strsplit(read_lines(x, n_max = 1), ', ')[[1]]
+            # first <- strsplit(read_lines(x, n_max=1, skip=1), ', ')[[1]]
+            readTop <- strsplit(readLines(x, n=2), ',')
+            if(length(readTop[[1]]) < length(readTop[[2]])) {
+                warning('File ', x, ' has more data columns than column headers. Cannot load.')
+                return(NULL)
             }
             x <- fread(x, header=TRUE)
             setDF(x)
@@ -79,14 +94,20 @@ checkSoundscapeInput <- function(x, needCols=c('UTC'), skipCheck=FALSE,
     }
     missingCols <- needCols[!needCols %in% colnames(x)]
     if(length(missingCols) > 0) {
-        stop('Required columns ', paste0(missingCols, collapse=', '),
+        warning('Required columns ', paste0(missingCols, collapse=', '),
              ' are missing.')
+        return(NULL)
     }
     if(is.character(x$UTC)) {
         x$UTC <- parseToUTC(x$UTC)
     }
+    if(tz != 'UTC') {
+        x$UTC <- force_tz(x$UTC, tzone=tz)
+        x$UTC <- with_tz(x$UTC, tzone='UTC')
+    }
     if(!isWide(colnames(x)) && !isLong(colnames(x))) {
-        stop('Input "x" could not be formatted properly.')
+        warning('Input "x" could not be formatted properly.')
+        return(NULL)
     }
     if(!is.null(timeBin)) {
         x <- binSoundscapeData(x, bin=timeBin, FUN=binFunction)

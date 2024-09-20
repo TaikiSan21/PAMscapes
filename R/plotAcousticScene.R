@@ -84,10 +84,17 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
         d$difftime <- TRUE
         d$difftime[2:nrow(d)] <- d$plotStart[2:nrow(d)] != d$plotEnd[1:(nrow(d)-1)]
         d$group <- cumsum(d$difftime)
-        d <- group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax) %>%
-            summarise(plotStart = min(.data$plotStart),
-                      plotEnd = max(.data$plotEnd)) %>%
-            ungroup()
+        # d <- group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax) %>%
+        #     summarise(plotStart = min(.data$plotStart),
+        #               plotEnd = max(.data$plotEnd)) %>%
+        #     ungroup()
+        d <- ungroup(
+            summarise(
+                group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax),
+                plotStart = min(.data$plotStart),
+                plotEnd = max(.data$plotEnd)
+            )
+        )
         d$group <- NULL
         d
     }))

@@ -62,14 +62,13 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units=NULL,
                    plotData <- group_by(x, .data$timeBin, .data[[by]])
                }
                if(!all(q == 0)) {
-                   plotData <- plotData %>%
-                       summarise(med = median(.data[[column]], na.rm=TRUE),
+                   plotData <- summarise(plotData,
+                                 med = median(.data[[column]], na.rm=TRUE),
                                  qlow = quantile(.data[[column]], probs=q[1], na.rm=TRUE),
                                  qhigh = quantile(.data[[column]], probs=q[2], na.rm=TRUE),
                                  .groups='drop')
                } else {
-                   plotData <- plotData %>%
-                       summarise(med = median(.data[[column]], na.rm=TRUE),
+                   plotData <- summarise(plotData, med = median(.data[[column]], na.rm=TRUE),
                                  .groups='drop')
                }
                if(is.null(by)) {
@@ -87,8 +86,13 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units=NULL,
            },
            'heatmap' = {
                x$day <- floor_date(x$UTC, unit='1day')
-               plotData <- group_by(x, .data$day, .data$timeBin) %>%
-                   summarise(med = median(.data[[column]], na.rm=TRUE), .groups='drop')
+               # plotData <- group_by(x, .data$day, .data$timeBin) %>%
+               #     summarise(med = median(.data[[column]], na.rm=TRUE), .groups='drop')
+               plotData <- summarise(
+                   group_by(x, .data$day, .data$timeBin),
+                   med = median(.data[[column]], na.rm=TRUE),
+                   .groups='drop'
+               )
                binHours <- as.numeric(unitToPeriod(bin)) / 3600
                plotData$hour <- hour(plotData$timeBin) + minute(plotData$timeBin) / 60
                g <- ggplot(plotData) +
@@ -105,7 +109,7 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units=NULL,
                         y='Date',
                         fill = units) +
                    theme(legend.title = element_text(angle=90)) +
-                   guides(fill=guide_colorbar(title.position='right', barheight=10, title.hjust=.5))
+                   guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5))
            }
     )
     if(is.null(title)) {

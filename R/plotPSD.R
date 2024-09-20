@@ -129,17 +129,19 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         q <- checkQuantile(q)
         if(!is.null(by)) {
             x <- bind_rows(lapply(split(x, x[[by]]), function(b) {
-                bind_rows(lapply(b[freqCols], function(col) {
-                    result <- quantile(col, q)
+                result <- bind_rows(lapply(b[freqCols], function(col) {
+                    result <- quantile(col, q, na.rm=TRUE)
                     names(result) <- c('qlow', 'qmed', 'qhigh')
                     result
                 }))
-            }), .id='by')
+                result$by <- b[[by]][1]
+                result
+            }))
             x$frequency <- rep(freqVals, length(unique(x$by)))
 
         } else {
             x <- bind_rows(lapply(x[freqCols], function(col) {
-                result <- quantile(col, q)
+                result <- quantile(col, q, na.rm=TRUE)
                 names(result) <- c('qlow', 'qmed', 'qhigh')
                 result
             }))
@@ -578,6 +580,9 @@ checkQuantile <- function(q) {
 addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
     if(is.null(g)) {
         g <- ggplot()
+    }
+    if(!is.null(by) && is.numeric(x$by)) {
+        x$by <- factor(x$by, levels=sort(unique(x$by)))
     }
     nBy <- ifelse(is.null(by), 0, length(unique(x$by)))
     if(is.character(color) &&

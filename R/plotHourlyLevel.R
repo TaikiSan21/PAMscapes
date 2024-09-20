@@ -16,6 +16,7 @@
 #'   the frequency axis
 #' @param freqMin minimum frequency for the plot range, if desired to be different
 #'   than the minimum frequency of the data
+#' @param dbRange range of dB values to plot
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
 #' @param cmap color palette map to use for plot, default is \link[scales]{viridis_pal}
@@ -35,12 +36,13 @@
 #' @import ggplot2
 #' @importFrom rlang .data
 #' @importFrom stats median
-#' @importFrom magrittr %>%
 #'
 #' @export
 #'
 plotHourlyLevel <- function(x, title=NULL, units=NULL,
-                            scale=c('log', 'linear'), freqMin=NULL, toTz='UTC',
+                            scale=c('log', 'linear'), freqMin=NULL,
+                            dbRange=NULL,
+                            toTz='UTC',
                             cmap=viridis_pal()(25),
                             returnData=FALSE) {
     scale <- match.arg(scale)
@@ -56,8 +58,13 @@ plotHourlyLevel <- function(x, title=NULL, units=NULL,
     }
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$hour <- hour(x$UTC)
-    summByHour <- group_by(x, .data$hour, .data$frequency) %>%
-        summarise(value = median(.data$value, na.rm=TRUE), .groups='drop')
+    # summByHour <- group_by(x, .data$hour, .data$frequency) %>%
+    #     summarise(value = median(.data$value, na.rm=TRUE), .groups='drop')
+    summByHour <- summarise(
+        group_by(x, .data$hour, .data$frequency),
+        value = median(.data$value, na.rm=TRUE),
+        .groups='drop'
+    )
     summByHour$hour_end <- summByHour$hour + 1 # hour ranges 0-23
     freqVals <- sort(unique(summByHour$frequency))
     freqDiffs <- diff(freqVals)
@@ -89,6 +96,15 @@ plotHourlyLevel <- function(x, title=NULL, units=NULL,
     if(isTRUE(returnData)) {
         return(summByHour)
     }
+    if(is.null(dbRange)) {
+        dbRange <- range(summByHour$value, na.rm=TRUE)
+    }
+    if(is.na(dbRange[1])) {
+        dbRange[1] <- min(summByHour$value, na.rm=TRUE)
+    }
+    if(is.na(dbRange[2])) {
+        dbRange[2] <- max(summByHour$value, na.rm=TRUE)
+    }
     g <- ggplot(summByHour) +
         geom_rect(aes(ymin=.data$hour,
                       ymax=.data$hour_end,
@@ -97,7 +113,7 @@ plotHourlyLevel <- function(x, title=NULL, units=NULL,
                       fill=.data$value)) +
         # scale_x_continuous(trans=scale, expand=c(0,0), limits=c(freqMin, max(freqVals))) +
         scale_y_continuous(expand = c(0,0)) +
-        scale_fill_gradientn(colors=cmap)
+        scale_fill_gradientn(colors=cmap, limits=dbRange, oob=squish)
     if(scale == 'log10') {
         g <- myLog10Scale(g, range=c(freqMin, max(freqVals)), dim='x')
     } else {
@@ -109,6 +125,6 @@ plotHourlyLevel <- function(x, title=NULL, units=NULL,
              y=paste0('Hour (', toTz, ')'),
              fill = units) +
         theme(legend.title = element_text(angle=90)) +
-        guides(fill=guide_colorbar(title.position='right', barheight=10, title.hjust=.5))
+        guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5))
     g
 }

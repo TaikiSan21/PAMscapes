@@ -15,6 +15,7 @@ plotLTSA(
   cmap = viridis_pal()(25),
   toTz = "UTC",
   alpha = 1,
+  maxBins = 800,
   returnData = FALSE
 )
 }
@@ -45,6 +46,12 @@ scaling of dB values in the plot}
 Specification must be from \link{OlsonNames}}
 
 \item{alpha}{alpha to use for the plot fill}
+
+\item{maxBins}{the maximum number of time bins to create for the plot. If
+\code{bin} would divide the range of dates in \code{x} into more than
+\code{maxBins}, then a warning will be given and a larger time bin
+will be used that reduces the number of time bins plotted. Trying to
+show a large number of bins will cause this function to be much slower}
 
 \item{returnData}{if \code{TRUE} then no plot will be generated, instead the
 dataframe that would normally be used to make the plot will be returned}

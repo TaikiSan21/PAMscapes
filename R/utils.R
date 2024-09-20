@@ -132,10 +132,13 @@ isLong <- function(x) {
 }
 
 isWide <- function(x) {
+    if(is.data.frame(x)) {
+        x <- colnames(x)
+    }
     freqCols <- whichFreqCols(x)
     # all(grepl('^[A-z]+_[0-9\\.\\-]+$', freqCols))
     if(length(freqCols) == 1 &&
-       grepl('BB', colnames(x)[freqCols])) {
+       grepl('BB', x[freqCols])) {
         return(TRUE)
     }
     length(freqCols) > 1
@@ -148,15 +151,24 @@ nowUTC <- function() {
 }
 
 
-#' @importFrom lubridate period
+#' @importFrom lubridate period period_to_seconds seconds_to_period is.period
 #'
 unitToPeriod <- function(x) {
+    if(is.period(x)) {
+        return(x)
+    }
     x <- gsub('([0-9]*)(.*)', '\\1_\\2', x)
     x <- strsplit(x, '_')[[1]]
     if(x[1] == '') {
         x[1] <- '1'
     }
-    period(as.numeric(x[1]), units=x[2])
+    # doing this to convert to roundest unit
+    # e.g. 720 seconds -> 12 minutes
+    seconds_to_period(
+        period_to_seconds(
+            period(as.numeric(x[1]), units=x[2])
+        )
+    )
 }
 
 whichFreqCols <- function(x) {
@@ -273,4 +285,61 @@ colsToFreqs <- function(x) {
         x <- colnames(x)[whichFreq]
     }
     as.numeric(gsub('[A-z]+_', '', x))
+}
+
+checkFreqType <- function(freq) {
+    if(is.character(freq)) {
+        nc <- nc_open(freq)
+        on.exit(nc_close(nc))
+        freq <- nc$dim$frequency$vals
+        if(is.null(freq)) {
+            warning('No frequency dimension')
+            return(NULL)
+        }
+    }
+    regDiff <- round(diff(freq), 1)
+    isOne <- regDiff == 1
+    if(all(isOne)) {
+        return('PSD')
+    }
+    # possible weirdness of others having 0, 1, 2? but not a lot
+    if(sum(isOne) > 2) {
+        return('HMD')
+    }
+
+    multDiff <- round(freq[2:length(freq)] / freq[1:(length(freq)-1)], 1)
+    if(all(multDiff == 2)) {
+        return('OL')
+    }
+    thirds <- seq(from=1, to=length(freq), by=3)
+    freq <- freq[thirds]
+    multDiff <- round(freq[2:length(freq)] / freq[1:(length(freq)-1)], 1)
+    if(all(multDiff == 2)) {
+        return('TOL')
+    }
+    warning('Could not parse frequency type')
+    'FREQ'
+}
+
+calcSliceLength <- function(dates, maxSlice) {
+    secDiff <- as.numeric(difftime(max(dates), min(dates), units='secs')) / maxSlice
+    # second, minute, hour, day are valid options
+    if(secDiff > 86400) {
+        value <- secDiff / 86400
+        unit <- 'day'
+    } else if(secDiff > 3600) {
+        value <- secDiff / 3600
+        unit <- 'hour'
+    } else if(secDiff > 60) {
+        value <- secDiff / 60
+        unit <- 'minute'
+    } else if(secDiff <= 60) {
+        value <- secDiff
+        unit <- 'second'
+    }
+
+    secBin <- ceiling(value)
+    binString <- paste0(secBin, unit)
+    binPer <- unitToPeriod(binString)
+    binPer
 }
