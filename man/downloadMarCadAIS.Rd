@@ -24,7 +24,8 @@ a vector of the paths to the downloaded .zip files, any days
 that were unable to download will be \code{NA}
 }
 \description{
-Downloads daily AIS files from \url{https://marinecadastre.gov/ais/}
+Downloads daily AIS files from
+\url{https://hub.marinecadastre.gov/pages/vesseltraffic}
 covering the date range present in input data
 }
 \examples{

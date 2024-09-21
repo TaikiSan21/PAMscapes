@@ -1,6 +1,7 @@
 #' @title Download AIS Data from Marine Cadastre
 #'
-#' @description Downloads daily AIS files from \url{https://marinecadastre.gov/ais/}
+#' @description Downloads daily AIS files from
+#'   \url{https://hub.marinecadastre.gov/pages/vesseltraffic}
 #'   covering the date range present in input data
 #'
 #' @param x a dataframe with column \code{UTC} in POSIXct format
@@ -51,7 +52,7 @@ downloadMarCadAIS <- function(x, outDir, overwrite=FALSE, unzip=TRUE,
         warning('No valid years present')
         return(NULL)
     }
-    
+
     urls <- dayToAisURL(allDays)
     # urls
     if(!dir.exists(outDir)) {
@@ -65,7 +66,7 @@ downloadMarCadAIS <- function(x, outDir, overwrite=FALSE, unzip=TRUE,
         }
         checkExists <- !http_error(urls[i])
         if(!checkExists) {
-            cat('URL does not exist for day', 
+            cat('URL does not exist for day',
                 format(allDays[i], '%Y-%m-%d'),
                 'may be too recent\n')
             outZip[i] <- NA
