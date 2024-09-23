@@ -2,15 +2,25 @@ library(tuneR)
 library(dplyr)
 library(fftw)
 library(PAMmisc)
+library(ggplot2)
 evaluateSoundtrapPerformance <- function(dir, sampleWindow=c(60, 60),
                                          octave=c('tol', 'ol'),
                                          plot=TRUE, channel=1, freqRange=NULL,
-                                         cal=-174.2) {
+                                         cal=-174.2,
+                                         n=100,
+                                         progress=TRUE) {
     wavFiles <- list.files(dir, pattern='wav$', full.names=TRUE)
+    if(n < length(wavFiles)) {
+        wavFiles <- wavFiles[1:n]
+    }
     # need to parse wav file times and track
     octaves <- PAMscapes:::getOctaveLevels(match.arg(octave), freqRange=freqRange)
+    if(progress) {
+        pb <- txtProgressBar(min=0, max=length(wavFiles), style=3)
+        ix <- 0
+    }
     tol <- lapply(wavFiles, function(x) {
-        if(packageVersion('PAMmisc') >= '1.2.2') {
+        if(packageVersion('PAMmisc') >= '1.12.2') {
             wavClip <- PAMmisc::fastReadWave(x, from=sampleWindow[1], to=sum(sampleWindow))
             nfft <- wavClip$rate
         } else {
@@ -24,6 +34,10 @@ evaluateSoundtrapPerformance <- function(dir, sampleWindow=c(60, 60),
         })
         time <- wavToTime(x)
         tolVals$UTC <- time
+        if(progress) {
+            ix <<- ix + 1
+            setTxtProgressBar(pb, value=ix)
+        }
         tolVals
     })
     tol <- bind_rows(tol)
