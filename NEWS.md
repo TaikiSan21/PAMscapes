@@ -1,3 +1,9 @@
+# PAMscapes 0.7.1
+
+- `loadMantaNc` (and thus `checkSoundscapeInput`) now knows to look for
+coordinates and platform from NC files to create `Latitude` `Longitude`
+and `platform` columns in the loaded data
+
 # PAMscapes 0.7.0
 
 - Adding new `runSoundscapeExplorer` function that launches a `shiny` 

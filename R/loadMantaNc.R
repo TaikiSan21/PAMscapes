@@ -23,7 +23,8 @@
 #' }
 #'
 #' @export
-#' @importFrom ncdf4 nc_open nc_close ncvar_get
+#' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
+#' @importFrom sf st_coordinates st_as_sf
 #'
 loadMantaNc <- function(x, keepQuals=c(1)) {
     if(!file.exists(x)) {
@@ -76,6 +77,23 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     hmd <- data.frame(t(hmd))
     colnames(hmd) <- paste0(freqType, '_', nc$dim$frequency$vals)
     hmd <- cbind(UTC, hmd)
+    coords <- ncatt_get(nc, varid=0, attname='geospatial_bounds')
+    if(isTRUE(coords$hasatt)) {
+        coordVals <- st_coordinates(
+            st_as_sf(
+                data.frame(geometry=coords$value),
+                wkt='geometry'
+            )
+        )
+        if(length(coordVals) == 2) {
+            hmd$Latitude <- coordVals[1]
+            hmd$Longitude <- coordVals[2]
+        }
+    }
+    platform <- ncatt_get(nc, varid=0, 'platform')
+    if(isTRUE(platform$hasatt)) {
+        hmd$platform <- platform$value
+    }
     hmd
 }
 

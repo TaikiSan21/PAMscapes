@@ -107,7 +107,7 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
     x$Type <- factor(x$Type, levels=columns)
     g <- ggplot(data=x, aes(x=.data$UTC, y=.data$value, col=.data$Type, lwd=.data$Type)) +
         geom_line() +
-        scale_color_manual(values=cpal) +
+        scale_color_manual(values=cpal, breaks=columns) +
         scale_linewidth_manual(values=lwd)
     g <- g + ggtitle(title) +
         labs(y=units, x=paste0('Date (', toTz, ')'))
