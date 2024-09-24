@@ -219,13 +219,22 @@ runSoundscapeExplorer <- function(data=NULL) {
                                  choices=appData$freqCols,
                                  selected=appData$freqCols[1],
                                  server=TRUE)
-            if(length(appData$otherCols) > 0) {
-                updateSelectizeInput(session, 'psd_by',
-                                     choices=c('none', 'hour', 'month', 'year', appData$otherCols),
-                                     selected='none')
+
+            otherPlotCols <- appData$otherCols
+            otherPlotCols <- otherPlotCols[!otherPlotCols %in% c('Longitude', 'Latitude')]
+            numericCols <- sapply(appData$data[otherPlotCols], is.numeric)
+            if(sum(numericCols) > 0) {
                 updateSelectizeInput(session, 'mts_other',
-                                     choices=appData$otherCols,
-                                     selected=appData$otherCols[1])
+                                     choices=otherPlotCols[numericCols],
+                                     selected=otherPlotCols[numericCols][1])
+            } else if(sum(!numericCols) > 0) {
+            # if(length(otherPlotCols) > 0) {
+                updateSelectizeInput(session, 'psd_by',
+                                     choices=c('none', 'hour', 'month', 'year', otherPlotCols[!numericCols]),
+                                     selected='none')
+                # updateSelectizeInput(session, 'mts_other',
+                #                      choices=appData$otherCols,
+                #                      selected=appData$otherCols[1])
             } else {
                 updateSelectizeInput(session, 'mts_other',
                                      choices='No Other Columns',
