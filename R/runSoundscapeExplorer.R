@@ -223,22 +223,26 @@ runSoundscapeExplorer <- function(data=NULL) {
             otherPlotCols <- appData$otherCols
             otherPlotCols <- otherPlotCols[!otherPlotCols %in% c('Longitude', 'Latitude')]
             numericCols <- sapply(appData$data[otherPlotCols], is.numeric)
+            categoryCols <- sapply(appData$data[otherPlotCols], function(x) {
+                is.character(x) | is.factor(x)
+            })
             if(sum(numericCols) > 0) {
                 updateSelectizeInput(session, 'mts_other',
                                      choices=otherPlotCols[numericCols],
                                      selected=otherPlotCols[numericCols][1])
-            } else if(sum(!numericCols) > 0) {
-            # if(length(otherPlotCols) > 0) {
-                updateSelectizeInput(session, 'psd_by',
-                                     choices=c('none', 'hour', 'month', 'year', otherPlotCols[!numericCols]),
-                                     selected='none')
-                # updateSelectizeInput(session, 'mts_other',
-                #                      choices=appData$otherCols,
-                #                      selected=appData$otherCols[1])
             } else {
                 updateSelectizeInput(session, 'mts_other',
                                      choices='No Other Columns',
                                      selected='No Other Columns')
+            }
+            if(sum(categoryCols) > 0) {
+                updateSelectizeInput(session, 'psd_by',
+                                     choices=c('none', 'hour', 'month', 'year', otherPlotCols[categoryCols]),
+                                     selected='none')
+            } else {
+                updateSelectizeInput(session, 'psd_by',
+                                     choices=c('none', 'hour', 'month', 'year'),
+                                     selected='none')
             }
         })
         # Image grid navigation ####

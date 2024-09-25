@@ -129,6 +129,9 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         q <- checkQuantile(q)
         if(!is.null(by)) {
             x <- bind_rows(lapply(split(x, x[[by]]), function(b) {
+                if(is.null(b) || nrow(b) == 0) {
+                    return(NULL)
+                }
                 result <- bind_rows(lapply(b[freqCols], function(col) {
                     result <- quantile(col, q, na.rm=TRUE)
                     names(result) <- c('qlow', 'qmed', 'qhigh')
