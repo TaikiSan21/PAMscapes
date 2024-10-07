@@ -8,7 +8,8 @@ createOctaveLevel(
   x,
   type = c("ol", "tol"),
   freqRange = NULL,
-  method = c("sum", "mean", "median")
+  method = c("sum", "mean", "median"),
+  normalized = FALSE
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ for the output. If \code{NULL}, full available range of frequencies will be used
 \item{method}{the summary method to apply to soundscape metrics within the octave band,
 one of \code{'sum'} or \code{'mean'}. The default \code{'sum'} should be used in
 almost all cases.}
+
+\item{normalized}{logical flag to return values normalized by the bandwidth of
+each octave level band}
 }
 \value{
 a dataframe with summarised octave level band measurements
@@ -31,6 +35,15 @@ a dataframe with summarised octave level band measurements
 Creates octave or third octave level measurements from finer
 resolution soundscape metrics, like Power Spectral Density (PSD) or
 Hybrid Millidecade (HMD) measures
+}
+\details{
+Note that these measures are not as precise as they could be, mostly
+meant to be used for visualizations. Bands of the original data that do not
+fit entirely within a single octave band are not proportionately split between
+the two proper output bands. Instead an output band will contain all inputs where
+the center frequency falls between the limits of the output band. For higher
+frequencies this should result in negligible differences, but lower frequencies
+will be more imprecise.
 }
 \examples{
 psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))

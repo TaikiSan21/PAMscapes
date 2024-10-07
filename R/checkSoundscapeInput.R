@@ -7,8 +7,11 @@
 #'   appropriately.
 #'
 #' @param x a dataframe, path to a CSV file, or path to a MANTA
-#'   NetCDF file. If \code{x} is a vector of file paths then all will
-#'   be read in and combined
+#'   NetCDF file, or folder containing these. If \code{x} is a vector
+#'   of file paths then all will be read in and combined. If \code{x}
+#'   is a folder, then all files with extension \code{extension} will
+#'   be loaded. Note this will not load files within subfolders, only
+#'   the main folder.
 #' @param needCols names of columns that must be present in \code{x},
 #'   if any are missing will trigger an error
 #' @param skipCheck logical flag to skip some data checking, recommended
@@ -18,6 +21,8 @@
 #' @param binFunction summary function to apply to data in each time bin
 #' @param tz timezone of the data being loaded, will be converted to UTC
 #'   after load
+#' @param extension only used if \code{x} is a folder, the file extension
+#'   to load. Must be one of "nc" or "csv"
 #'
 #' @details Files created by MANTA and Triton software will be
 #'   reformatted to have consisitent formatting. The first column
@@ -58,7 +63,25 @@
 #' @importFrom lubridate force_tz with_tz
 #'
 checkSoundscapeInput <- function(x, needCols=c('UTC'), skipCheck=FALSE,
-                                 timeBin=NULL, binFunction=median, tz='UTC') {
+                                 timeBin=NULL, binFunction=median, tz='UTC',
+                                 extension=c('nc', 'csv')) {
+    if(is.character(x) &&
+       length(x) == 1 &&
+       dir.exists(x)) {
+        ext <- switch(match.arg(extension),
+                      'nc' = '\\.nc$',
+                      'csv' = '\\.csv$'
+        )
+        x <- list.files(x, pattern=ext, full.names=TRUE)
+    }
+    allowedExt <- '\\.nc$|\\.csv$'
+    if(is.character(x)) {
+        x <- x[grepl(allowedExt, x)]
+        if(length(x) == 0) {
+            warning('No files of appropriate type provided.')
+            return(NULL)
+        }
+    }
     # combine if multiple files
     if(is.character(x) &&
        length(x) > 1) {

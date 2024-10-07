@@ -4,14 +4,32 @@
 \alias{matchGFS}
 \title{Match GFS Environmental Data}
 \usage{
-matchGFS(x)
+matchGFS(x, progress = TRUE, keepMatch = TRUE)
 }
 \arguments{
 \item{x}{a dataframe with columns \code{UTC}, \code{Latitude} and
 \code{Longitude} to add environmental data to}
+
+\item{progress}{logical flag to display download progress}
+
+\item{keepMatch}{logical flag to keep the "matchLat", "matchLong",
+and "matchTime" columns with the output. These are only used
+to verify which coordinates within the NetCDF were matched
+to your data.}
 }
 \value{
-a dataframe with wind (m/s) and precipitation rate (kg/m^2/s) columns added
+a dataframe with wind (m/s) and precipitation rate (kg/m^2/s)
+columns added:
+\describe{
+\item{windU}{Eastward wind velocity}
+\item{windV}{Northward wind velocity}
+\item{windMag}{Total wind magnitude}
+\item{precRate}{Precipitation rate}
+\item{matchLat}{Cosest latitude coordinate matched in GFS}
+\item{matchLong}{Closest longitude coordinate matched in GFS}
+\item{matchTime}{Closest time coordinate matched in GFS}
+}
+Where the last three columns are only included if \code{keepMatch=TRUE}
 }
 \description{
 Downloads and matches wind and precipitation data

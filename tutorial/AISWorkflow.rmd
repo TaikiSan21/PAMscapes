@@ -126,7 +126,7 @@ traveled within `distance=10e3` of our buoy for even a short amount of
 time. Since ships move fast and far, a lot of this is quite far from our
 buoy. The plot below shows the full extent of AIS data we have loaded.
 
-```{r}
+```{r, fig.height=6, fig.width=5}
 library(ggplot2)
 ggplot() +
     geom_path(data=gps, aes(x=Longitude, y=Latitude), col='black') +
@@ -137,7 +137,7 @@ A more relevant plot would be to truncate this to only data within the
 Lat/Long bounds of our GPS data. We can also color the tracks by whether
 or not they were within 10km of our buoy at that time (bottom plot).
 
-```{r}
+```{r, fig.height=12, fig.width=6}
 library(patchwork)
 (ggplot() +
     geom_path(data=gps, aes(x=Longitude, y=Latitude), col='black') +
@@ -224,6 +224,12 @@ noInterp / closeInterp / allInterp
 ```
 
 <!--# A few points to clarify: 1. Why does the 'Close' plot show times when shipDist<10000 is FALSE? 2. The plots show added points on the AIS tracks, but aren't we interpolating along the drifter track (black line)? I'm a little confused as to how the plots help illustrate the different interpolation methods -->
+
+```{r}
+ggplot(gpsAll, aes(x=UTC, y=shipDist, group=MMSI, color=factor(MMSI))) +
+    geom_path() + 
+    coord_cartesian(ylim=c(0, 10e3), expand=F)
+```
 
 There are some other important things to consider when using
 interpolation with `addAIS`. It is necessary that some columns of the

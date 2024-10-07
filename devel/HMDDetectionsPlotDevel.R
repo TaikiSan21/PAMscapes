@@ -89,11 +89,56 @@ table(plotData$species)
 g <- plotData %>%
     filter(!species %in% c('fin', 'beaked whale')) %>%
     plotAcousticScene(freqMap=freqMap, bin='30min',
-                      add = plotLTSA(tolData, bin='2min', alpha=.9),
-                      title='Combined LTSA/Acoustic Scene')
+                      title='Combined LTSA/Acoustic Scene',
+                      add = plotLTSA(tolData, bin='2min', alpha=.9))
 ggsave(g, filename='LTSASceneAD49.png', width=10, height=6)
 # ok how to pair different timescales of detections and HMD
 # probably want to have granular for HMD and wider for binning
 # detections? idk
 
-smashScales <- function(x, y, xBin, yBin) {
+##### ltsa dets
+tolDir <- '../Data/FinTOL'
+tolFiles <- list.files(tolDir, recursive=T, full.names=T)
+tolData <- checkSoundscapeInput(grep('ADRIFT_049', tolFiles, value=T))
+allDets <- data.frame(data.table::fread('../ADRIFT_Report/data/AllDetections_wGPS.csv'))
+plotData <- filter(allDets, DriftName == 'ADRIFT_049')
+detRename <- tibble::tribble(
+    ~old, ~new,
+    'Anthro', 'ship',
+    'Mn', 'humpback',
+    'Bp', 'fin',
+    'Bm', 'blue',
+    'B. borealis', 'sei',
+    'Lo', 'dolphin',
+    'Gg', 'dolphin',
+    'UO', 'dolphin',
+    'Ba', 'minke',
+    'Pm', 'sperm',
+    'BB', 'beaked whale',
+    'BW', 'beaked whale',
+    'BW43', 'beaked whale',
+    'ZC', 'beaked whale',
+    'MS', 'beaked whale',
+    'MC', 'beaked whale',
+    'BWC', 'beaked whale',
+    'Er', 'gray'
+)
+
+for(i in 1:nrow(detRename)) {
+    plotData$species[plotData$species == detRename$old[i]] <- detRename$new[i]
+}
+freqMap <- tribble(
+    ~type, ~freqMin, ~freqMax, ~color,
+    'dolphin', 10e3, 25e3,'blue',
+    'humpback', 100, 2e3, 'white',
+    'ship', 100, 1e3,'red'
+)
+library(PAMscapes)
+library(dplyr)
+ltsaPlot <- plotLTSA(tolData, bin='2min', title='Combined LTSA/Acoustic Scene', alpha=.9)
+ltsaPlot
+ltsaDets <- plotData %>%
+    filter(species %in% c('dolphin', 'humpback', 'ship')) %>%
+    plotAcousticScene(freqMap=freqMap, bin='30min',
+                      add = ltsaPlot)
+ltsaDets

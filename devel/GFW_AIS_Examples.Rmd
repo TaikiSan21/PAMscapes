@@ -1,0 +1,125 @@
+# GFW Vessel Presence and Soundscapes
+
+```{r}
+library(here)
+library(gfwr)
+library(PAMscapes)
+library(dplyr)
+library(sf)
+library(lubridate)
+```
+
+## Load Soundscape Data
+
+```{r}
+nrsFolder <- here('testData/NRS11')
+nrsFiles <- list.files(nrsFolder, pattern='nc$', full.names=TRUE)
+nrs11 <- checkSoundscapeInput(nrsFiles[1:10])
+```
+
+```{r}
+plotLTSA(nrs11)
+```
+
+```{r}
+plotPSD(nrs11, style='quantile', q=.05)
+```
+
+```{r}
+downloadMarCadAIS(nrs11, outDir=here('AIS'), overwrite = FALSE, unzip=TRUE)
+```
+```{r}
+subsetMarCadAIS(inDir=here('AIS'), outDir=here('AIS_West'), name='West_', 
+                latRange=c(20,50), lonRange=c(-140,-110),
+                overwrite=FALSE, progress=TRUE)
+```
+```{r}
+marCad <- readLocalAIS(nrs11, here('AIS_West'), distance = 50e3)
+```
+
+
+## Make GFWR Calls
+
+First get coordinate boundary
+
+```{r}
+bufferDist <- 50e3
+bounds <- st_as_sf(distinct(nrs11[c('Longitude', 'Latitude')]),
+                        coords=c('Longitude', 'Latitude'), crs=4326) %>%
+    st_buffer(dist=bufferDist) %>%
+    st_bbox() %>%
+    st_as_sfc()
+bounds <- st_sf(geometry=bounds)
+timeRange <- round_date(range(nrs11$UTC), unit='1day')
+timeRange <- format(timeRange, format='%Y-%m-%d')
+```
+
+```{r}
+token <- yaml::read_yaml('.secrets/secrets.yml')$gfw_token
+
+vessSar <- get_raster(data='SAR',
+    spatial_resolution = 'HIGH',
+    temporal_resolution = 'HOURLY',
+    group_by = 'MMSI',
+    start_date = timeRange[1],
+    end_date = timeRange[2],
+    region = bounds,
+    region_source = 'USER_SHAPEFILE',
+    key = token,
+    print_request = TRUE
+)
+vessAis <- get_raster(data='AIS',
+                   spatial_resolution = 'HIGH',
+                   temporal_resolution = 'HOURLY',
+                   group_by = 'MMSI',
+                   start_date = timeRange[1],
+                   end_date = timeRange[2],
+                   region = bounds,
+                   region_source = 'USER_SHAPEFILE',
+                   key = token,
+                   print_request = TRUE
+)
+```
+
+```{r}
+library(PAMpal)
+library(geosphere)
+addDistToGFW <- function(gfw, gps) {
+    gfw <- rename(gfw, 'UTC'='Time Range')
+    gfw <- timeJoin(gfw, distinct(gps[c('UTC', 'Latitude', 'Longitude')]))
+    gfw$distance <- distGeo(matrix(c(gfw$Lon, gfw$Lat), ncol=2),
+                            matrix(c(gfw$Longitude, gfw$Latitude), ncol=2))
+    gfw
+}
+vessAis <- addDistToGFW(vessAis, nrs11)
+    
+```
+
+```{r}
+library(ggplot2)
+ggplot() +
+    geom_point(data=vessAis, aes(x=Longitude, y=Latitude), col='black', size=4) +
+    geom_path(data=marCad, aes(x=Longitude, y=Latitude, group=as.character(MMSI), color=as.character(MMSI))) +
+    geom_raster(data=vessAis, aes(x=Lon, y=Lat, fill=.data[['Apparent Fishing Hours']])) +
+    guides(color='none') +
+    xlim(-124, -122.6) +
+    ylim(37.4, 38.4)
+```
+
+```{r}
+nrs11 <- addAISSummary(nrs11, marCad, distance=20e3)
+```
+
+```{r}
+nrs11$shipNear <- nrs11$closeDist < 10e3
+plotPSD(nrs11, by='shipNear')
+```
+
+```{r}
+plotScaledTimeseries(nrs11, columns=c('HMD_50', 'closeDist'))
+```
+
+```{r}
+plotHourlyLevel(nrs11, toTz='US/Pacific')
+```
+

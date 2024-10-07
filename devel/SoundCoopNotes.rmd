@@ -194,3 +194,92 @@ and you don't remember, you'll package and send it all
 
 TALK TO MARIE ABOUT ADAPTING TETHYS MAPPER TOOL FOR THIS SO I DONT
 HAVE TO DO ALL THE WORK
+
+# Soundcoop2024! Day 1
+
+Axiom presentation - how does their spectrogram load so fast for a full year
+of data. Image pyramid IDK wtf that means. How are they compressing - median
+or some such, or just downsampling?
+
+Showing distribution of categories in a `plotPSD(by='')` plot is smart for
+environmental data so you know if you have small sample size for some
+
+Okay fine I'll add the code text to `runSoundscapeExplorer`
+
+`plotLTSA` also needs a `by` column to create the multi-LTSA style plot thats 
+in the slides. I guess that's pretty awkward and maybe breaks if time scales 
+are different...e.x. if you try and do a jank environmental category or something
+
+Question - is it appropriate to `createOctaveLevel` based on HMD data? bc of
+the different frequency spacing
+
+Default color scaling from 50 to 105 on the Soundcoop portal. Me too?
+
+Coverage plot from Danelle's mybinder notebook example is useful. Is this
+from the JSON metadata? Checking the actual date ranges? I wonder if these
+should scale by % missing not % present - hard to see 99.5 vs 100% 
+
+`ncdf4::ncatt_get(nc, varid=0, attname='geospatial_bounds')`
+Hey it also has `time_coverage_start` and `_end`
+And `platform` which has a title?
+
+Data quality plotting - currently just marking NA on load, does this need
+more options? Unfortunately going to require carrying a lot of crap around
+and making sure that all the functions know how to continue carrying it.
+e.g. `toWide` `toLong` are going to STB
+
+decidecade option for `createOctaveLevel` ?
+
+What is actually the "correct" time-binned/resampled summarisation? mean
+is wrong, median is "okay", shouldn't linear-mean be best?
+
+wtf is Dask for parallel/task organization (it does parallel kine stuff like
+future package but more specific)
+
+wtf is Zarr
+
+Jonathan Joyce - my brain was getting too tired but something about getting
+better access of WCOFS data. Will this work for the enviro we want? I dont
+actually know what they did aybe i can find out later
+
+## Day 2!
+
+During Megan's talk, Carrie had a figure of sound level change since 2015, add
+something like this. A plot like this won't fit in the soundscopeExplorer, but
+we could just have a fixed figure with explanation "yo this doesnt work bc X,
+but here's how you make it work". Orrrr I guess a data upload for comparison
+datasets???. Hm.
+
+Move a season function into PAMscapes for time of year labeling?
+
+For the detection version of `soundscapeExplorer` - can have different
+categories on the main page like "Detections ONly" "With Effort" whatever
+based on different input needs. Probably add an effort adder to the data
+page for that one. Data page will need a lot more options maybe? Binning
+level, effort adder, call vs. species. Hm.
+
+FOr `plotPSD` have something like if len(q) != 1 then we want to plot all
+inputs as separate bands? Like pypam does 1,2,5,25,50, etc. all on one. 
+Maybe good, maybe needs annoying reworking.
+
+Email Jonathan Joyce about getting enviro data from them may have
+easier stuff for our soundscape doohickeys
+
+explorer should probably have a blurb on each plotting page about what
+exactly you are looking at + how it gets there (eg if binning is happening
+before plotting or w/e)
+
+Add frequency limits to data panel (to filter)
+
+QAQC - need to differentiate between soundtrap specific and general recorder use plots
+
+Megan GCP checking JSONS to create gant chart. Check out `gsutil` and see how
+works - some people having problems getting it working so try and see. We want this
+in PAMscapes probs.
+
+
+*M*odeling *U*nderwater *S*ounds to *U*nderstand *B*ehavior of *I*mportant Species
+
+*D*eriving *A*coustic *K*nowledge from *I*ndepentent *N*etwork of  glid*E*rs
+
+*H* *O* *W* *Z*iphius *I*ndividual *T*racklines *B*ehavioral *R*esponse p*A*ssing s*H*ips

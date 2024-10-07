@@ -2,7 +2,6 @@
 install.packages('gfwr')
 pak::pkg_install("GlobalFishingWatch/gfwr")
 library(gfwr)
-?gfw_auth()
 token <- yaml::read_yaml('.secrets/secrets.yml')$gfw_token
 
 data("test_shape")
@@ -38,41 +37,50 @@ makeBBMatrix <- function(latRange, lonRange) {
 }
 sfc <- (st_sfc(st_polygon(list(makeBBMatrix(c(-140,-110), c(20,50)))), crs=4326))
 sf <- st_sf(geometry=sfc)
-# 2022 04-25 - 04-28
-vessComp <- get_raster(
-    spatial_resolution = 'LOW',
-    temporal_resolution = 'HOURLY',
-    group_by = 'VESSEL_ID',
-    start_date = '2022-04-25',
-    end_date = '2022-04-28',
-    region = sf,
-    region_source = 'USER_JSON',
-    key = token
-)
-str(vessComp)
+
 gps <- readr::read_csv(c('tutorial/ADRIFT_017_GPS.csv'), show_col_types = FALSE)
 bufferBound <- st_as_sf(gps[,c('Longitude', 'Latitude', 'UTC')],
                         coords=c('Longitude', 'Latitude'), crs=4326) %>%
-    # st_bbox() %>%
-    # st_as_sfc() %>%
     st_buffer(dist=50e3) %>%
     st_bbox() %>%
     st_as_sfc()
+
 bufferBound <- st_sf(geometry=bufferBound)
-bufferVess <- get_raster(
-    spatial_resolution = 'LOW',
+vessSar <- get_raster(data='SAR',
+    spatial_resolution = 'HIGH',
     temporal_resolution = 'HOURLY',
-    group_by = 'VESSEL_ID',
+    group_by = 'MMSI',
     start_date = '2022-04-22',
     end_date = '2022-04-30',
     region = bufferBound,
-    region_source = 'USER_JSON',
+    region_source = 'USER_SHAPEFILE',
     key = token,
     print_request = TRUE
 )
-str(bufferVess)
-ais <- readLocalAIS(gps, aisDir=c('AIS_West'), distance=10e3)
+vessAis <- get_raster(data='AIS',
+                   spatial_resolution = 'HIGH',
+                   temporal_resolution = 'HOURLY',
+                   group_by = 'MMSI',
+                   start_date = '2022-04-22',
+                   end_date = '2022-04-30',
+                   region = bufferBound,
+                   region_source = 'USER_SHAPEFILE',
+                   key = token,
+                   print_request = TRUE
+)
+str(vessAis)
+ais <- readLocalAIS(gps, aisDir=c('AIS_West'), distance=50e3)
 str(ais)
-
+unique(ais$MMSI)
+unique(vessAis$MMSI) %in% ais$MMSI
 # CURRENT RESULT: A lot of marcad MMSI's are not present from GFW output
 # seems bad. May need to ask
+
+library(ggplot2)
+ggplot() +
+    geom_point(data=vessSar, aes(x=Lon, y=Lat, col=as.character(mmsi)), shape=3, size=2) +
+    geom_point(data=vessAis, aes(x=Lon, y=Lat, col=as.character(mmsi)), shape=5, size=2) +
+    geom_path(data=dplyr::filter(ais, inDist),
+              aes(x=Longitude, y=Latitude, col=as.character(MMSI), group=as.character(MMSI))) +
+    geom_path(data=gps, aes(x=Longitude, y=Latitude)) +
+    facet_wrap(~vesselType)

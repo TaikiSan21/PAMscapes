@@ -4,6 +4,14 @@
 #'   resolution soundscape metrics, like Power Spectral Density (PSD) or
 #'   Hybrid Millidecade (HMD) measures
 #'
+#' @details Note that these measures are not as precise as they could be, mostly
+#'   meant to be used for visualizations. Bands of the original data that do not
+#'   fit entirely within a single octave band are not proportionately split between
+#'   the two proper output bands. Instead an output band will contain all inputs where
+#'   the center frequency falls between the limits of the output band. For higher
+#'   frequencies this should result in negligible differences, but lower frequencies
+#'   will be more imprecise.
+#'
 #' @param x dataframe of soundscape metrics
 #' @param type either \code{'ol'} to create octave level or \code{'tol'} to create
 #'   third octave level measures
@@ -12,6 +20,8 @@
 #' @param method the summary method to apply to soundscape metrics within the octave band,
 #'   one of \code{'sum'} or \code{'mean'}. The default \code{'sum'} should be used in
 #'   almost all cases.
+#' @param normalized logical flag to return values normalized by the bandwidth of
+#'   each octave level band
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -27,21 +37,32 @@
 #' ol <- createOctaveLevel(tol, type='ol')
 #' str(ol)
 #'
-#' @importFrom dplyr group_by summarise ungroup rename
+#' @importFrom dplyr group_by summarise ungroup rename mutate
 #'
-createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('sum', 'mean', 'median')) {
+createOctaveLevel <- function(x,
+                              type=c('ol', 'tol'),
+                              freqRange=NULL,
+                              method=c('sum', 'mean', 'median'),
+                              normalized=FALSE) {
     x <- checkSoundscapeInput(x)
     startLong <- isLong(x)
     x <- toLong(x)
+    nonFreqCols <- getNonFreqCols(x)
+    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
+    inType <- x$type[1]
+    if(inType == 'HMD') {
+        # millidecade band parts are normalized by bandwidth, we need to un-norm them
+        x <- correctHmdLevels(x)
+    }
     type <- match.arg(type)
     octLevels <- getOctaveLevels(type)
-    if(is.null(freqRange)) {
-        freqRange <- range(x$frequency)
+    if(!is.null(freqRange)) {
+        # freqRange <- range(x$frequency)
+        lowCut <- min(which(freqRange[1] <= octLevels$freqs))
+        highCut <- max(which(freqRange[2] >= octLevels$freqs))
+        octLevels$freqs <- octLevels$freqs[lowCut:highCut]
+        octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
     }
-    lowCut <- min(which(freqRange[1] <= octLevels$freqs))
-    highCut <- max(which(freqRange[2] >= octLevels$freqs))
-    octLevels$freqs <- octLevels$freqs[lowCut:highCut]
-    octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
     x$octave <- cut(x$frequency, octLevels$limits, labels=octLevels$freqs)
     x <- x[!is.na(x$octave), ]
     x$value <- 10^(x$value / 10)
@@ -53,18 +74,33 @@ createOctaveLevel <- function(x, type=c('ol', 'tol'), freqRange=NULL, method=c('
     setDT(x)
     x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave')]
     setDF(x)
+    if(length(nonFreqCols) > 0) {
+        x <- left_join(x, nonFreqData, by='UTC')
+    }
+
     x$type <- toupper(type)
     x <- rename(x, frequency = 'octave')
     x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]
     x$value <- 10 * log10(x$value)
+    if(isTRUE(normalized)) {
+        levDf <- data.frame(frequency=octLevels$freqs, bw=diff(octLevels$limits))
+        x <- mutate(
+            left_join(x, levDf, by='frequency'),
+            value = .data$value - 10*log10(.data$bw)
+        )
+        x$bw <- NULL
+    }
     if(!startLong) {
         return(toWide(x))
     }
     x
 }
 
-getOctaveLevels <- function(type=c('ol', 'tol'), freqRange=NULL) {
+getOctaveLevels <- function(type=c('ol', 'tol', 'hmd'), freqRange=NULL) {
     type <- match.arg(type)
+    if(type == 'hmd') {
+        return(getHmdLevels(freqRange))
+    }
     nominalFreqs <- c(1,
         1.25, 1.6, 2, 2.5, 3.15, 4, 5, 6.3, 8, 10,
         13, 16, 20, 25, 31.5, 40, 50, 63, 80, 100,
@@ -95,12 +131,41 @@ getOctaveLevels <- function(type=c('ol', 'tol'), freqRange=NULL) {
     isSci <- grepl('e\\+', labels)
     labels[isSci] <- format(as.numeric(labels[isSci]), scientific=FALSE)
     labels <- paste0(toupper(type), '_', labels)
-    # if(!is.null(freqRange) && length(freqRange) == 2) {
-    #     freqRange <- sort(freqRange)
-    #     inRange <- nominalFreqs >= freqRange[1] & nominalFreqs <= freqRange[2]
-    #     nominalFreqss <- nominalFreqs[inRange]
-    #     labels <- labels[inRange]
-    #     limits <- limits[c(inRange, inRange[length(inRange)])]
-    # }
     list(limits = freqLims, labels=labels, freqs=nominalFreqs)
+}
+
+getHmdLevels <- function(freqRange=NULL) {
+    n <- 1639:5000 # tail limit is 1e6
+    lowCenter <- 0:434
+    lowLims <- c(0, 0:434 + 0.5)
+    highCenter <- c(10 * 10 ^ ((2*(n-1)+1) / (2*1000)))
+    highLims <- c(highCenter*10^(1/2000))
+    freqLims <- c(lowLims, highLims)
+    nominalFreqs <- c(lowCenter, highCenter)
+    if(!is.null(freqRange) && length(freqRange) == 2) {
+        inRange <- nominalFreqs >= freqRange[1] &
+            nominalFreqs <= freqRange[2]
+        nominalFreqs <- nominalFreqs[inRange]
+        freqLims <- freqLims[c(which(inRange), max(which(inRange))+1)]
+    }
+    labels <- paste0('HMD_', nominalFreqs)
+    list(limits=freqLims, labels=labels, freqs=nominalFreqs)
+}
+
+# millidecade bands are normalized by bandwidth, need to multiple back
+# the bandwidth before summing
+correctHmdLevels <- function(x) {
+    # changeFreq <- 434
+    # lowHalf <- x[x$frequency <= changeFreq, ]
+    # highHalf <- x[x$frequency > changeFreq, ]
+    hmdLevels <- getHmdLevels(freqRange=range(x$frequency))
+    levDf <- data.frame(frequencyJoin=round(hmdLevels$freqs, 1), bw=diff(hmdLevels$limits))
+    x$frequencyJoin <- round(x$frequency, 1)
+    x <- mutate(
+        left_join(x, levDf, by='frequencyJoin'),
+        value = .data$value + 10*log10(.data$bw)
+    )
+    x$bw <- NULL
+    x$frequencyJoin <- NULL
+    x
 }

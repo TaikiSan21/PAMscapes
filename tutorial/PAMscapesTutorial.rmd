@@ -13,22 +13,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 
 This document introduces the plotting and summary functions included in the early
-versions of the `PAMscapes` package (v0.3.1 as of this writing). This will not
+versions of the `PAMscapes` package (v0.7.0 as of this writing). This will not
 cover a lot of the AIS download functions in depth since they are covered in 
 a separate document `AISWorkflow.md` that should be available in the same location
 as this file.
 
 ### Prerequisites
 
-Currently (2023-07-28) this package is only available on GitHub. This tutorial also requires
-`PAMpal` version 0.20.1 or greater and `PAMmisc` version 1.11.5 or greater, you may need to download
-these from GitHub instead of CRAN depending on when you are using this document.
+Currently (2024-10-02) `PAMscapes` v0.7.0 is available on CRAN. This tutorial also requires
+`PAMpal` version 0.20.1 or greater and `PAMmisc` version 1.11.5 or greater, both of
+which are also available on CRAN.
 
 ```{r, eval=FALSE}
-devtools::install_github('TaikiSan21/PAMscapes')
-# may need these from GitHub as well
-# devtools::install_github('TaikiSan21/PAMpal')
-# devtools::install_github('TaikiSan21/PAMmisc')
+install.packages('PAMscapes')
+install.packages('PAMpal')
+install.packages('PAMmisc')
 ```
 
 This tutorial also requires AIS data in a folder `AIS_West`. You can download the
@@ -69,23 +68,24 @@ remainder of the columns storing the metrics are named using the convention `NAM
 `NAME` is the same across all columns and the `FREQUENCY` is in Hertz (Hz). For example, data with columns
 `UTC`, `OctLev_150`, `OctLev_200`, `OctLev_300` would be accepted.
 
-Data created with [MANTA](https://doi.org/10.3389/fmars.2021.703650) are also accepted even though 
-they do not follow this convention. Typical MANTA output has the first column as the date, then the
+Data created with [MANTA](https://doi.org/10.3389/fmars.2021.703650) and [PyPam](https://github.com/lifewatch/pypam) 
+are also accepted even though they do not follow this convention. Typical MANTA CSV output has the first column 
+as the date, then the
 remaining columns named by just frequency, with no `NAME_` prefix. MANTA data processed with `PAMscapes`
-may have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
-appended to the frequency column names. NetCDF files from MANTA are also accepted by `PAMscapes`
-functions, users can load these as dataframes using the `loadMantaNc` function. Users can also use
-the `checkSoundscapeInput` function to read in their data to make sure it is compatible. Most `PAMscapes` 
-functions will use this internally to check for proper formatting, but it can also be useful for users
-to check and make sure things are working for themselves first, or to just format the data and use for their 
-own purposes.
+will have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
+appended to the frequency column names. NetCDF files from MANTA and PyPam are also accepted by `PAMscapes`
+functions, users can load these as dataframes using the `checkSoundscapeInput` function.
+
+For NetCDF that contain metadata fields about the location and platform name of the instrument,
+these fields will be read in as columns `Longitude`, `Latitude`, and `platform`.
 
 ```{r}
-# Can load MANTA NetCDF using this
-manta <- checkSoundscapeInput(here('tutorial/MANTAExample.nc'))
+# Can load PyPam NetCDF using this
+pypam <- checkSoundscapeInput(here('tutorial/PyPamExample.nc'))
 ol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_OL_sim.csv'))
-cat(str(manta, list.len=10))
+cat(str(pypam, list.len=10))
 str(ol)
+tail(colnames(pypam))
 ```
 
 #### Creating Third Octave Level & Octave Level Measurements
@@ -98,18 +98,18 @@ Often it is enough to use the Third Octave Level (TOL) or Octave Level (OL) meas
 observe patterns in the soundscape. `PAMscapes` includes a function `createOctaveLevel` that
 allows users to to generate these octave level measurements from their finer scale inputs.
 
-Here we'll show how this works for the small set of MANTA data we just loaded, which outputs in HMD
+Here we'll show how this works for the small set of PyPam data we just loaded, which outputs in HMD
 resolution.
 
 ```{r}
-ncol(manta)
+ncol(pypam)
 ```
 The `createOctaveLevel` function takes this larger file as input, then we use the `type`
 argument to specify OL (`type='ol'`) or TOL (`type='tol'`) bands.
 
 ```{r}
-mantaOl <- createOctaveLevel(manta, type='ol')
-colnames(mantaOl)
+pypamOl <- createOctaveLevel(pypam, type='ol')
+colnames(pypamOl)
 ```
 This function will use the standard center frequencies for the OL/TOL bands, and by default
 it will use all frequencies available in the input data. Octave bands are created by summing
@@ -118,19 +118,19 @@ be changed to average the values in each band by setting `method='mean'`, but th
 recommended.
 
 In this data our frequencies start
-at 1Hz, but we may not be interested in the full range of available frequencies. We can use
+at 10Hz, but we may not be interested in the full range of available frequencies. We can use
 the `freqRange` argument to specify the upper and lower frequencies we want. Here we can
-restrict our data to bands from 250Hz to 8000Hz.
+restrict our data to bands from 250Hz to 2000Hz
 
 ```{r}
-mantaOl <- createOctaveLevel(manta, type='ol', freqRange=c(250, 8000))
-str(mantaOl)
+pypamOl <- createOctaveLevel(pypam, type='ol', freqRange=c(250, 2000))
+str(pypamOl)
 ```
 
 Note that the `freqRange` parameter only checks against the *center* frequency of the
 band, so users do not need to worry about making sure their specifications account for
 all frequencies within the band, only that the desired center frequency is included.
-Practically this means that `freqRange=c(200, 8000)` and `freqRange=c(250, 8000)`
+Practically this means that `freqRange=c(200, 2000)` and `freqRange=c(250, 2000)`
 are identical when calculating full octave bands since the lowest center frequency
 in both is 250Hz.
 
@@ -140,10 +140,28 @@ OL measures, and expect nearly identical results (there may occasional be
 band-edge differences but they should be minor).
 
 ```{r}
-mantaTol <- createOctaveLevel(manta, type='tol')
-olFromTol <- createOctaveLevel(mantaTol, type='ol')
-sum(abs(mantaOl[['OL_250']] - olFromTol[['OL_250']]))
+pypamTol <- createOctaveLevel(pypam, type='tol')
+olFromTol <- createOctaveLevel(pypamTol, type='ol')
+sum(abs(pypamOl[['OL_250']] - olFromTol[['OL_250']]))
 ```
+
+Note that the standard hybrid-millidecade bands output by MANTA and PyPam are normalized
+by their bandwidth. `createOctaveLevel` corrects for this properly before summing to
+create the desired output bands, but by default the generated band level measurements
+are *not* normalized by their bandwidth. This can be changed with the `normalized=TRUE`
+option.
+
+The plot shows that the un-normalized (blue) line is much higher than the original
+hybrid millidecade output (black), which is expected because it has summed multiple
+HMD values. The normalized ouput (red) closely tracks the original HMD output.
+
+```{r}
+pypamOlNorm <- createOctaveLevel(pypam, type='ol', normalized=TRUE)
+plot(x=pypam$UTC, y=pypam$HMD_250, type='l', col='black', ylim=c(70, 104))
+lines(x=pypamOl$UTC, y=pypamOl$OL_250, col='blue')
+lines(x=pypamOlNorm$UTC, y=pypamOlNorm$OL_250, col='red')
+```
+
 
 ### Pairing Environmental and AIS Summary Data
 
@@ -165,14 +183,11 @@ This function has added columns:
 
 - `windU` eastward wind velocity (meters / second)
 - `windV` northward wind velocity (meters / second)
+- `windMag` the total wind magnitude (meters / second)
 - `precRate` average surface precipitation rate (kg / m^2 / s)
-- `matchLong/Lat/Time_mean` the coordinate value in the NetCDF file your data was matched to
-
-We'll also create
-a `windMag` column to get the overall wind magnitude instead of just the components.
+- `matchLong/Lat/Time` the coordinate value in the NetCDF file your data was matched to
 
 ```{r}
-gps$windMag <- sqrt(gps$windU^2 + gps$windV^2)
 str(gps)
 ```
 
@@ -302,12 +317,11 @@ you can change the color palette used with the `cmap` option.
 One common way of summarising soundscape metrics is just to simply plot the distribution
 of sound levels across frequency. `plotPSD` can plot this information either as just the
 median level with optional quantiles (`style='quantile'`, similar to `plotTimeseries` above), or the full 
-density distribution (`style='density'`). The MANTA data has a "0" frequency, and we can't show 0 on a
-log scaled frequency axis (the default), so we're going to get some warnings here - that's okay.
+density distribution (`style='density'`).
 
 ```{r}
-(plotPSD(manta, style='quantile', q=.05)) /
-    (plotPSD(manta, style='density'))
+(plotPSD(pypam, style='quantile', q=.05)) /
+    (plotPSD(pypam, style='density'))
 ```
 
 PSD data can be quite large depending on the frequency and time resolution, so `PAMscapes`
@@ -317,7 +331,7 @@ much faster to fiddle with plot settings since users aren't waiting for the data
 time they change the quantile level or color scheme.
 
 ```{r}
-psdData <- prepPSDData(manta)
+psdData <- prepPSDData(pypam)
 (plotPSD(psdData, style='quantile', q=.1, color='orange') + 
         plotPSD(psdData, style='quantile', q=.2, color='red')) /
     (plotPSD(psdData, style='density', freqRange=c(100, 4e3)) +
@@ -334,17 +348,17 @@ is that the data must all have measurements at the exact same frequency levels. 
 to combine the two different octave level measurements we've made/loaded from this tutorial.
 
 ```{r}
-combinedOl <- prepPSDData(list(ol, mantaOl))
+combinedOl <- prepPSDData(list(ol, pypamOl))
 ```
 
 We get a warning that they cannot be combined - even though the octave level measurements are present
-at the same intervals, the `mantaOl` measurements stop at 4kHz. We can get around this by limiting `ol`
+at the same intervals, the `pypamOl` measurements stop at 4kHz. We can get around this by limiting `ol`
 to the columns up to 4kHz.
 
 ```{r}
-combinedOl <- prepPSDData(list(ol[1:6], mantaOl))
+combinedOl <- prepPSDData(list(ol[1:6], pypamOl))
 (plotPSD(ol, style='density', dbRange=c(50, 130)) +
-    plotPSD(mantaOl, style='density', dbRange=c(50, 130))) /
+    plotPSD(pypamOl, style='density', dbRange=c(50, 130))) /
     plotPSD(combinedOl, style='density', dbRange=c(50, 130))
 ```
 
@@ -373,23 +387,23 @@ length one `q` will plot a ribbon from `q` to `1-q`, e.g. `q=.05` will plot the 
 95th percent quantiles. A length 2 `q` will plot a ribbon between the specified bounds.
 
 ```{r}
-(plotPSD(manta, style='quantile', q=0, freqRange=c(100,1e4)) + 
-     plotPSD(manta, style='quantile', q=c(.01, .8), color='red', freqRange=c(100, 1e4))) /
-    (plotPSD(manta, style='density', cmap=scales::viridis_pal(option='B')(25), dbRange=c(30, 120)) +
-         plotPSD(manta, style='density', cmap=scales::viridis_pal(option='mako')(25), freqRange=c(1e2, 1e3)))
+(plotPSD(pypam, style='quantile', q=0, freqRange=c(100,1e4)) + 
+     plotPSD(pypam, style='quantile', q=c(.01, .8), color='red', freqRange=c(100, 1e4))) /
+    (plotPSD(pypam, style='density', cmap=scales::viridis_pal(option='B')(25), dbRange=c(30, 120)) +
+         plotPSD(pypam, style='density', cmap=scales::viridis_pal(option='mako')(25), freqRange=c(1e2, 1e3)))
 ```
 
 Labels for the Y-axis can also be changed with `units` and a title can be added with `title`, and the
 frequency scale can be set to either linear or log (default).
 
 ```{r}
-plotPSD(manta, style='density', units='TOL dB re 1uPa', title='Linear Plot', scale='linear')
+plotPSD(pypam, style='density', units='TOL dB re 1uPa', title='Linear Plot', scale='linear')
 ```
 
 You can also plot the quantile lines overlaid on top of the density heatmap.
 
 ```{r}
-plotPSD(manta, style=c('quantile', 'density'), q=.05, color='red')
+plotPSD(pypam, style=c('quantile', 'density'), q=.05, color='red')
 ```
 
 `plotPSD` also has the option to plot separate quantiles on the same plot using the `by` 
@@ -399,20 +413,20 @@ combined into a single dataframe, and also note that typically the presence of a
 column for labeling in the soundscape data will cause issues for other functions that
 are not expecting it.
 
-Here we'll some TOL data from MANTA on the same plot as some TOL metrics from Triton.
+Here we'll some TOL data from PyPam on the same plot as some TOL metrics from Triton.
 We need to specify the colors to use for the separate lines with the `color` argument,
 either as a vector of the number of colors or as a palette function. We can also show
 the quantile ribbons like normal.
 
 ```{r}
-tolManta <- createOctaveLevel(manta, type='tol', freqRange=c(125, 4e3))
+tolPypam <- createOctaveLevel(pypam, type='tol', freqRange=c(125, 4e3))
 # we'll use the "Source" column for our labeling
-tolManta$Source <- 'MANTA'
+tolPypam$Source <- 'PyPam'
 tol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_TOL_sim.csv'))
 tol$Source <- 'Triton'
-# columns 18-24 contain frequency higher than the 4kHz upper limit of our
-# MANTA data, so we'll remove them before combining
-combined <- rbind(tolManta, tol[-(18:24)])
+# columns 15-24 contain frequency higher than the 2kHz upper limit of our
+# PyPam data, so we'll remove them before combining
+combined <- rbind(tolPypam, tol[-(15:24)])
 plotPSD(combined, by='Source', color=c('blue', 'darkgreen')) /
     plotPSD(combined, by='Source', color=scales::hue_pal(), q=.05)
 ```

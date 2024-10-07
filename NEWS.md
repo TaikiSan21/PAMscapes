@@ -1,3 +1,18 @@
+# PAMscapes 0.7.2
+
+- Updating `createOctaveLevel` to work properly for hybrid-millidecade data.
+Was previously not correcting for binwidth correction. Also added a
+`normalized` option to allow for bin width-normalized outputs
+
+- `createOctaveLevel` also now properly keeps track of any added columns
+in addition to the standard soundscape metric data (e.g. GPS)
+
+- Updating `matchGFS` with new `progress` and `keepMatch` options, and
+adding `windMag` to the standard output
+
+- Updating tutorial with PyPam examples and data and to keep up with 
+more recent developments
+
 # PAMscapes 0.7.1
 
 - `loadMantaNc` (and thus `checkSoundscapeInput`) now knows to look for

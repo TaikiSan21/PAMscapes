@@ -138,6 +138,7 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                     result
                 }))
                 result$by <- b[[by]][1]
+                result$nBy <- nrow(b)
                 result
             }))
             x$frequency <- rep(freqVals, length(unique(x$by)))
@@ -584,8 +585,20 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
     if(is.null(g)) {
         g <- ggplot()
     }
-    if(!is.null(by) && is.numeric(x$by)) {
-        x$by <- factor(x$by, levels=sort(unique(x$by)))
+    if(!is.null(by)) {
+        if(is.numeric(x$by)) {
+            x$by <- factor(x$by, levels=sort(unique(x$by)))
+        }
+        if(is.character(x$by) ||
+           is.logical(x$by)) {
+            x$by <- as.factor(x$by)
+        }
+        if('nBy' %in% colnames(x)) {
+            nLevs <- left_join(data.frame(by=levels(x$by)),
+                               distinct(x[c('by', 'nBy')]),
+                                        by='by')
+            levels(x$by) <- paste0(nLevs$by, ' (', nLevs$nBy, ')')
+        }
     }
     nBy <- ifelse(is.null(by), 0, length(unique(x$by)))
     if(is.character(color) &&
@@ -614,7 +627,7 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
             geom_ribbon(
                 data=x,
                 aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh, fill=.data$by), alpha=.1) +
-            scale_color_manual(values=color, name=by) +
+            scale_color_manual(values=color, name=paste0(by, ' (nObs)')) +
             scale_fill_manual(values=color) +
             guides(fill='none')
     }

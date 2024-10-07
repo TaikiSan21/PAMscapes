@@ -9,8 +9,25 @@
 #'
 #' @param x a dataframe with columns \code{UTC}, \code{Latitude} and
 #'   \code{Longitude} to add environmental data to
+#' @param progress logical flag to display download progress
+#' @param keepMatch logical flag to keep the "matchLat", "matchLong",
+#'   and "matchTime" columns with the output. These are only used
+#'   to verify which coordinates within the NetCDF were matched
+#'   to your data.
 #'
-#' @return a dataframe with wind (m/s) and precipitation rate (kg/m^2/s) columns added
+#' @return a dataframe with wind (m/s) and precipitation rate (kg/m^2/s)
+#'   columns added:
+#'   \describe{
+#'     \item{windU}{Eastward wind velocity}
+#'     \item{windV}{Northward wind velocity}
+#'     \item{windMag}{Total wind magnitude}
+#'     \item{precRate}{Precipitation rate}
+#'     \item{matchLat}{Cosest latitude coordinate matched in GFS}
+#'     \item{matchLong}{Closest longitude coordinate matched in GFS}
+#'     \item{matchTime}{Closest time coordinate matched in GFS}
+#'    }
+#'    Where the last three columns are only included if \code{keepMatch=TRUE}
+#'
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -31,7 +48,7 @@
 #'
 #' @export
 #'
-matchGFS <- function(x) {
+matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
     needCols <- c('UTC', 'Latitude', 'Longitude')
     if(!all(needCols %in% colnames(x))) {
         stop('"x" must have columns "UTC", "Longitude", and "Latitude"')
@@ -41,7 +58,10 @@ matchGFS <- function(x) {
     maxTime <- nowUTC() - 36*3600
     origCols <- colnames(x)
     splitDf <- split(x, round_date(x$UTC, unit='3hour'))
-
+    if(progress) {
+        pb <- txtProgressBar(min=0, max=length(splitDf), style=3)
+        ix <- 0
+    }
     splitDf <- lapply(splitDf, function(df) {
         if(round_date(df$UTC[1], unit='3hour') < minTime ||
            round_date(df$UTC[1], unit='3hour') > maxTime) {
@@ -58,7 +78,7 @@ matchGFS <- function(x) {
         url <- formatURL_GFS(df, base=base)
         vars <- url$vars
         file <- fileNameManager()
-        dl <- GET(url$url, write_disk(file, overwrite = TRUE), progress())
+        dl <- GET(url$url, write_disk(file, overwrite = TRUE))
         on.exit({
           tempCache <- getTempCacheDir(create=FALSE)
           # tempFiles <- list.files(tempCache, full.names=TRUE)
@@ -80,9 +100,24 @@ matchGFS <- function(x) {
         df$windU <- df[[vars[1]]]
         df$windV <- df[[vars[2]]]
         df$precRate <- df[[vars[3]]]
+        if(progress) {
+            ix <<- ix + 1
+            setTxtProgressBar(pb, value=ix)
+        }
         df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
     })
-    bind_rows(splitDf)
+    result <- bind_rows(splitDf)
+    result$windMag <- sqrt(result$windU^2 + result$windV^2)
+    result <- rename(result,
+                     'matchLong' = 'matchLong_mean',
+                     'matchLat' = 'matchLat_mean',
+                     'matchTime' = 'matchTime_mean')
+    if(!keepMatch) {
+        result$matchLong <- NULL
+        result$matchLat <- NULL
+        result$matchTime <- NULL
+    }
+    result
 }
 
 formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/') {

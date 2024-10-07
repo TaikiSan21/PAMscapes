@@ -184,6 +184,19 @@ whichFreqCols <- function(x) {
     which(isFreq)[sameBase]
 }
 
+getNonFreqCols <- function(x) {
+    if(is.data.frame(x)) {
+        x <- colnames(x)
+    }
+    if(isLong(x)) {
+        longCols <- c('UTC', 'frequency', 'type', 'value')
+        return(x[!x %in% longCols])
+    }
+    freqCols <- whichFreqCols(x)
+    nonFreq <- x[!freqCols]
+    return(nonFreq[nonFreq != 'UTC'])
+}
+
 myLog10Scale <- function(g, range, dim=c('x', 'y')) {
     major <- logSeq(c(1,5))
     useMajor <- which(major >= range[1] & major <= range[2])

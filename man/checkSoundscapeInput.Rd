@@ -10,13 +10,17 @@ checkSoundscapeInput(
   skipCheck = FALSE,
   timeBin = NULL,
   binFunction = median,
-  tz = "UTC"
+  tz = "UTC",
+  extension = c("nc", "csv")
 )
 }
 \arguments{
 \item{x}{a dataframe, path to a CSV file, or path to a MANTA
-NetCDF file. If \code{x} is a vector of file paths then all will
-be read in and combined}
+NetCDF file, or folder containing these. If \code{x} is a vector
+of file paths then all will be read in and combined. If \code{x}
+is a folder, then all files with extension \code{extension} will
+be loaded. Note this will not load files within subfolders, only
+the main folder.}
 
 \item{needCols}{names of columns that must be present in \code{x},
 if any are missing will trigger an error}
@@ -31,6 +35,9 @@ be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
 
 \item{tz}{timezone of the data being loaded, will be converted to UTC
 after load}
+
+\item{extension}{only used if \code{x} is a folder, the file extension
+to load. Must be one of "nc" or "csv"}
 }
 \value{
 a dataframe
