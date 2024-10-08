@@ -1,3 +1,7 @@
+# PAMscapes 0.7.3
+
+- Bug in `plotPSD` for log scale frequency axis if frequency of 0 was present
+
 # PAMscapes 0.7.2
 
 - Updating `createOctaveLevel` to work properly for hybrid-millidecade data.
