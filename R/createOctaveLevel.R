@@ -109,6 +109,11 @@ getOctaveLevels <- function(type=c('ol', 'tol', 'hmd'), freqRange=NULL) {
         12500, 16e3, 20e3, 25e3, 31500, 40e3, 50e3, 63e3, 80e3, 100e3,
         125e3, 160e3, 200e3, 250e3, 315e3, 400e3, 500e3)
     ix <- seq_along(nominalFreqs) - 1
+    if(type == 'ol') {
+        olSeq <- seq(from=1, to=length(nominalFreqs), by=3)
+        nominalFreqs <- nominalFreqs[olSeq]
+        ix <- ix[olSeq]
+    }
     if(!is.null(freqRange) && length(freqRange) == 2) {
         freqRange <- sort(freqRange)
         inRange <- nominalFreqs >= freqRange[1] & nominalFreqs <= freqRange[2]
@@ -118,9 +123,9 @@ getOctaveLevels <- function(type=c('ol', 'tol', 'hmd'), freqRange=NULL) {
     freqVals <- 10^(ix/10)
     switch(type,
            'ol' = {
-               everyThird <- seq(from=1, to=length(nominalFreqs), by=3)
-               nominalFreqs <- nominalFreqs[everyThird]
-               freqVals <- freqVals[everyThird]
+               # everyThird <- seq(from=1, to=length(nominalFreqs), by=3)
+               # nominalFreqs <- nominalFreqs[everyThird]
+               # freqVals <- freqVals[everyThird]
                freqLims <- c(freqVals[1] * 10^(-3/20), freqVals * 10^(3/20))
            },
            'tol' = {

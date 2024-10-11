@@ -126,6 +126,12 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         justOneDf <- TRUE
         freqCols <- whichFreqCols(names(x))
         freqVals <- colsToFreqs(names(x)[freqCols])
+        if(!is.null(freqRange)) {
+            goodFreqs <- freqVals >= freqRange[1] & freqVals <= freqRange[2]
+            goodIx <- which(goodFreqs)
+            freqCols <- freqCols[goodIx]
+            freqVals <- freqVals[goodIx]
+        }
         q <- checkQuantile(q)
         if(!is.null(by)) {
             x <- bind_rows(lapply(split(x, x[[by]]), function(b) {
@@ -239,7 +245,7 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         g <- myLog10Scale(g, freqRange, dim='x')
     } else {
         g <- g +
-            scale_x_continuous(expand=c(0, 0))
+            scale_x_continuous(expand=c(0, 0), limits=freqRange)
     }
     g
 }
