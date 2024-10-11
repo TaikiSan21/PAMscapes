@@ -72,16 +72,16 @@ plotTimeseries <- function(x, bin='1hour', column, title=NULL, units=NULL,
                                  .groups='drop')
                }
                if(is.null(by)) {
-                   g <- ggplot(data=plotData, aes(x=.data$timeBin))
+                   g <- ggplot(data=plotData, aes(x=.data$timeBin)) +
+                       geom_line(aes(y=.data$med))
                } else {
-                   g <- ggplot(data=plotData, aes(x=.data$timeBin, col=.data[[by]], fill=.data[[by]]))
+                   g <- ggplot(data=plotData, aes(x=.data$timeBin, fill=.data[[by]])) +
+                       geom_line(aes(y=.data$med, col=.data[[by]]))
                }
-               g <- g + geom_line(aes(y=.data$med))
                if(!all(q == 0)) {
                    g <- g +
                        geom_ribbon(aes(ymin=.data$qlow, ymax=.data$qhigh), alpha=.1)
                }
-
                g <- g + labs(x=paste0('Date (', toTz, ')'), y=units)
            },
            'heatmap' = {

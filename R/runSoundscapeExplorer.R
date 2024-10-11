@@ -125,7 +125,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                                           label='By',
                                           choices=c('none', 'hour', 'month', 'year'),
                                           selected='none'))
-                )
+                ),
+                'Copy/paste this code to recreate this plot:',
+                verbatimTextOutput('code_psd')
             ),
             ### plotHourlyLevel ####
             tabPanel(
@@ -135,7 +137,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                 plotOutput('plot_hourlev'),
                 fluidRow(
 
-                )
+                ),
+                'Copy/paste this code to recreate this plot:',
+                verbatimTextOutput('code_hourlev')
             ),
             ### plotTimeseries ####
             tabPanel(
@@ -164,7 +168,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                            selectInput('ts_by',
                                        label='By',
                                        choices='No Other Column'))
-                )
+                ),
+                'Copy/paste this code to recreate this plot:',
+                verbatimTextOutput('code_timeseries')
 
             ),
             ### plotLTSA ####
@@ -175,7 +181,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                 plotOutput('plot_ltsa'),
                 fluidRow( # possibly add time bin
 
-                )
+                ),
+                'Copy/paste this code to recreate this plot:',
+                verbatimTextOutput('code_ltsa')
             ),
             ### plotScaledTimeseries ####
             tabPanel(
@@ -192,7 +200,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                            selectInput('mts_other',
                                        label='Other Column',
                                        choices='No Other Columns'))
-                )
+                ),
+                'Copy/paste this code to recreate this plot:',
+                verbatimTextOutput('code_multiseries')
             )
         )
     )
@@ -221,7 +231,8 @@ runSoundscapeExplorer <- function(data=NULL) {
                                  server=TRUE)
 
             otherPlotCols <- appData$otherCols
-            otherPlotCols <- otherPlotCols[!otherPlotCols %in% c('Longitude', 'Latitude')]
+            # remove non-informative columns for coords
+            otherPlotCols <- otherPlotCols[!otherPlotCols %in% c('Longitude', 'Latitude', 'matchLat', 'matchLong', 'matchTime')]
             numericCols <- sapply(appData$data[otherPlotCols], is.numeric)
             categoryCols <- sapply(appData$data[otherPlotCols], function(x) {
                 is.character(x) | is.factor(x)
@@ -239,9 +250,15 @@ runSoundscapeExplorer <- function(data=NULL) {
                 updateSelectizeInput(session, 'psd_by',
                                      choices=c('none', 'hour', 'month', 'year', otherPlotCols[categoryCols]),
                                      selected='none')
+                updateSelectizeInput(session, 'ts_by',
+                                     choices=c('none', otherPlotCols[categoryCols]),
+                                     selected='none')
             } else {
                 updateSelectizeInput(session, 'psd_by',
                                      choices=c('none', 'hour', 'month', 'year'),
+                                     selected='none')
+                updateSelectizeInput(session, 'ts_by',
+                                     choices='none',
                                      selected='none')
             }
         })
@@ -302,7 +319,29 @@ runSoundscapeExplorer <- function(data=NULL) {
         output$dataStr <- renderPrint(str(appData$data, list.len=10))
         # Plot Rendering ####
         output$plot_timeseries <- renderPlot({
-            plotTimeseries(appData$data, column=input$ts_column, q=input$ts_q, style=input$ts_style)
+            if(input$ts_by == 'none' || input$ts_style=='heatmap') {
+                tsBy <- NULL
+            } else {
+                tsBy <- input$ts_by
+            }
+            plotTimeseries(appData$data,
+                           column=input$ts_column,
+                           q=input$ts_q,
+                           style=input$ts_style,
+                           by=tsBy)
+        })
+        output$code_timeseries <- renderPrint({
+            if(input$ts_by == 'none' || input$ts_style=='heatmap') {
+                tsBy <- NULL
+            } else {
+                tsBy <- input$ts_by
+            }
+          cat('plotTimeseries(data',
+              ', column="', input$ts_column, '"',
+              ifelse(input$ts_style=='heatmap', '', paste0(', q=', input$ts_q)),
+              ', style="', input$ts_style, '"',
+              ifelse(is.null(tsBy), '', paste0(', by="', tsBy, '"')),
+              ')', sep='')
         })
         output$plot_psd <- renderPlot({
             if(input$psd_by == 'none' ||
@@ -314,11 +353,29 @@ runSoundscapeExplorer <- function(data=NULL) {
             plotPSD(appData$data, style=input$psd_style, q=input$psd_q,
                     by=psdBy)
         })
+        output$code_psd <- renderPrint({
+            cat('plotPSD(data',
+                ', style="', input$psd_style, '"',
+                ifelse(input$psd_by == 'none' || input$psd_style=='density',
+                       '',
+                       paste0(', by="', input$psd_by, '"')),
+                ifelse(input$psd_style=='density',
+                       '',
+                       paste0(', q=', input$psd_q)),
+                ')', sep='')
+
+        })
         output$plot_hourlev <- renderPlot({
             plotHourlyLevel(appData$data)
         })
+        output$code_hourlev <- renderPrint({
+            cat('plotHourlyLevel(data)')
+        })
         output$plot_ltsa <- renderPlot({
             plotLTSA(appData$data)
+        })
+        output$code_ltsa <- renderPrint({
+            cat('plotLTSA(data)')
         })
         output$plot_multiseries <- renderPlot({
             mtsCols <- if(input$mts_other == 'No Other Columns') {
@@ -329,6 +386,19 @@ runSoundscapeExplorer <- function(data=NULL) {
             plotScaledTimeseries(appData$data,
                                  columns=mtsCols,
                                  lwd=rev(c(.5, 1)[1:length(mtsCols)]))
+        })
+        output$code_multiseries <- renderPrint({
+            mtsCols <- if(input$mts_other == 'No Other Columns') {
+                input$mts_freq
+            } else {
+                c(input$mts_freq, input$mts_other)
+            }
+            cat('plotScaledTimeseries(data',
+                ', columns=c(',
+                paste0('"', mtsCols, '"', collapse=', '), ')',
+                ', lwd=',
+                ifelse(length(mtsCols)==1, '.5', 'c(1, .5)'),
+                ')', sep='')
         })
     }
     runApp(shinyApp(ui=ui, server=server))

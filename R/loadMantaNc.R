@@ -75,7 +75,7 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     UTC <- ncTimeToPosix(UTC, units=nc$dim$time$units)
     freqType <- checkFreqType(nc$dim$frequency$vals)
     hmd <- data.frame(t(hmd))
-    colnames(hmd) <- paste0(freqType, '_', nc$dim$frequency$vals)
+    colnames(hmd) <- paste0(freqType, '_', round(nc$dim$frequency$vals, 1))
     hmd <- cbind(UTC, hmd)
     coords <- ncatt_get(nc, varid=0, attname='geospatial_bounds')
     if(isTRUE(coords$hasatt)) {

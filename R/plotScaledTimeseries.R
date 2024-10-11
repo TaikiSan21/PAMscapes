@@ -86,6 +86,7 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
                 min2 <- min(c(x[[columns[2]]], minVals[2]), na.rm=TRUE)
                 min1 <- min(c(x[[columns[1]]], minVals[1]), na.rm=TRUE)
                 diff2 <- diff(range(c(x[[columns[2]]], minVals[2]), na.rm=TRUE))
+                diff2 <- ifelse(diff2 == 0, 1, diff2)
                 diff1 <- diff(range(c(x[[columns[1]]], minVals[1]), na.rm=TRUE))
 
                 col2Trans <- function(y) {
@@ -121,7 +122,11 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
 
 doRescale <- function(x, target, min=NA, relMax=1) {
     x <- c(min, x)
-    x <- (x - min(x, na.rm=TRUE)) / diff(range(x, na.rm=TRUE))
+    # want to rescale to 0-1
+    xRange <- diff(range(x, na.rm=TRUE))
+    xRange <- ifelse(xRange == 0, 1, xRange) # if all same value dont div 0
+    x <- (x - min(x, na.rm=TRUE)) / xRange
+    # then cast to range of "target"
     x <- x * diff(range(target, na.rm=TRUE)) * relMax + min(target, na.rm=TRUE)
     x[-1]
 }

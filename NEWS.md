@@ -13,6 +13,16 @@ adding `windMag` to the standard output
 - Updating tutorial with PyPam examples and data and to keep up with 
 more recent developments
 
+- Fixed problem in `plotScaledTimeseries` if second plotted column was
+all the same value
+
+- Added "Copy to create this plot" text output to all `runSoundscapeExplorer`
+plots
+
+- Updated `loadMantaNc` (and thus `checkSoundscapeInput`) to use a more
+standard naming scheme for HMD data from netCDF files - will now always
+be rounded to a single decimal point
+
 # PAMscapes 0.7.1
 
 - `loadMantaNc` (and thus `checkSoundscapeInput`) now knows to look for

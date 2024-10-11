@@ -148,6 +148,7 @@ getHmdLevels <- function(freqRange=NULL) {
         nominalFreqs <- nominalFreqs[inRange]
         freqLims <- freqLims[c(which(inRange), max(which(inRange))+1)]
     }
+    nominalFreqs <- round(nominalFreqs, 1)
     labels <- paste0('HMD_', nominalFreqs)
     list(limits=freqLims, labels=labels, freqs=nominalFreqs)
 }
