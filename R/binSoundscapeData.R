@@ -32,8 +32,13 @@ binSoundscapeData <- function(x, bin='1hour', FUN=median) {
         byCols <- c('frequency', 'type', 'UTC')
     }
     x$UTC <- floor_date(x[['UTC']], unit=bin)
+    nonFreqCols <- getNonFreqCols(x)
+    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
     setDT(x)
     x <- x[, lapply(.SD, FUN), .SDcols=valCols, by=byCols]
     setDF(x)
+    if(length(nonFreqCols) > 0) {
+        x <- left_join(x, nonFreqData, by='UTC')
+    }
     x
 }

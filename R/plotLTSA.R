@@ -65,14 +65,24 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     # is just making this faster by passing pivot_longer a
     # spec df for how to do the long-ing
     whichFreq <- whichFreqCols(x)
+    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
+    freqVals <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
     x$UTC <- with_tz(x$UTC, tzone=toTz)
     x$UTC <- floor_date(x[['UTC']], unit=bin)
+    
+    nonFreqCols <- getNonFreqCols(x)
+    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
+    
     setDT(x)
     x <- x[, lapply(.SD, median), .SDcols=colnames(x)[whichFreq], by=c('UTC')]
     setDF(x)
+    
+    if(length(nonFreqCols) > 0) {
+        x <- left_join(x, nonFreqData, by='UTC')
+    }
+    
     # x <- binSoundscapeData(x, bin=bin, FUN=median)
-    type <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
-    freqVals <- gsub('[A-z]+_', '', colnames(x)[whichFreq])
+    
     longSpec <- data.frame(.name=freqVals, .value='value')
     freqVals <- as.numeric(freqVals)
     longSpec$frequency <- freqVals
