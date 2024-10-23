@@ -1,3 +1,18 @@
+# PAMscapes 0.8.0
+
+- Deprecating `checkSoundscapeInput` in favor of `loadSoundscapeData`
+because the old name was stupid 
+
+- Adding new function `loadMultiscapeData` to load multiple folders of
+soundscape data to better allow for large scale comparisons
+
+- Adding parallelization ability to `loadSoundscapeData` using
+`future.apply` package
+
+- Adding `facet` options to `plotLTSA` and `plotPSD` to create faceted
+plots by a column in the data. Also added to `runSoundscapeExplorer`
+for `plotPSD`
+
 # PAMscapes 0.7.3
 
 - Bug in `plotPSD` for log scale frequency axis if frequency of 0 was present

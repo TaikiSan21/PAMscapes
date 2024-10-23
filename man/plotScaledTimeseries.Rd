@@ -82,7 +82,7 @@ line the same maximum height as the first column, reducing this to a value of
 75\% of the Y-axis
 }
 \examples{
-manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 plotScaledTimeseries(manta, columns=c('HMD_50', 'HMD_100', 'HMD_200'))
 
 }

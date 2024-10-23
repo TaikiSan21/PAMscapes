@@ -7,7 +7,8 @@
 binSoundscapeData(x, bin = "1hour", FUN = median)
 }
 \arguments{
-\item{x}{a data.frame of soundscape metric data read in with \link{checkSoundscapeInput}}
+\item{x}{a data.frame of soundscape metric data read in with
+\link{loadSoundscapeData}}
 
 \item{bin}{amount of time to bin data by, format can
 be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}

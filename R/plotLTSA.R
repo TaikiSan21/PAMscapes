@@ -7,7 +7,7 @@
 #'   within that time bin is displayed
 #'
 #' @param x a soundscape metric file that can be read in with
-#'   \link{checkSoundscapeInput}, or a dataframe with \code{UTC},
+#'   \link{loadSoundscapeData}, or a dataframe with \code{UTC},
 #'   \code{frequency}, and \code{value}
 #' @param bin amount of time to bin for each LTSA slice, format can
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
@@ -19,6 +19,8 @@
 #' @param dbRange if not \code{NULL}, a fixed limit to use for the color
 #'   scaling of dB values in the plot
 #' @param units units for plot labeling, will attempt to read them from the input
+#' @param facet optional column to facet by to create multiple LTSA plots in 
+#'   separate rows
 #' @param cmap color palette map to use for plot, default is \link[scales]{viridis_pal}
 #' @param toTz timezone to use for the time axis (input data must be UTC).
 #'   Specification must be from \link{OlsonNames}
@@ -36,7 +38,7 @@
 #' @return ggplot object of the LTSA plot
 #'
 #' @examples
-#' hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' hmd <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #' # time range is too small for nice plots
 #' plotLTSA(hmd, bin='1min', title='Every Minute')
 #' plotLTSA(hmd, bin='2min', title='2 Minute Bins')
@@ -49,10 +51,11 @@
 #'
 plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                      title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
+                     facet=NULL,
                      cmap=viridis_pal()(25), toTz='UTC', alpha=1,
                      maxBins=800,
                      returnData=FALSE) {
-    x <- checkSoundscapeInput(x, needCols='UTC')
+    x <- loadSoundscapeData(x, needCols='UTC')
     maxBin <- calcSliceLength(range(x$UTC), maxBins)
     if(maxBin > unitToPeriod(bin)) {
         warning('Selected bin size "', bin, '" results in more than ',
@@ -71,18 +74,25 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     x$UTC <- floor_date(x[['UTC']], unit=bin)
     
     nonFreqCols <- getNonFreqCols(x)
+    if(!is.null(facet) && 
+       !facet %in% nonFreqCols) {
+        warning('"facet" column ', facet, ' not found in data')
+        facet <- NULL
+    }
+    # doing this so we dont join it again later since we need to group by it
+    if(!is.null(facet)) {
+        nonFreqCols <- nonFreqCols[!nonFreqCols == facet]
+    }
     nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
     
     setDT(x)
-    x <- x[, lapply(.SD, median), .SDcols=colnames(x)[whichFreq], by=c('UTC')]
+    x <- x[, lapply(.SD, function(v) median(v, na.rm=TRUE)), .SDcols=colnames(x)[whichFreq], by=c('UTC', facet)]
     setDF(x)
     
     if(length(nonFreqCols) > 0) {
         x <- left_join(x, nonFreqData, by='UTC')
     }
-    
-    # x <- binSoundscapeData(x, bin=bin, FUN=median)
-    
+
     longSpec <- data.frame(.name=freqVals, .value='value')
     freqVals <- as.numeric(freqVals)
     longSpec$frequency <- freqVals
@@ -139,7 +149,7 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     if(isTRUE(returnData)) {
         return(x)
     }
-    ggplot(x) +
+    g <- ggplot(x) +
         geom_rect(aes(xmin=.data$UTC,
                       xmax=.data$UTCend,
                       ymin=.data$freqLow,
@@ -155,4 +165,9 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
         theme(legend.title = element_text(angle=90)) +
         guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5)) +
         ggtitle(title)
+    if(!is.null(facet)) {
+        g <- g +
+            facet_wrap(~.data[[facet]], ncol=1)
+    }
+    g
 }

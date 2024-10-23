@@ -5,7 +5,7 @@
 #'   soundscape data
 #'
 #' @param data file path to soundscape data or data that has been loaded with
-#'   \link{checkSoundscapeInput}
+#'   \link{loadSoundscapeData}
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -13,7 +13,7 @@
 #'
 #' @examples
 #' if(interactive()) {
-#'   hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#'   hmd <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #'   runSoundscapeExplorer(hmd)
 #' }
 #'
@@ -30,7 +30,7 @@
 runSoundscapeExplorer <- function(data=NULL) {
     # Data Prep and pre-App section ####
     if(!is.null(data)) {
-        data <- checkSoundscapeInput(data)
+        data <- loadSoundscapeData(data)
         freqCols <- colnames(data)[whichFreqCols(data)]
         freqVals <- colsToFreqs(freqCols)
         freqType <- checkFreqType(freqVals)
@@ -115,16 +115,20 @@ runSoundscapeExplorer <- function(data=NULL) {
                                        choices=c('quantile', 'density'),
                                        selected='quantile')
                     ),
-                    column(4, sliderInput('psd_q',
+                    column(3, sliderInput('psd_q',
                                           label='Quantile',
                                           min=0,
                                           max=.5,
                                           step=.01,
                                           value=0)),
-                    column(4, selectInput('psd_by',
+                    column(2, selectInput('psd_by',
                                           label='By',
                                           choices=c('none', 'hour', 'month', 'year'),
-                                          selected='none'))
+                                          selected='none')),
+                    column(2, selectInput('psd_facet',
+                                            label='Facet',
+                                            choices=c('none', 'hour', 'month', 'year'),
+                                            selected='none'))
                 ),
                 'Copy/paste this code to recreate this plot:',
                 verbatimTextOutput('code_psd')
@@ -237,7 +241,7 @@ runSoundscapeExplorer <- function(data=NULL) {
             categoryCols <- sapply(appData$data[otherPlotCols], function(x) {
                 is.character(x) | is.factor(x)
             })
-            if(sum(numericCols) > 0) {
+            if(length(numericCols) > 0 && sum(numericCols) > 0) {
                 updateSelectizeInput(session, 'mts_other',
                                      choices=otherPlotCols[numericCols],
                                      selected=otherPlotCols[numericCols][1])
@@ -246,8 +250,11 @@ runSoundscapeExplorer <- function(data=NULL) {
                                      choices='No Other Columns',
                                      selected='No Other Columns')
             }
-            if(sum(categoryCols) > 0) {
+            if(length(numericCols) > 0 && sum(categoryCols) > 0) {
                 updateSelectizeInput(session, 'psd_by',
+                                     choices=c('none', 'hour', 'month', 'year', otherPlotCols[categoryCols]),
+                                     selected='none')
+                updateSelectizeInput(session, 'psd_facet',
                                      choices=c('none', 'hour', 'month', 'year', otherPlotCols[categoryCols]),
                                      selected='none')
                 updateSelectizeInput(session, 'ts_by',
@@ -255,6 +262,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                                      selected='none')
             } else {
                 updateSelectizeInput(session, 'psd_by',
+                                     choices=c('none', 'hour', 'month', 'year'),
+                                     selected='none')
+                updateSelectizeInput(session, 'psd_facet',
                                      choices=c('none', 'hour', 'month', 'year'),
                                      selected='none')
                 updateSelectizeInput(session, 'ts_by',
@@ -294,7 +304,7 @@ runSoundscapeExplorer <- function(data=NULL) {
             if(all(grepl('rds$', inFile))) {
                 inFile <- do.call(rbind, lapply(inFile, readRDS))
             }
-            inFile <- checkSoundscapeInput(inFile)
+            inFile <- loadSoundscapeData(inFile)
             appData$data <- inFile
         })
         # Data Render ####
@@ -350,8 +360,13 @@ runSoundscapeExplorer <- function(data=NULL) {
             } else {
                 psdBy <- input$psd_by
             }
+            if(input$psd_facet == 'none') {
+                psdFacet <- NULL
+            } else {
+                psdFacet <- input$psd_facet
+            }
             plotPSD(appData$data, style=input$psd_style, q=input$psd_q,
-                    by=psdBy)
+                    by=psdBy, facet=psdFacet)
         })
         output$code_psd <- renderPrint({
             cat('plotPSD(data',
@@ -359,6 +374,9 @@ runSoundscapeExplorer <- function(data=NULL) {
                 ifelse(input$psd_by == 'none' || input$psd_style=='density',
                        '',
                        paste0(', by="', input$psd_by, '"')),
+                ifelse(input$psd_facet == 'none',
+                       '',
+                       paste0(', facet="', input$psd_facet, '"')),
                 ifelse(input$psd_style=='density',
                        '',
                        paste0(', q=', input$psd_q)),

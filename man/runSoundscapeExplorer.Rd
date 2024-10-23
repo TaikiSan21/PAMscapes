@@ -8,7 +8,7 @@ runSoundscapeExplorer(data = NULL)
 }
 \arguments{
 \item{data}{file path to soundscape data or data that has been loaded with
-\link{checkSoundscapeInput}}
+\link{loadSoundscapeData}}
 }
 \value{
 invisible TRUE
@@ -20,7 +20,7 @@ soundscape data
 }
 \examples{
 if(interactive()) {
-  hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+  hmd <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
   runSoundscapeExplorer(hmd)
 }
 

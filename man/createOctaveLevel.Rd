@@ -46,7 +46,7 @@ frequencies this should result in negligible differences, but lower frequencies
 will be more imprecise.
 }
 \examples{
-psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+psd <- loadSoundscapeData(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
 str(psd)
 tol <- createOctaveLevel(psd, type='tol')
 str(tol)

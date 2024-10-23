@@ -30,7 +30,7 @@
 #' @export
 #'
 #' @examples
-#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' psd <- loadSoundscapeData(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
 #' str(psd)
 #' tol <- createOctaveLevel(psd, type='tol')
 #' str(tol)
@@ -44,16 +44,22 @@ createOctaveLevel <- function(x,
                               freqRange=NULL,
                               method=c('sum', 'mean', 'median'),
                               normalized=FALSE) {
-    x <- checkSoundscapeInput(x)
+    x <- loadSoundscapeData(x)
     startLong <- isLong(x)
-    x <- toLong(x)
-    nonFreqCols <- getNonFreqCols(x)
-    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
-    inType <- x$type[1]
+    if(startLong) {
+        inType <- x$type[1]
+    } else {
+        whichFreq <- whichFreqCols(x)
+        inType <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
+    }
     if(inType == 'HMD') {
         # millidecade band parts are normalized by bandwidth, we need to un-norm them
         x <- correctHmdLevels(x)
     }
+    x <- toLong(x)
+    nonFreqCols <- getNonFreqCols(x)
+    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
+
     type <- match.arg(type)
     octLevels <- getOctaveLevels(type)
     if(!is.null(freqRange)) {
@@ -64,24 +70,28 @@ createOctaveLevel <- function(x,
         octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
     }
     x$octave <- cut(x$frequency, octLevels$limits, labels=octLevels$freqs)
-    x <- x[!is.na(x$octave), ]
+    if(anyNA(x$octave)) {
+        x <- x[!is.na(x$octave), ]
+    }
     x$value <- 10^(x$value / 10)
     FUN <- switch(match.arg(method),
-                  'sum' = sum,
-                  'mean' = mean,
-                  'median' = median
+                  'sum' = function(x) sum(x, na.rm=TRUE),
+                  'mean' = function(x) mean(x, na.rm=TRUE),
+                  'median' = function(x) median(x, na.rm=TRUE)
     )
     setDT(x)
-    x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave')]
+    x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave', nonFreqCols)]
     setDF(x)
-    if(length(nonFreqCols) > 0) {
-        x <- left_join(x, nonFreqData, by='UTC')
-    }
+    # if(length(nonFreqCols) > 0) {
+    #     x <- left_join(x, nonFreqData, by='UTC')
+    # }
 
     x$type <- toupper(type)
     x <- rename(x, frequency = 'octave')
     x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]
     x$value <- 10 * log10(x$value)
+    # if all NA in a category they get set to 0 so then Inf'd on log
+    x <- checkInfinite(x, doWarn=FALSE)
     if(isTRUE(normalized)) {
         levDf <- data.frame(frequency=octLevels$freqs, bw=diff(octLevels$limits))
         x <- mutate(
@@ -164,14 +174,23 @@ correctHmdLevels <- function(x) {
     # changeFreq <- 434
     # lowHalf <- x[x$frequency <= changeFreq, ]
     # highHalf <- x[x$frequency > changeFreq, ]
-    hmdLevels <- getHmdLevels(freqRange=range(x$frequency))
-    levDf <- data.frame(frequencyJoin=round(hmdLevels$freqs, 1), bw=diff(hmdLevels$limits))
-    x$frequencyJoin <- round(x$frequency, 1)
-    x <- mutate(
-        left_join(x, levDf, by='frequencyJoin'),
-        value = .data$value + 10*log10(.data$bw)
-    )
-    x$bw <- NULL
-    x$frequencyJoin <- NULL
+    inLong <- FALSE
+    if(isLong(x)) {
+        inLong <- TRUE
+        x <- toWide(x)
+    }
+    freqCols <- whichFreqCols(x)
+    freqVals <- round(colsToFreqs(names(x)[freqCols]), 1)
+    hmdLevels <- getHmdLevels(freqRange=freqVals)
+    levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
+    matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
+                         levDf, by='freq')
+    
+    for(i in seq_along(matchDf$freq)) {
+        x[[matchDf$ix[i]]] <- x[[matchDf$ix[i]]] + matchDf$bw[i]
+    }
+    if(inLong) {
+        x <- toLong(x)
+    }
     x
 }

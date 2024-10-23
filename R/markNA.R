@@ -18,7 +18,7 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
-#' manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #' naDf <- data.frame(start=min(manta$UTC),
 #'                    end=max(manta$UTC),
 #'                    freqMin=100,
@@ -30,7 +30,7 @@
 #'
 markNA <- function(x, na, by=NULL) {
     na <- checkNaDf(na)
-    x <- checkSoundscapeInput(x, 'UTC')
+    x <- loadSoundscapeData(x, 'UTC')
     if(!is.null(by)) {
         if(!by %in% colnames(x) ||
            !by %in% colnames(na)) {

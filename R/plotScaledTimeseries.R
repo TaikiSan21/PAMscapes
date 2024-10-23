@@ -56,7 +56,7 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
-#' manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #' plotScaledTimeseries(manta, columns=c('HMD_50', 'HMD_100', 'HMD_200'))
 #'
 #' @importFrom scales hue_pal

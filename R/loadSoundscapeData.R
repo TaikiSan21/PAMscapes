@@ -1,4 +1,4 @@
-#' @title Check Proper Formatting for Soundscape Inputs
+#' @title Load Soundscape Data
 #'
 #' @description Reads and checks data to ensure formatting will work
 #'   for other \code{PAMscapes} functions. Will read and check the
@@ -18,7 +18,8 @@
 #'   to keep as \code{FALSE}
 #' @param timeBin amount of time to bin data by, format can
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
-#' @param binFunction summary function to apply to data in each time bin
+#' @param binFunction summary function to apply to data in each time bin,
+#'   default is median
 #' @param octave one of "original", "tol", or "ol". If "original" then
 #'   nothing happens, otherwise data are converted to Octave-leve ("ol")
 #'   or Third-Octave-Level ("tol") measurements using
@@ -56,11 +57,11 @@
 #'
 #' @examples
 #'
-#' manta <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+#' manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #' str(manta)
-#' ol <- checkSoundscapeInput(system.file('extdata/OLSmall.csv', package='PAMscapes'))
+#' ol <- loadSoundscapeData(system.file('extdata/OLSmall.csv', package='PAMscapes'))
 #' str(ol)
-#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' psd <- loadSoundscapeData(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
 #' str(psd)
 #'
 #' @export
@@ -69,18 +70,15 @@
 #' @importFrom lubridate force_tz with_tz
 #' @importFrom future.apply future_lapply
 #'
-checkSoundscapeInput <- function(x, 
-                                 needCols=c('UTC'), 
-                                 skipCheck=FALSE,
-                                 timeBin=NULL, 
-                                 binFunction=median, 
-                                 octave=c('original', 'tol', 'ol'),
-                                 label=NULL,
-                                 tz='UTC',
-                                 extension=c('nc', 'csv')) {
-    .Deprecated('loadSoundscapeData', 
-                msg=paste0('This function has been renamed to ',
-                '"loadSoundscapeData" for clarity, please use that going forward.'))
+loadSoundscapeData <- function(x, 
+                               needCols=c('UTC'), 
+                               skipCheck=FALSE,
+                               timeBin=NULL, 
+                               binFunction=median, 
+                               octave=c('original', 'tol', 'ol'),
+                               label=NULL,
+                               tz='UTC',
+                               extension=c('nc', 'csv')) {
     if(is.character(x) &&
        length(x) == 1 &&
        dir.exists(x)) {
@@ -103,11 +101,11 @@ checkSoundscapeInput <- function(x,
     if(is.character(x) &&
        length(x) > 1) {
         return(bind_rows(future_lapply(x, function(f) {
-            checkSoundscapeInput(f, needCols=needCols, skipCheck=skipCheck,
-                                 timeBin=timeBin, binFunction=binFunction,
-                                 octave=octave, label=label,
-                                 tz=tz)
-        })))
+            loadSoundscapeData(f, needCols=needCols, skipCheck=skipCheck,
+                               timeBin=timeBin, binFunction=binFunction,
+                               octave=octave, label=label,
+                               tz=tz)
+        }, future.seed=NULL)))
     }
     if(is.character(x)) {
         if(!file.exists(x)) {
@@ -136,7 +134,7 @@ checkSoundscapeInput <- function(x,
     missingCols <- needCols[!needCols %in% colnames(x)]
     if(length(missingCols) > 0) {
         warning('Required columns ', paste0(missingCols, collapse=', '),
-             ' are missing.')
+                ' are missing.')
         return(NULL)
     }
     if(is.character(x$UTC)) {
@@ -161,68 +159,68 @@ checkSoundscapeInput <- function(x,
     }
     x
 }
-# 
-# checkInfinite <- function(x, doWarn=TRUE) {
-#     infCols <- sapply(x, function(c) any(is.infinite(c)))
-#     if(!any(infCols)) {
-#         return(x)
-#     }
-#     infIx <- which(infCols)
-#     if(doWarn) {
-#         warning('Found infinite values in "x", they will be replaced with NA.')
-#     }
-#     for(i in infIx) {
-#         x[[i]][is.infinite(x[[i]])] <- NA
-#     }
-#     x
-# }
-# 
-# checkTriton <- function(x) {
-#     tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
-#     if(tritonTime %in% colnames(x)) {
-#         colnames(x)[colnames(x) == tritonTime] <- 'UTC'
-#     }
-#     alternate <- 'yyyy.mm.ddTHH.MM.SSZ'
-#     if(alternate %in% colnames(x)) {
-#         colnames(x)[colnames(x) == alternate] <- 'UTC'
-#     }
-#     x
-# }
-# 
-# # colnames are d-m-y h:m:s, 0, 0-freq end
-# checkManta <- function(x) {
-#     if(all(grepl('^X', colnames(x)))) {
-#         colnames(x) <- gsub('^X', '', colnames(x))
-#     }
-#     dateCol <- colnames(x)[1]
-#     mantaFormat <- c('%d-%b-%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S',
-#                      '%d.%b.%Y.%H.%M.%S', '%m.%d.%Y.%H.%M.%S')
-#     tryConvert <- suppressWarnings(parse_date_time(dateCol, orders=mantaFormat, tz='UTC', truncated=2))
-#     # manta has the date as first column name, if we couldnt convert
-#     # then this isnt manta
-#     if(is.na(tryConvert)) {
-#         return(x)
-#     }
-#     # manta second col is seconds? only sometimes
-#     checkSeconds <- all(x[[2]] <= 60)
-#     secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
-#         (colnames(x)[2] == '0' & colnames(x)[3] %in% c('0', '0.1'))
-#     checkSeconds <- checkSeconds & secondCol
-#     if(isTRUE(checkSeconds )) {
-#         x[[2]] <- NULL
-#         colnames(x)[2] <- '0'
-#     }
-#     # manta should have columns named just frequency for 2:ncol
-#     # if we cant convert w/o NA, then its not manta
-#     freqCols <- colnames(x)[2:ncol(x)]
-#     tryFreq <- suppressWarnings(as.numeric(freqCols))
-#     if(anyNA(tryFreq)) {
-#         return(x)
-#     }
-#     colnames(x)[1] <- 'UTC'
-#     if(is.character(x$UTC)) {
-#         x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
-#     }
-#     colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
-#     x
-# }
+
+checkInfinite <- function(x, doWarn=TRUE) {
+    infCols <- sapply(x, function(c) any(is.infinite(c)))
+    if(!any(infCols)) {
+        return(x)
+    }
+    infIx <- which(infCols)
+    if(doWarn) {
+        warning('Found infinite values in "x", they will be replaced with NA.')
+    }
+    for(i in infIx) {
+        x[[i]][is.infinite(x[[i]])] <- NA
+    }
+    x
+}
+
+checkTriton <- function(x) {
+    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
+    if(tritonTime %in% colnames(x)) {
+        colnames(x)[colnames(x) == tritonTime] <- 'UTC'
+    }
+    alternate <- 'yyyy.mm.ddTHH.MM.SSZ'
+    if(alternate %in% colnames(x)) {
+        colnames(x)[colnames(x) == alternate] <- 'UTC'
+    }
+    x
+}
+
+# colnames are d-m-y h:m:s, 0, 0-freq end
+checkManta <- function(x) {
+    if(all(grepl('^X', colnames(x)))) {
+        colnames(x) <- gsub('^X', '', colnames(x))
+    }
+    dateCol <- colnames(x)[1]
+    mantaFormat <- c('%d-%b-%Y %H:%M:%S', '%m/%d/%Y %H:%M:%S',
+                     '%d.%b.%Y.%H.%M.%S', '%m.%d.%Y.%H.%M.%S')
+    tryConvert <- suppressWarnings(parse_date_time(dateCol, orders=mantaFormat, tz='UTC', truncated=2))
+    # manta has the date as first column name, if we couldnt convert
+    # then this isnt manta
+    if(is.na(tryConvert)) {
+        return(x)
+    }
+    # manta second col is seconds? only sometimes
+    checkSeconds <- all(x[[2]] <= 60)
+    secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
+        (colnames(x)[2] == '0' & colnames(x)[3] %in% c('0', '0.1'))
+    checkSeconds <- checkSeconds & secondCol
+    if(isTRUE(checkSeconds )) {
+        x[[2]] <- NULL
+        colnames(x)[2] <- '0'
+    }
+    # manta should have columns named just frequency for 2:ncol
+    # if we cant convert w/o NA, then its not manta
+    freqCols <- colnames(x)[2:ncol(x)]
+    tryFreq <- suppressWarnings(as.numeric(freqCols))
+    if(anyNA(tryFreq)) {
+        return(x)
+    }
+    colnames(x)[1] <- 'UTC'
+    if(is.character(x$UTC)) {
+        x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
+    }
+    colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
+    x
+}

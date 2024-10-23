@@ -193,7 +193,7 @@ getNonFreqCols <- function(x) {
         return(x[!x %in% longCols])
     }
     freqCols <- whichFreqCols(x)
-    nonFreq <- x[!freqCols]
+    nonFreq <- x[!(1:length(x)) %in% freqCols]
     return(nonFreq[nonFreq != 'UTC'])
 }
 

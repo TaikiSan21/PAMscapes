@@ -3,7 +3,8 @@
 #' @description Bins soundscape measurements by a unit of time
 #'   and summarises them using a function (usually the median)
 #'
-#' @param x a data.frame of soundscape metric data read in with \link{checkSoundscapeInput}
+#' @param x a data.frame of soundscape metric data read in with 
+#'   \link{loadSoundscapeData}
 #' @param bin amount of time to bin data by, format can
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
 #' @param FUN summary function to apply to data in each time bin

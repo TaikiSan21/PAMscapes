@@ -46,6 +46,8 @@
 #'   \code{style='quantile'}. If \code{x} is a data.frame, \code{by} can also
 #'   be one of \code{'hour'}, \code{'month'}, or \code{'year'} and that column
 #'   will be created automatically if not present.
+#' @param facet optional column to facet the plots by
+#' @param ncol number of columns to use when plotting with \code{facet}
 #' @param compression compression factor for \link[tdigest]{tdigest}, lower
 #'   values are less accurate but will compute faster. Only relevant for
 #'   \code{style='quantile'} when loading and combining multiple datasets
@@ -60,7 +62,7 @@
 #'
 #' @examples
 #'
-#' psd <- checkSoundscapeInput(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
+#' psd <- loadSoundscapeData(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
 #' # Plotting only first 1000 columns for brevity
 #' plotPSD(psd[1:1000], style='density')
 #' plotPSD(psd[1:1000], style='quantile', q=.05)
@@ -80,6 +82,8 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                     units='dB re: 1uPa^2/Hz',
                     cmap=viridis_pal()(25),
                     by=NULL,
+                    facet=NULL,
+                    ncol=NULL,
                     title=NULL,
                     returnData=FALSE,
                     progress=TRUE) {
@@ -115,15 +119,18 @@ plotPSD <- function(x, style=c('quantile', 'density'),
             by <- NULL
         }
     }
+    if(!is.null(facet) &&
+       is.data.frame(x) &&
+       !facet %in% colnames(x)) {
+        warning('"facet" column not present in "x"')
+        facet <- NULL
+    }
     g <- ggplot()
-    justOneDf <- FALSE
+    justOneDf <- is.data.frame(x)
     # way faster to skip the "prep" step if we take in a df so
     # that has a special case here. Avoids the problem of sending
     # copies of large "x" to other functions
-    if(is.data.frame(x) &&
-       length(style) == 1 &&
-       style == 'quantile') {
-        justOneDf <- TRUE
+    if(isTRUE(justOneDf)) {
         freqCols <- whichFreqCols(names(x))
         freqVals <- colsToFreqs(names(x)[freqCols])
         if(!is.null(freqRange)) {
@@ -132,53 +139,120 @@ plotPSD <- function(x, style=c('quantile', 'density'),
             freqCols <- freqCols[goodIx]
             freqVals <- freqVals[goodIx]
         }
-        q <- checkQuantile(q)
-        if(!is.null(by)) {
-            x <- bind_rows(lapply(split(x, x[[by]]), function(b) {
-                if(is.null(b) || nrow(b) == 0) {
-                    return(NULL)
-                }
-                result <- bind_rows(lapply(b[freqCols], function(col) {
-                    result <- quantile(col, q, na.rm=TRUE)
-                    names(result) <- c('qlow', 'qmed', 'qhigh')
-                    result
-                }))
-                result$by <- b[[by]][1]
-                result$nBy <- nrow(b)
-                result
-            }))
-            x$frequency <- rep(freqVals, length(unique(x$by)))
-
-        } else {
-            x <- bind_rows(lapply(x[freqCols], function(col) {
-                result <- quantile(col, q, na.rm=TRUE)
-                names(result) <- c('qlow', 'qmed', 'qhigh')
-                result
-            }))
-            x$frequency <- freqVals
-        }
-        # x is frequency, qlow, qmed, qhigh
-        if(isTRUE(returnData)) {
-            return(x)
-        }
-        g <- addQuantilePlot(g, x=x, by=by, color=color)
-
         if(is.null(freqRange)) {
-            freqRange <- range(x$frequency)
-            if('density' %in% style) {
-                freqRange[1] <- min(x$densityData$freqLow)
-            }
+            freqRange <- range(freqVals)
         }
         if(is.infinite(freqRange[2])) {
             freqRange[2] <- max(x$frequency)
         }
-    }
+        
+        if(!is.null(by) || !is.null(facet)) {
+            splitCols <- list()
+            if(!is.null(by)) {
+                splitCols[[length(splitCols)+1]] <- x[[by]]
+            }
+            if(!is.null(facet)) {
+                splitCols[[length(splitCols)+1]] <- x[[facet]]
+            }
+            x <- split(x, splitCols)
+        }
+        if('density' %in% style) {
+            dbVals <- seq(from=0, to=200, by=dbInt)
+            if(is.null(facet)) {
+                denData <- prepDensityData(x[freqCols], dbVals=dbVals)
+                denData <- formatDensityData(denData, 
+                                             frequency=freqVals, 
+                                             freqRange=freqRange, 
+                                             dbVals=dbVals, 
+                                             scale=scale)
+            } else {
+                denData <- bind_rows(lapply(x, function(b) {
+                    thisDen <- prepDensityData(b[freqCols], dbVals=dbVals)
+                    thisDen <- formatDensityData(thisDen, 
+                                                 frequency=freqVals, 
+                                                 freqRange=freqRange, 
+                                                 dbVals=dbVals,
+                                                 scale=scale)
+                    thisDen$facet <- b[[facet]][1]
+                    thisDen
+                }))
+            }
+            if(isTRUE(returnData) && length(style) == 1) {
+                return(denData)
+            }
+            g <- g +
+                geom_rect(data=denData,
+                          aes(xmin=.data$freqLow,
+                              xmax=.data$frequency,
+                              ymin=.data$dbLow,
+                              ymax=.data$dbHigh,
+                              fill=.data$count)) +
+                labs(fill='Density')
+            if(!is.null(densityRange) &&
+               length(densityRange) != 2) {
+                warning('"densityRange" must be 2 values')
+                densityRange <- NULL
+            }
+            if(is.null(densityRange)) {
+                g <- g +
+                    scale_fill_gradientn(colors=cmap, na.value = 'transparent')
+            } else {
+                g <- g +
+                    scale_fill_gradientn(colors=cmap, na.value='transparent',
+                                         limits=densityRange,
+                                         oob=squish)
+            }
+        }
+        if('quantile' %in% style) {
+            q <- checkQuantile(q)
+            if(!is.null(by) || !is.null(facet)) {
+                qData <- bind_rows(lapply(x, function(b) {
+                    if(is.null(b) || nrow(b) == 0) {
+                        return(NULL)
+                    }
+                    result <- bind_rows(lapply(b[freqCols], function(col) {
+                        result <- quantile(col, q, na.rm=TRUE)
+                        names(result) <- c('qlow', 'qmed', 'qhigh')
+                        result
+                    }))
+                    if(!is.null(by)) {
+                        result$by <- b[[by]][1]
+                    }
+                    if(!is.null(facet)) {
+                        result$facet <- b[[facet]][1]
+                    }
+                    result$nBy <- nrow(b)
+                    result$frequency <- freqVals
+                    result
+                }))
+                
+            } else {
+                qData <- bind_rows(lapply(x[freqCols], function(col) {
+                    result <- quantile(col, q, na.rm=TRUE)
+                    names(result) <- c('qlow', 'qmed', 'qhigh')
+                    result
+                }))
+                qData$frequency <- freqVals
+            }
+            # x is frequency, qlow, qmed, qhigh
+            if(isTRUE(returnData) && length(style) == 1) {
+                return(qData)
+            }
+            if(isTRUE(returnData) && length(style) == 2) {
+                return(
+                    list(densityData=denData,
+                         quantileData=qData)
+                )
+            }
+            g <- addQuantilePlot(g, x=qData, by=by, color=color)
+        }
+    } # end justOneDf
     if(!is.list(x) ||
        !all(c('frequency', 'freqRange', 'quantileData', 'densityData') %in% names(x)) &&
        !justOneDf) {
         x <- prepPSDData(x, freqRange=freqRange, style=style, dbInt=dbInt, by=by, progress=progress)
     }
-
+    
     if('density' %in% style &&
        !justOneDf) {
         x$densityData <- formatDensityData(x$densityData,
@@ -224,7 +298,7 @@ plotPSD <- function(x, style=c('quantile', 'density'),
         }
         g <- addQuantilePlot(g, x=x$quantileData, by=by, color=color)
     }
-
+    
     g <- g +
         scale_y_continuous(expand=c(0, 0), limits=dbRange) +
         ggtitle(title) +
@@ -246,6 +320,10 @@ plotPSD <- function(x, style=c('quantile', 'density'),
     } else {
         g <- g +
             scale_x_continuous(expand=c(0, 0), limits=freqRange)
+    }
+    if(!is.null(facet)) {
+        g <- g +
+            facet_wrap(~facet, ncol=ncol)
     }
     g
 }
@@ -286,7 +364,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
         if(justDf) {
             data <- x
         } else {
-            data <- checkSoundscapeInput(x[[f]])
+            data <- loadSoundscapeData(x[[f]])
         }
         if(isLong(colnames(data))) {
             data <- toWide(data)
@@ -305,7 +383,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
         freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
         # data <- data[c(1, freqCols)]
         data <- data[freqCols]
-
+        
         if(!is.null(freqRange)) {
             goodFreqs <- freqs >= freqRange[1] & freqs <= freqRange[2]
             goodIx <- which(goodFreqs)
@@ -382,7 +460,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
                     }
                     quantileData <- quantileData[[1]]
                 }
-
+                
                 for(qFreq in seq_along(quantileData)) {
                     td_merge(
                         thisQuantile[[qFreq]],
@@ -410,7 +488,7 @@ prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
             }
         }
     }
-
+    
     list(frequency=firstFreq, freqRange=freqRange, dbVals=dbVals,
          quantileData=quantileData, densityData=densityData)
 }
@@ -446,7 +524,7 @@ formatDensityData <- function(x, frequency=NULL, freqRange=NULL, dbVals=NULL, sc
     freqLow <- ifelse(freqLow < minAllowed, minAllowed, freqLow)
     dbHigh <- dbVals[-1]
     dbLow <- dbHigh - diff(dbVals)[1]
-
+    
     densityData <- data.frame(dbLow = rep(dbLow, length(frequency)),
                               dbHigh = rep(dbHigh, length(frequency)),
                               frequency = rep(frequency, each=length(dbHigh)),
@@ -497,7 +575,7 @@ formatQuantileData <- function(x, q, frequency=NULL, freqRange=NULL, scale) {
     quantiles <- sapply(x, function(x) {
         quantile(x, q)
     })
-
+    
     quantileData <- data.frame(
         frequency = frequency,
         qlow = quantiles[1, ],
@@ -514,7 +592,7 @@ formatQuantileData <- function(x, q, frequency=NULL, freqRange=NULL, scale) {
     }
     quantileData
 }
-
+# input here is only frequency columns
 prepDensityData <- function(x, dbVals) {
     nOOB <- 0
     # counts <- apply(x[2:ncol(x)], 2, function(y) {
@@ -529,6 +607,7 @@ prepDensityData <- function(x, dbVals) {
         y <- y[inBounds]
         tabulate(findInterval(y, vec=dbVals), nbins=length(dbVals)-1)
     })
+    
     if(nOOB > 0) {
         warning(nOOB, ' values were out of dbRange (',
                 dbVals[1], '-', max(dbVals), ')')
@@ -600,9 +679,17 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
             x$by <- as.factor(x$by)
         }
         if('nBy' %in% colnames(x)) {
+            nLevs <- ungroup(
+                summarise(
+                    group_by(
+                        distinct(x[c('by', 'nBy')]), .data$by
+                    ),
+                    nBy = sum(.data$nBy)
+                )
+            )
             nLevs <- left_join(data.frame(by=levels(x$by)),
-                               distinct(x[c('by', 'nBy')]),
-                                        by='by')
+                               nLevs,
+                               by='by')
             levels(x$by) <- paste0(nLevs$by, ' (', nLevs$nBy, ')')
         }
     }

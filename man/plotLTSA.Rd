@@ -12,6 +12,7 @@ plotLTSA(
   freqRange = NULL,
   dbRange = NULL,
   units = NULL,
+  facet = NULL,
   cmap = viridis_pal()(25),
   toTz = "UTC",
   alpha = 1,
@@ -21,7 +22,7 @@ plotLTSA(
 }
 \arguments{
 \item{x}{a soundscape metric file that can be read in with
-\link{checkSoundscapeInput}, or a dataframe with \code{UTC},
+\link{loadSoundscapeData}, or a dataframe with \code{UTC},
 \code{frequency}, and \code{value}}
 
 \item{bin}{amount of time to bin for each LTSA slice, format can
@@ -39,6 +40,9 @@ use the max/min frequency present in the dataset}
 scaling of dB values in the plot}
 
 \item{units}{units for plot labeling, will attempt to read them from the input}
+
+\item{facet}{optional column to facet by to create multiple LTSA plots in
+separate rows}
 
 \item{cmap}{color palette map to use for plot, default is \link[scales]{viridis_pal}}
 
@@ -67,7 +71,7 @@ time axis, data are binned into time chunks and the median value
 within that time bin is displayed
 }
 \examples{
-hmd <- checkSoundscapeInput(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
+hmd <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 # time range is too small for nice plots
 plotLTSA(hmd, bin='1min', title='Every Minute')
 plotLTSA(hmd, bin='2min', title='2 Minute Bins')
