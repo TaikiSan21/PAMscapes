@@ -8,7 +8,6 @@ createOctaveLevel(
   x,
   type = c("ol", "tol"),
   freqRange = NULL,
-  method = c("sum", "mean", "median"),
   normalized = FALSE
 )
 }
@@ -20,10 +19,6 @@ third octave level measures}
 
 \item{freqRange}{a vector of the minimum and maximum center frequencies (Hz) desired
 for the output. If \code{NULL}, full available range of frequencies will be used.}
-
-\item{method}{the summary method to apply to soundscape metrics within the octave band,
-one of \code{'sum'} or \code{'mean'}. The default \code{'sum'} should be used in
-almost all cases.}
 
 \item{normalized}{logical flag to return values normalized by the bandwidth of
 each octave level band}

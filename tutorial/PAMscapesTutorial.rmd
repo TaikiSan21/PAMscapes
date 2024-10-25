@@ -74,15 +74,15 @@ as the date, then the
 remaining columns named by just frequency, with no `NAME_` prefix. MANTA data processed with `PAMscapes`
 will have the prefix `HMD_` ([hybrid millidecade](https://doi.org/10.1121/10.0003324)) 
 appended to the frequency column names. NetCDF files from MANTA and PyPam are also accepted by `PAMscapes`
-functions, users can load these as dataframes using the `checkSoundscapeInput` function.
+functions, users can load these as dataframes using the `loadSoundscapeData` function.
 
 For NetCDF that contain metadata fields about the location and platform name of the instrument,
 these fields will be read in as columns `Longitude`, `Latitude`, and `platform`.
 
 ```{r}
 # Can load PyPam NetCDF using this
-pypam <- checkSoundscapeInput(here('tutorial/PyPamExample.nc'))
-ol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_OL_sim.csv'))
+pypam <- loadSoundscapeData(here('tutorial/PyPamExample.nc'))
+ol <- loadSoundscapeData(here('tutorial/ADRIFT_017_OL_sim.csv'))
 cat(str(pypam, list.len=10))
 str(ol)
 tail(colnames(pypam))
@@ -153,7 +153,9 @@ option.
 
 The plot shows that the un-normalized (blue) line is much higher than the original
 hybrid millidecade output (black), which is expected because it has summed multiple
-HMD values. The normalized ouput (red) closely tracks the original HMD output.
+HMD values. The normalized ouput (red) closely tracks the original HMD output (it
+does not track exactly because the OL_250 contains frequencies from 177 to 354, but
+we are only plotting HMD_250).
 
 ```{r}
 pypamOlNorm <- createOctaveLevel(pypam, type='ol', normalized=TRUE)
@@ -422,7 +424,7 @@ the quantile ribbons like normal.
 tolPypam <- createOctaveLevel(pypam, type='tol', freqRange=c(125, 4e3))
 # we'll use the "Source" column for our labeling
 tolPypam$Source <- 'PyPam'
-tol <- checkSoundscapeInput(here('tutorial/ADRIFT_017_TOL_sim.csv'))
+tol <- loadSoundscapeData(here('tutorial/ADRIFT_017_TOL_sim.csv'))
 tol$Source <- 'Triton'
 # columns 15-24 contain frequency higher than the 2kHz upper limit of our
 # PyPam data, so we'll remove them before combining

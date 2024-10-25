@@ -1,5 +1,11 @@
 # PAMscapes 0.8.0
 
+- HMD type input standardized to always use same rounded column
+names (why was this such a headache). Also new option for
+all data loaders `dropNonHmd` to auto-remove any columns in
+HMD data that are not standard HMD levels - most commonly 
+exactly Nyquist in some datasets
+
 - Deprecating `checkSoundscapeInput` in favor of `loadSoundscapeData`
 because the old name was stupid 
 
@@ -12,6 +18,14 @@ soundscape data to better allow for large scale comparisons
 - Adding `facet` options to `plotLTSA` and `plotPSD` to create faceted
 plots by a column in the data. Also added to `runSoundscapeExplorer`
 for `plotPSD`
+
+- `createOctaveLevel` updated to accurately handle HMD data at lower
+frequencies by summing partial bands. Also dropped the method
+argument because we are always summing (`normalize` argument handles
+what people might want from a mean/median solution??)
+
+- `binSoundscapeData` changed to use character function argument instead
+of actual function (to better incorporate `na.rm=TRUE`)
 
 # PAMscapes 0.7.3
 

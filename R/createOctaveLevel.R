@@ -17,9 +17,6 @@
 #'   third octave level measures
 #' @param freqRange a vector of the minimum and maximum center frequencies (Hz) desired
 #'   for the output. If \code{NULL}, full available range of frequencies will be used.
-#' @param method the summary method to apply to soundscape metrics within the octave band,
-#'   one of \code{'sum'} or \code{'mean'}. The default \code{'sum'} should be used in
-#'   almost all cases.
 #' @param normalized logical flag to return values normalized by the bandwidth of
 #'   each octave level band
 #'
@@ -38,78 +35,127 @@
 #' str(ol)
 #'
 #' @importFrom dplyr group_by summarise ungroup rename mutate
+#' @importFrom data.table `:=`
 #'
 createOctaveLevel <- function(x,
                               type=c('ol', 'tol'),
                               freqRange=NULL,
-                              method=c('sum', 'mean', 'median'),
                               normalized=FALSE) {
-    x <- loadSoundscapeData(x)
-    startLong <- isLong(x)
-    if(startLong) {
-        inType <- x$type[1]
-    } else {
-        whichFreq <- whichFreqCols(x)
-        inType <- unique(gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq]))
-    }
-    if(inType == 'HMD') {
-        # millidecade band parts are normalized by bandwidth, we need to un-norm them
-        x <- correctHmdLevels(x)
-    }
-    x <- toLong(x)
-    nonFreqCols <- getNonFreqCols(x)
-    nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
-
-    type <- match.arg(type)
-    octLevels <- getOctaveLevels(type)
-    if(!is.null(freqRange)) {
-        # freqRange <- range(x$frequency)
-        lowCut <- min(which(freqRange[1] <= octLevels$freqs))
-        highCut <- max(which(freqRange[2] >= octLevels$freqs))
-        octLevels$freqs <- octLevels$freqs[lowCut:highCut]
-        octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
-    }
-    x$octave <- cut(x$frequency, octLevels$limits, labels=octLevels$freqs)
-    if(anyNA(x$octave)) {
-        x <- x[!is.na(x$octave), ]
-    }
-    x$value <- 10^(x$value / 10)
-    FUN <- switch(match.arg(method),
-                  'sum' = function(x) sum(x, na.rm=TRUE),
-                  'mean' = function(x) mean(x, na.rm=TRUE),
-                  'median' = function(x) median(x, na.rm=TRUE)
-    )
-    setDT(x)
-    x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave', nonFreqCols)]
-    setDF(x)
-    # if(length(nonFreqCols) > 0) {
-    #     x <- left_join(x, nonFreqData, by='UTC')
+    # startLong <- isLong(x)
+    # if(startLong) {
+        # inType <- x$type[1]
+    # } else {
+        # whichFreq <- whichFreqCols(x)
+        # inType <- gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq[1]])
     # }
-
-    x$type <- toupper(type)
-    x <- rename(x, frequency = 'octave')
-    x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]
-    x$value <- 10 * log10(x$value)
-    # if all NA in a category they get set to 0 so then Inf'd on log
+    # if(inType == 'HMD') {
+        # millidecade band parts are normalized by bandwidth, we need to un-norm them
+        # x <- correctHmdLevels(x)
+    # }
+    # x <- toLong(x)
+    # nonFreqCols <- getNonFreqCols(x)
+    # nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
+# 
+#     type <- match.arg(type)
+#     octLevels <- getOctaveLevels(type)
+#     if(!is.null(freqRange)) {
+#         # freqRange <- range(x$frequency)
+#         lowCut <- min(which(freqRange[1] <= octLevels$freqs))
+#         highCut <- max(which(freqRange[2] >= octLevels$freqs))
+#         octLevels$freqs <- octLevels$freqs[lowCut:highCut]
+#         octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
+#     }
+#     x$octave <- cut(x$frequency, octLevels$limits, labels=octLevels$freqs)
+#     if(anyNA(x$octave)) {
+#         x <- x[!is.na(x$octave), ]
+#     }
+#     x$value <- 10^(x$value / 10)
+#     FUN <- switch(match.arg(method),
+#                   'sum' = function(x) sum(x, na.rm=TRUE),
+#                   'mean' = function(x) mean(x, na.rm=TRUE),
+#                   'median' = function(x) median(x, na.rm=TRUE)
+#     )
+#     setDT(x)
+#     x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave', nonFreqCols)]
+#     setDF(x)
+# 
+#     x$type <- toupper(type)
+#     x <- rename(x, frequency = 'octave')
+#     x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]
+#     x$value <- 10 * log10(x$value)
+    #######################
+    # do prep band work
+    inWide <- isWide(x)
+    if(!inWide) {
+        x <- toWide(x)
+    }
+    freqCols <- colnames(x)[whichFreqCols(x)]
+    freqVals <- colsToFreqs(freqCols)
+    inType <- gsub('([A-Z]*)_.*', '\\1', freqCols[1])
+    if(inType == 'HMD') {
+        hmdLevels <- getHmdLevels(freqRange=range(freqVals))
+        bwList <- c(10*log10(diff(hmdLevels$limits)))
+        names(bwList) <- hmdLevels$labels
+        for(f in names(bwList)) {
+            x[[f]] <- x[[f]] + bwList[f]
+        }
+    }
+    if(is.null(freqRange)) {
+        freqRange <- range(freqVals)
+    }
+    type <- match.arg(type)
+    bandPlan <- planBandSum(inType, type, inRange=range(freqVals), outRange=freqRange)
+    
+    setDT(x)
+    x[, (freqCols) := lapply(.SD, function(c) 10^(c/10)), .SDcols=freqCols]
+    for(i in seq_along(bandPlan)) {
+        thisBand <- bandPlan[[i]]
+        # thisBand$factor <- round(thisBand$factor, 4)
+        names(thisBand$factor) <- thisBand$labels
+        x[, 
+          (names(bandPlan)[i]) := 10*log10(rowSums(
+              .SD[, lapply(names(.SD), function(c) .SD[[c]]*thisBand$factor[c])],
+              # .SD*thisBand$factor[.SD],
+              na.rm=TRUE)), 
+          .SDcols=thisBand$labels]
+    }
+    x[, c(freqCols) := NULL]
+    setDF(x)
     x <- checkInfinite(x, doWarn=FALSE)
     if(isTRUE(normalized)) {
-        levDf <- data.frame(frequency=octLevels$freqs, bw=diff(octLevels$limits))
-        x <- mutate(
-            left_join(x, levDf, by='frequency'),
-            value = .data$value - 10*log10(.data$bw)
-        )
-        x$bw <- NULL
+        for(i in names(bandPlan)) {
+            x[[i]] <- x[[i]] - bandPlan[[i]]$bw
+        }
     }
-    if(!startLong) {
-        return(toWide(x))
+    if(!inWide) {
+        return(toLong(x))
     }
     x
+    #########################
+    # if all NA in a category they get set to 0 so then Inf'd on log
+    # x <- checkInfinite(x, doWarn=FALSE)
+    # if(isTRUE(normalized)) {
+    #     levDf <- data.frame(frequency=octLevels$freqs, bw=10*log10(diff(octLevels$limits)))
+    #     x <- mutate(
+    #         left_join(x, levDf, by='frequency'),
+    #         value = .data$value - .data$bw
+    #     )
+    #     x$bw <- NULL
+    # }
+    # if(!startLong) {
+    #     return(toWide(x))
+    # }
+    # 
+    # x
 }
 
-getOctaveLevels <- function(type=c('ol', 'tol', 'hmd'), freqRange=NULL) {
+getOctaveLevels <- function(type=c('ol', 'tol', 'hmd', 'psd'), freqRange=NULL) {
     type <- match.arg(type)
     if(type == 'hmd') {
         return(getHmdLevels(freqRange))
+    }
+    if(type == 'psd') {
+        return(getPsdLevels(freqRange))
     }
     nominalFreqs <- c(1,
         1.25, 1.6, 2, 2.5, 3.15, 4, 5, 6.3, 8, 10,
@@ -149,6 +195,17 @@ getOctaveLevels <- function(type=c('ol', 'tol', 'hmd'), freqRange=NULL) {
     list(limits = freqLims, labels=labels, freqs=nominalFreqs)
 }
 
+getPsdLevels <- function(freqRange=NULL) {
+    nominalFreqs <- 0:500e3
+    if(!is.null(freqRange)) {
+        freqRange <- sort(freqRange)
+        nominalFreqs <- nominalFreqs[nominalFreqs >= freqRange[1] &
+                                         nominalFreqs <= freqRange[2]]
+    }
+    limits <- c(max(0, nominalFreqs[1]-0.5), nominalFreqs + 0.5)
+    list(limits=limits, labels=paste0('PSD_', nominalFreqs), nominalFreqs)
+}
+
 getHmdLevels <- function(freqRange=NULL) {
     n <- 1639:5000 # tail limit is 1e6
     lowCenter <- 0:434
@@ -163,8 +220,13 @@ getHmdLevels <- function(freqRange=NULL) {
         nominalFreqs <- nominalFreqs[inRange]
         freqLims <- freqLims[c(which(inRange), max(which(inRange))+1)]
     }
-    nominalFreqs <- round(nominalFreqs, 1)
-    labels <- paste0('HMD_', nominalFreqs)
+    nominalFreqs <- round(nominalFreqs, 3)
+    labels <- nominalFreqs
+    labels[labels < 1e3] <- round(labels[labels < 1e3], 0)
+    labels[labels >= 1e3] <- round(labels[labels >= 1e3], 0)
+    labels <- paste0('HMD_', labels)
+    # labels <- paste0('HMD_', round(nominalFreqs, 1))
+    
     list(limits=freqLims, labels=labels, freqs=nominalFreqs)
 }
 
@@ -180,17 +242,64 @@ correctHmdLevels <- function(x) {
         x <- toWide(x)
     }
     freqCols <- whichFreqCols(x)
-    freqVals <- round(colsToFreqs(names(x)[freqCols]), 1)
-    hmdLevels <- getHmdLevels(freqRange=freqVals)
-    levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
-    matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
-                         levDf, by='freq')
+    freqVals <- colsToFreqs(names(x)[freqCols])
+    hmdLevels <- getHmdLevels(freqRange=range(freqVals))
+    bwList <- c(10*log10(diff(hmdLevels$limits)))
+    names(bwList) <- hmdLevels$labels
+    # levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
+    # matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
+                         # levDf, by='freq')
     
-    for(i in seq_along(matchDf$freq)) {
-        x[[matchDf$ix[i]]] <- x[[matchDf$ix[i]]] + matchDf$bw[i]
+    for(f in names(bwList)) {
+        x[[f]] <- x[[f]] + bwList[f]
     }
     if(inLong) {
         x <- toLong(x)
     }
     x
+}
+
+planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
+    inLevels <- getOctaveLevels(tolower(inBand), freqRange=inRange)
+    outLevels <- getOctaveLevels(tolower(outBand), freqRange=outRange)
+    outs <- vector('list', length=length(outLevels$labels))
+    names(outs) <- outLevels$labels
+    for(ix in seq_along(outs)) {
+        thisLim <- outLevels$limits[ix:(ix+1)]
+        if(thisLim[2] < inLevels$limits[1]) {
+            next
+        }
+        if(thisLim[1] > inLevels$limits[length(inLevels$limits)]) {
+            next
+        }
+        lowLim <- min(which(thisLim[1] <= inLevels$limits)) -1
+        highLim <- max(which(thisLim[2] >= inLevels$limits)) + 1
+        if(highLim > length(inLevels$limits)) {
+            highLim <- length(inLevels$limits)
+        }
+        result <- list()
+        result$lims <- thisLim
+        inLim <- lowLim:highLim
+        result$labels <- inLevels$labels[lowLim:(highLim-1)]
+        result$hmd_lims <- inLevels$limits[inLim]
+        nHmdLim <- length(result$hmd_lims)
+        if(nHmdLim == 2) {
+            result$factor <- diff(thisLim) / diff(result$hmd_lims)
+            outs[[ix]] <- result
+            next
+        }
+        lowFact <- (result$hmd_lims[2]-thisLim[1]) / diff(result$hmd_lims[1:2])
+        if(lowFact < 0) {
+            lowFact <- 1
+        }
+        highFact <- (thisLim[2]-result$hmd_lims[nHmdLim-1])/diff(result$hmd_lims[(nHmdLim-1):nHmdLim])
+        if(highFact < 0) {
+            highFact <- 1
+        }
+        result$factor <- c(lowFact, rep(1, max(nHmdLim-3, 0)), highFact)
+        result$bw <- 10*log10(diff(thisLim))
+        outs[[ix]] <- result
+    }
+    outs <- outs[sapply(outs, function(x) !is.null(x))]
+    outs
 }

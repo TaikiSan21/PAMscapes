@@ -58,7 +58,7 @@ a ggplot object
 Plot simple timeseries of values
 }
 \examples{
-manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall2.csv', package='PAMscapes'))
+manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 plotTimeseries(manta, bin='1minute', column='HMD_150')
 
 }

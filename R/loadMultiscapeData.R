@@ -17,6 +17,10 @@
 #'   or Third-Octave-Level ("tol") measurements using
 #'   \link{createOctaveLevel}
 #' @param label if not \code{NUL}, then must be of equal length to \code{x}
+#' @param dropNonHmd logical flag to drop non-standard hybrid millidecade
+#'   bands, only applies to HMD type data. Some datasets have frequency
+#'   values that are not part of the standard HMD bands (e.g. at exactly
+#'   the Nyquist rate), if \code{TRUE} these will be removed.
 #' @param tz timezone of the data being loaded, will be converted to UTC
 #'   after load
 #' @param extension only required if both netCDF and CSV files exist in
@@ -48,12 +52,13 @@
 #'
 #'
 loadMultiscapeData <- function(x, 
-                           timeBin=NULL, 
-                           binFunction=median, 
-                           octave=c('original', 'tol', 'ol'),
-                           label=NULL,
-                           tz='UTC',
-                           extension=c('nc', 'csv')) {
+                               timeBin=NULL, 
+                               binFunction=median, 
+                               octave=c('original', 'tol', 'ol'),
+                               label=NULL,
+                               dropNonHmd=TRUE,
+                               tz='UTC',
+                               extension=c('nc', 'csv')) {
     if(!is.character(x)) {
         warning('"x" must be a vector of folder paths.')
         return(NULL)
@@ -87,12 +92,37 @@ loadMultiscapeData <- function(x,
     result <- vector('list', length=length(x))
     for(i in seq_along(x)) {
         result[[i]] <- loadSoundscapeData(x[i], 
-                                            timeBin=timeBin,
-                                            binFunction=binFunction,
-                                            octave=octave,
-                                            label=label[i],
-                                            tz=tz,
-                                            extension=extension)
+                                          timeBin=timeBin,
+                                          binFunction=binFunction,
+                                          octave=octave,
+                                          label=label[i],
+                                          tz=tz,
+                                          dropNonHmd=FALSE,
+                                          extension=extension)
     }
-    bind_rows(result)
+    result <- bind_rows(result)
+    freqCols <- whichFreqCols(result)
+    freqVals <- colsToFreqs(colnames(result)[freqCols])
+    type <- gsub('([A-z]*)_.*', '\\1', colnames(result)[freqCols][1])
+    # standardizing to round to integer on all HMD columns
+    if(type == 'HMD') {
+        standardHmd <- paste0('HMD_', round(freqVals, 0))
+        colnames(result)[freqCols] <- standardHmd
+        hmdLevels <- getHmdLevels(freqRange=range(freqVals)+c(-1, 1))
+        nonStandard <- !standardHmd %in% hmdLevels$labels
+        newLabs <- fixHmdLabels(freqVals[nonStandard], hmdLevels=hmdLevels)
+        colnames(result)[freqCols][nonStandard][!is.na(newLabs)] <- newLabs[!is.na(newLabs)]
+        if(anyNA(newLabs) &&
+           isTRUE(dropNonHmd)) {
+            warning('Found ', sum(is.na(newLabs)), ' non-standard ',
+                    'hybrid millidecade frequencies (',
+                    paste0(standardHmd[nonStandard][is.na(newLabs)], collapse=', '),
+                    ') these will be removed. Run with "dropNonHmd=FALSE"',
+                    ' to keep them.')
+            for(col in standardHmd[nonStandard[is.na(newLabs)]]) {
+                result[[col]] <- NULL
+            }
+        }
+    }
+    result
 }

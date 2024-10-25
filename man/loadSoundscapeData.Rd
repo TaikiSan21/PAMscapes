@@ -9,9 +9,10 @@ loadSoundscapeData(
   needCols = c("UTC"),
   skipCheck = FALSE,
   timeBin = NULL,
-  binFunction = median,
+  binFunction = "median",
   octave = c("original", "tol", "ol"),
   label = NULL,
+  dropNonHmd = TRUE,
   tz = "UTC",
   extension = c("nc", "csv")
 )
@@ -34,7 +35,7 @@ to keep as \code{FALSE}}
 be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
 
 \item{binFunction}{summary function to apply to data in each time bin,
-default is median}
+default is "median"}
 
 \item{octave}{one of "original", "tol", or "ol". If "original" then
 nothing happens, otherwise data are converted to Octave-leve ("ol")
@@ -43,6 +44,11 @@ or Third-Octave-Level ("tol") measurements using
 
 \item{label}{optional, if not \code{NULL} then this value will be
 added as an additional column "label" to the output}
+
+\item{dropNonHmd}{logical flag to drop non-standard hybrid millidecade
+bands, only applies to HMD type data. Some datasets have frequency
+values that are not part of the standard HMD bands (e.g. at exactly
+the Nyquist rate), if \code{TRUE} these will be removed.}
 
 \item{tz}{timezone of the data being loaded, will be converted to UTC
 after load}

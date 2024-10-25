@@ -151,7 +151,7 @@ checkSoundscapeInput <- function(x,
         return(NULL)
     }
     if(!is.null(timeBin)) {
-        x <- binSoundscapeData(x, bin=timeBin, FUN=binFunction)
+        x <- binSoundscapeData(x, bin=timeBin, method=binFunction)
     }
     if(octave != 'original') {
         x <- createOctaveLevel(x, type=octave)

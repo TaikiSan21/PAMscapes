@@ -10,6 +10,7 @@ loadMultiscapeData(
   binFunction = median,
   octave = c("original", "tol", "ol"),
   label = NULL,
+  dropNonHmd = TRUE,
   tz = "UTC",
   extension = c("nc", "csv")
 )
@@ -31,6 +32,11 @@ or Third-Octave-Level ("tol") measurements using
 \link{createOctaveLevel}}
 
 \item{label}{if not \code{NUL}, then must be of equal length to \code{x}}
+
+\item{dropNonHmd}{logical flag to drop non-standard hybrid millidecade
+bands, only applies to HMD type data. Some datasets have frequency
+values that are not part of the standard HMD bands (e.g. at exactly
+the Nyquist rate), if \code{TRUE} these will be removed.}
 
 \item{tz}{timezone of the data being loaded, will be converted to UTC
 after load}

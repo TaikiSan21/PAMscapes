@@ -31,7 +31,7 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @examples
-#' manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall2.csv', package='PAMscapes'))
+#' manta <- loadSoundscapeData(system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes'))
 #' plotTimeseries(manta, bin='1minute', column='HMD_150')
 #'
 #' @importFrom lubridate floor_date hour minute

@@ -7,7 +7,8 @@
 #'   \link{loadSoundscapeData}
 #' @param bin amount of time to bin data by, format can
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
-#' @param FUN summary function to apply to data in each time bin
+#' @param method summary function to apply to data in each time bin,
+#'   must be one of "median" or "mean"
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -18,10 +19,12 @@
 #' @importFrom data.table setDT setDF
 #' @importFrom lubridate floor_date
 #'
-binSoundscapeData <- function(x, bin='1hour', FUN=median) {
-    if(!is.function(FUN)) {
-        stop('"FUN" must be a function')
-    }
+binSoundscapeData <- function(x, bin='1hour', method=c('median', 'mean')) {
+    method <- match.arg(method)
+    FUN <- switch(method,
+                  'median' = function(x) median(x, na.rm=TRUE),
+                  'mean' = function(x) mean(x, na.rm=TRUE)
+    )
     cols <- colnames(x)
 
     if(isWide(cols)) {

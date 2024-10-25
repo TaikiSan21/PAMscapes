@@ -75,7 +75,15 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     UTC <- ncTimeToPosix(UTC, units=nc$dim$time$units)
     freqType <- checkFreqType(nc$dim$frequency$vals)
     hmd <- data.frame(t(hmd))
-    colnames(hmd) <- paste0(freqType, '_', round(nc$dim$frequency$vals, 1))
+    # we double round the name to avoid mismatched round-to-even behavior
+    labels <- nc$dim$frequency$val
+    labels[labels < 1e3] <- round(labels[labels < 1e3], 0)
+    labels[labels >= 1e3] <- round(labels[labels >= 1e3], 0)
+    labels <- paste0(freqType, '_', labels)
+    colnames(hmd) <- labels
+    # colnames(hmd) <- paste0(freqType, '_', round(round(nc$dim$frequency$vals, 3), 1))
+    hmLevs <- getHmdLevels(freqRange=range(nc$dim$frequency$vals))
+    mismatch <- !names(hmd) %in% hmLevs$labels
     hmd <- cbind(UTC, hmd)
     coords <- ncatt_get(nc, varid=0, attname='geospatial_bounds')
     if(isTRUE(coords$hasatt)) {
