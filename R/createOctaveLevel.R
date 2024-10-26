@@ -100,9 +100,6 @@ createOctaveLevel <- function(x,
             x[[f]] <- x[[f]] + bwList[f]
         }
     }
-    if(is.null(freqRange)) {
-        freqRange <- range(freqVals)
-    }
     type <- match.arg(type)
     bandPlan <- planBandSum(inType, type, inRange=range(freqVals), outRange=freqRange)
     
@@ -179,9 +176,6 @@ getOctaveLevels <- function(type=c('ol', 'tol', 'hmd', 'psd'), freqRange=NULL) {
     freqVals <- 10^(ix/10)
     switch(type,
            'ol' = {
-               # everyThird <- seq(from=1, to=length(nominalFreqs), by=3)
-               # nominalFreqs <- nominalFreqs[everyThird]
-               # freqVals <- freqVals[everyThird]
                freqLims <- c(freqVals[1] * 10^(-3/20), freqVals * 10^(3/20))
            },
            'tol' = {
@@ -232,35 +226,38 @@ getHmdLevels <- function(freqRange=NULL) {
 
 # millidecade bands are normalized by bandwidth, need to multiple back
 # the bandwidth before summing
-correctHmdLevels <- function(x) {
-    # changeFreq <- 434
-    # lowHalf <- x[x$frequency <= changeFreq, ]
-    # highHalf <- x[x$frequency > changeFreq, ]
-    inLong <- FALSE
-    if(isLong(x)) {
-        inLong <- TRUE
-        x <- toWide(x)
-    }
-    freqCols <- whichFreqCols(x)
-    freqVals <- colsToFreqs(names(x)[freqCols])
-    hmdLevels <- getHmdLevels(freqRange=range(freqVals))
-    bwList <- c(10*log10(diff(hmdLevels$limits)))
-    names(bwList) <- hmdLevels$labels
-    # levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
-    # matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
-                         # levDf, by='freq')
-    
-    for(f in names(bwList)) {
-        x[[f]] <- x[[f]] + bwList[f]
-    }
-    if(inLong) {
-        x <- toLong(x)
-    }
-    x
-}
+# correctHmdLevels <- function(x) {
+#     # changeFreq <- 434
+#     # lowHalf <- x[x$frequency <= changeFreq, ]
+#     # highHalf <- x[x$frequency > changeFreq, ]
+#     inLong <- FALSE
+#     if(isLong(x)) {
+#         inLong <- TRUE
+#         x <- toWide(x)
+#     }
+#     freqCols <- whichFreqCols(x)
+#     freqVals <- colsToFreqs(names(x)[freqCols])
+#     hmdLevels <- getHmdLevels(freqRange=range(freqVals))
+#     bwList <- c(10*log10(diff(hmdLevels$limits)))
+#     names(bwList) <- hmdLevels$labels
+#     # levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
+#     # matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
+#                          # levDf, by='freq')
+#     
+#     for(f in names(bwList)) {
+#         x[[f]] <- x[[f]] + bwList[f]
+#     }
+#     if(inLong) {
+#         x <- toLong(x)
+#     }
+#     x
+# }
 
 planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
     inLevels <- getOctaveLevels(tolower(inBand), freqRange=inRange)
+    # if(is.null(outRange)) {
+    #     outRange <- range(inLevels$limits)
+    # }
     outLevels <- getOctaveLevels(tolower(outBand), freqRange=outRange)
     outs <- vector('list', length=length(outLevels$labels))
     names(outs) <- outLevels$labels
