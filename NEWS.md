@@ -27,6 +27,10 @@ what people might want from a mean/median solution??)
 - `binSoundscapeData` changed to use character function argument instead
 of actual function (to better incorporate `na.rm=TRUE`)
 
+- Adding `referenceLevel` option to `plotPSD` that plots different 
+values of `by` column as difference between the selected reference
+column instead of absolutes
+
 # PAMscapes 0.7.3
 
 - Bug in `plotPSD` for log scale frequency axis if frequency of 0 was present

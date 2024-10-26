@@ -11,7 +11,7 @@
 #'   \link{loadSoundscapeData} this argument is now mandatory
 #'   to reduce data size
 #' @param binFunction summary function to apply to data in each time bin,
-#'   default is median
+#'   default is "median"
 #' @param octave one of "original", "tol", or "ol". If "original" then
 #'   nothing happens, otherwise data are converted to Octave-leve ("ol")
 #'   or Third-Octave-Level ("tol") measurements using
@@ -53,7 +53,7 @@
 #'
 loadMultiscapeData <- function(x, 
                                timeBin=NULL, 
-                               binFunction=median, 
+                               binFunction='median', 
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
                                dropNonHmd=TRUE,

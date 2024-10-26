@@ -46,6 +46,9 @@
 #'   \code{style='quantile'}. If \code{x} is a data.frame, \code{by} can also
 #'   be one of \code{'hour'}, \code{'month'}, or \code{'year'} and that column
 #'   will be created automatically if not present.
+#' @param referenceLevel only used together with \code{by}. A value of the
+#'   \code{by} column to use as a reference for all other levels. The plot
+#'   will then show the difference between the other levels and the reference
 #' @param facet optional column to facet the plots by
 #' @param ncol number of columns to use when plotting with \code{facet}
 #' @param compression compression factor for \link[tdigest]{tdigest}, lower
@@ -82,6 +85,7 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                     units='dB re: 1uPa^2/Hz',
                     cmap=viridis_pal()(25),
                     by=NULL,
+                    referenceLevel=NULL,
                     facet=NULL,
                     ncol=NULL,
                     title=NULL,
@@ -233,6 +237,19 @@ plotPSD <- function(x, style=c('quantile', 'density'),
                     result
                 }))
                 qData$frequency <- freqVals
+            }
+            if(!is.null(by) && !is.null(referenceLevel)) {
+                if(!referenceLevel %in% qData$by) {
+                    warning('Reference level "', referenceLevel, 
+                            '" not found in column "', by, '"')
+                } else{
+                    qData <- bind_rows(lapply(split(qData, qData$by), function(d) {
+                        d$qmed <- d$qmed - qData$qmed[qData$by == referenceLevel]
+                        d$qlow <- d$qlow - qData$qmed[qData$by == referenceLevel]
+                        d$qhigh <- d$qhigh - qData$qmed[qData$by == referenceLevel]
+                        d
+                    }))
+                }
             }
             # x is frequency, qlow, qmed, qhigh
             if(isTRUE(returnData) && length(style) == 1) {

@@ -7,7 +7,7 @@
 loadMultiscapeData(
   x,
   timeBin = NULL,
-  binFunction = median,
+  binFunction = "median",
   octave = c("original", "tol", "ol"),
   label = NULL,
   dropNonHmd = TRUE,
@@ -24,7 +24,7 @@ be "#Unit" e.g. \code{'2hour'} or \code{'1day'}. Unlike
 to reduce data size}
 
 \item{binFunction}{summary function to apply to data in each time bin,
-default is median}
+default is "median"}
 
 \item{octave}{one of "original", "tol", or "ol". If "original" then
 nothing happens, otherwise data are converted to Octave-leve ("ol")
