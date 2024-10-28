@@ -1,3 +1,7 @@
+# PAMscapes 0.8.1
+
+- `plotLTSA` with `facet` changed labeling scheme
+
 # PAMscapes 0.8.0
 
 - HMD type input standardized to always use same rounded column

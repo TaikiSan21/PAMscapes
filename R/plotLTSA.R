@@ -149,6 +149,7 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
     if(isTRUE(returnData)) {
         return(x)
     }
+    yAxPos <- ifelse(is.null(facet), 'left', 'right')
     g <- ggplot(x) +
         geom_rect(aes(xmin=.data$UTC,
                       xmax=.data$UTCend,
@@ -160,14 +161,19 @@ plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
                              limits=dbRange,
                              oob=squish) +
         scale_x_datetime(expand=c(0,0)) +
-        scale_y_log10(expand=c(0,0)) +
+        scale_y_log10(expand=c(0,0), guide=guide_axis(position=yAxPos)) +
         labs(fill=units) +
         theme(legend.title = element_text(angle=90)) +
         guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5)) +
         ggtitle(title)
     if(!is.null(facet)) {
         g <- g +
-            facet_wrap(~.data[[facet]], ncol=1)
+            facet_wrap(~.data[[facet]], ncol=1, strip.position='left') +
+            theme(
+                strip.background=element_blank(),
+                strip.placement='outside',
+                strip.text.y.left = element_text(angle=0)
+            )
     }
     g
 }
