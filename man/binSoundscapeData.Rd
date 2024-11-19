@@ -4,7 +4,13 @@
 \alias{binSoundscapeData}
 \title{Summarise Soundscape Data by Time Bin}
 \usage{
-binSoundscapeData(x, bin = "1hour", method = c("median", "mean"))
+binSoundscapeData(
+  x,
+  bin = "1hour",
+  method = c("median", "mean"),
+  binCount = FALSE,
+  extraCols = NULL
+)
 }
 \arguments{
 \item{x}{a data.frame of soundscape metric data read in with
@@ -15,6 +21,12 @@ be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
 
 \item{method}{summary function to apply to data in each time bin,
 must be one of "median" or "mean"}
+
+\item{binCount}{logical flag to return the number of times in
+each time bin as column "binCount"}
+
+\item{extraCols}{Additional non-frequency columns in \code{x}
+to apply the binning to}
 }
 \value{
 a summarised version of the input data.frame \code{x}

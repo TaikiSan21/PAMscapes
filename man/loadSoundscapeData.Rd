@@ -10,8 +10,10 @@ loadSoundscapeData(
   skipCheck = FALSE,
   timeBin = NULL,
   binFunction = "median",
+  binCount = FALSE,
   octave = c("original", "tol", "ol"),
   label = NULL,
+  keepEffort = TRUE,
   dropNonHmd = TRUE,
   tz = "UTC",
   extension = c("nc", "csv")
@@ -37,6 +39,9 @@ be "#Unit" e.g. \code{'2hour'} or \code{'1day'}}
 \item{binFunction}{summary function to apply to data in each time bin,
 default is "median"}
 
+\item{binCount}{logical flag to return the number of times in
+each time bin as column "binCount"}
+
 \item{octave}{one of "original", "tol", or "ol". If "original" then
 nothing happens, otherwise data are converted to Octave-leve ("ol")
 or Third-Octave-Level ("tol") measurements using
@@ -44,6 +49,12 @@ or Third-Octave-Level ("tol") measurements using
 
 \item{label}{optional, if not \code{NULL} then this value will be
 added as an additional column "label" to the output}
+
+\item{keepEffort}{if \code{TRUE} or \code{FALSE}, a logical flag whether or
+not to keep the effort information with the outputs (number of seconds
+per minute). If a numeric value, then any minutes with an effort value
+less than \code{keepEffort} will be removed (e.g. \code{50} will remove
+minutes with less than 50 seconds of effort)}
 
 \item{dropNonHmd}{logical flag to drop non-standard hybrid millidecade
 bands, only applies to HMD type data. Some datasets have frequency

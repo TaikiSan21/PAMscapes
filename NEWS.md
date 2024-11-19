@@ -1,3 +1,12 @@
+# PAMscapes 0.8.2
+
+- Adding `binCount` to `loadSoundscapeData`, `binSoundscapeData`, and
+`loadMultiscapeData` to return number of times in each bin
+
+- Adding `keepEffort` to `loadSoundscapeData` and `loadMultiscapeData`
+to return effort column. Can also be used to set a threshold for
+an amount of effort to keep in results
+
 # PAMscapes 0.8.1
 
 - `plotLTSA` with `facet` changed labeling scheme

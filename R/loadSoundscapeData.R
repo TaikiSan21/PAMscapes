@@ -20,12 +20,19 @@
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
 #' @param binFunction summary function to apply to data in each time bin,
 #'   default is "median"
+#' @param binCount logical flag to return the number of times in
+#'   each time bin as column "binCount"
 #' @param octave one of "original", "tol", or "ol". If "original" then
 #'   nothing happens, otherwise data are converted to Octave-leve ("ol")
 #'   or Third-Octave-Level ("tol") measurements using
 #'   \link{createOctaveLevel}
 #' @param label optional, if not \code{NULL} then this value will be
 #'   added as an additional column "label" to the output
+#' @param keepEffort if \code{TRUE} or \code{FALSE}, a logical flag whether or
+#'   not to keep the effort information with the outputs (number of seconds
+#'   per minute). If a numeric value, then any minutes with an effort value
+#'   less than \code{keepEffort} will be removed (e.g. \code{50} will remove
+#'   minutes with less than 50 seconds of effort)
 #' @param dropNonHmd logical flag to drop non-standard hybrid millidecade
 #'   bands, only applies to HMD type data. Some datasets have frequency
 #'   values that are not part of the standard HMD bands (e.g. at exactly
@@ -79,8 +86,10 @@ loadSoundscapeData <- function(x,
                                skipCheck=FALSE,
                                timeBin=NULL, 
                                binFunction='median', 
+                               binCount=FALSE,
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
+                               keepEffort=TRUE,
                                dropNonHmd=TRUE, 
                                tz='UTC',
                                extension=c('nc', 'csv')) {
@@ -108,7 +117,8 @@ loadSoundscapeData <- function(x,
         x <- bind_rows(future_lapply(x, function(f) {
             loadSoundscapeData(f, needCols=needCols, skipCheck=skipCheck,
                                timeBin=timeBin, binFunction=binFunction,
-                               octave=octave, label=label, 
+                               binCount=binCount,
+                               octave=octave, label=label, keepEffort=keepEffort, 
                                dropNonHmd = FALSE,
                                tz=tz)
         }, future.seed=NULL))
@@ -153,7 +163,7 @@ loadSoundscapeData <- function(x,
             x <- fread(x, header=TRUE)
             setDF(x)
         } else if(grepl('nc$', x, ignore.case=TRUE)) {
-            x <- loadMantaNc(x)
+            x <- loadMantaNc(x, keepEffort=keepEffort)
         }
     }
     if(isFALSE(skipCheck)) {
@@ -203,7 +213,7 @@ loadSoundscapeData <- function(x,
         }
     }
     if(!is.null(timeBin)) {
-        x <- binSoundscapeData(x, bin=timeBin, method=binFunction)
+        x <- binSoundscapeData(x, bin=timeBin, method=binFunction, binCount=binCount)
     }
     if(octave != 'original') {
         x <- createOctaveLevel(x, type=octave)

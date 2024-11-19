@@ -9,6 +9,10 @@
 #'   be "#Unit" e.g. \code{'2hour'} or \code{'1day'}
 #' @param method summary function to apply to data in each time bin,
 #'   must be one of "median" or "mean"
+#' @param binCount logical flag to return the number of times in
+#'   each time bin as column "binCount"
+#' @param extraCols Additional non-frequency columns in \code{x}
+#'   to apply the binning to
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -16,10 +20,14 @@
 #'
 #' @export
 #'
-#' @importFrom data.table setDT setDF
+#' @importFrom data.table setDT setDF .N
 #' @importFrom lubridate floor_date
 #'
-binSoundscapeData <- function(x, bin='1hour', method=c('median', 'mean')) {
+binSoundscapeData <- function(x, 
+                              bin='1hour',
+                              method=c('median', 'mean'),
+                              binCount=FALSE,
+                              extraCols=NULL) {
     method <- match.arg(method)
     FUN <- switch(method,
                   'median' = function(x) median(x, na.rm=TRUE),
@@ -37,11 +45,34 @@ binSoundscapeData <- function(x, bin='1hour', method=c('median', 'mean')) {
     }
     x$UTC <- floor_date(x[['UTC']], unit=bin)
     nonFreqCols <- getNonFreqCols(x)
+    if(!is.null(extraCols)) {
+        extraIn <- extraCols %in% nonFreqCols
+        if(any(!extraIn)) {
+            warning('Column(s) ', paste0(extraCols[!extraIn], collapse=', '),
+                    ' are not in data')
+            extraCols <- extraCols[extraIn]
+        }
+        valCols <- c(valCols, extraCols)
+    }
+    # cant bin effort column if its present bc wont work
+    nonFreqCols <- nonFreqCols[!nonFreqCols %in% c('effortSeconds', extraCols)]
     nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
     setDT(x)
-    x <- x[, lapply(.SD, FUN), .SDcols=valCols, by=byCols]
+    if(isTRUE(binCount)) {
+        x <- x[, c(.N, lapply(.SD, FUN)), .SDcols=valCols, by=byCols]
+        names(x)[names(x) == 'N'] <- 'binCount'
+    } else {
+        x <- x[, lapply(.SD, FUN), .SDcols=valCols, by=byCols]
+    }
     setDF(x)
     if(length(nonFreqCols) > 0) {
+        if(nrow(nonFreqData) != nrow(x)) {
+            warning('Some additional columns ',
+                    paste0(nonFreqCols, collapse=', '),
+                    ' could not be kept with binned data, add to "extraCols"',
+                    ' to keep them')
+            return(x)
+        }
         x <- left_join(x, nonFreqData, by='UTC')
     }
     x

@@ -12,11 +12,18 @@
 #'   to reduce data size
 #' @param binFunction summary function to apply to data in each time bin,
 #'   default is "median"
+#' @param binCount logical flag to return the number of times in
+#'   each time bin as column "binCount"
 #' @param octave one of "original", "tol", or "ol". If "original" then
 #'   nothing happens, otherwise data are converted to Octave-leve ("ol")
 #'   or Third-Octave-Level ("tol") measurements using
 #'   \link{createOctaveLevel}
 #' @param label if not \code{NUL}, then must be of equal length to \code{x}
+#' @param keepEffort if \code{TRUE} or \code{FALSE}, a logical flag whether or
+#'   not to keep the effort information with the outputs (number of seconds
+#'   per minute). If a numeric value, then any minutes with an effort value
+#'   less than \code{keepEffort} will be removed (e.g. \code{50} will remove
+#'   minutes with less than 50 seconds of effort)
 #' @param dropNonHmd logical flag to drop non-standard hybrid millidecade
 #'   bands, only applies to HMD type data. Some datasets have frequency
 #'   values that are not part of the standard HMD bands (e.g. at exactly
@@ -54,8 +61,10 @@
 loadMultiscapeData <- function(x, 
                                timeBin=NULL, 
                                binFunction='median', 
+                               binCount=FALSE,
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
+                               keepEffort=TRUE,
                                dropNonHmd=TRUE,
                                tz='UTC',
                                extension=c('nc', 'csv')) {
@@ -94,9 +103,11 @@ loadMultiscapeData <- function(x,
         result[[i]] <- loadSoundscapeData(x[i], 
                                           timeBin=timeBin,
                                           binFunction=binFunction,
+                                          binCount=binCount,
                                           octave=octave,
                                           label=label[i],
                                           tz=tz,
+                                          keepEffort=keepEffort,
                                           dropNonHmd=FALSE,
                                           extension=extension)
     }

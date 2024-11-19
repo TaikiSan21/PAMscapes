@@ -10,6 +10,11 @@
 #'   "Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
 #'   HMD levels for points with data quality flags outside of \code{keepQuals}
 #'   will be marked as \code{NA}.
+#' @param keepEffort if \code{TRUE} or \code{FALSE}, a logical flag whether or
+#'   not to keep the effort information with the outputs (number of seconds
+#'   per minute). If a numeric value, then any minutes with an effort value
+#'   less than \code{keepEffort} will be removed (e.g. \code{50} will remove
+#'   minutes with less than 50 seconds of effort)
 #'
 #' @return a dataframe with first column UTC and other columns
 #'   named HMD_Frequency
@@ -26,7 +31,7 @@
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom sf st_coordinates st_as_sf
 #'
-loadMantaNc <- function(x, keepQuals=c(1)) {
+loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
     if(!file.exists(x)) {
         message('File ', x, ' does not exist.')
         return(NULL)
@@ -73,6 +78,7 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     }
     UTC <- nc$dim$time$vals
     UTC <- ncTimeToPosix(UTC, units=nc$dim$time$units)
+    
     freqType <- checkFreqType(nc$dim$frequency$vals)
     hmd <- data.frame(t(hmd))
     # we double round the name to avoid mismatched round-to-even behavior
@@ -85,6 +91,17 @@ loadMantaNc <- function(x, keepQuals=c(1)) {
     hmLevs <- getHmdLevels(freqRange=range(nc$dim$frequency$vals))
     mismatch <- !names(hmd) %in% hmLevs$labels
     hmd <- cbind(UTC, hmd)
+    if(!isFALSE(keepEffort) &&
+       !'effort' %in% names(nc$var)) {
+        warning('No effort data found in netCDF')
+        keepEffort <- FALSE
+    }
+    if(!isFALSE(keepEffort)) {
+        hmd$effortSeconds <- ncvar_get(nc, varid='effort', start=1, count=-1)
+    }
+    if(is.numeric(keepEffort)) {
+        hmd <- hmd[hmd$effortSeconds >= keepEffort, ]
+    }
     coords <- ncatt_get(nc, varid=0, attname='geospatial_bounds')
     if(isTRUE(coords$hasatt)) {
         coordVals <- st_coordinates(

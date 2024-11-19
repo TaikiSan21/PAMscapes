@@ -4,7 +4,7 @@
 \alias{loadMantaNc}
 \title{Load MANTA NetCDF File}
 \usage{
-loadMantaNc(x, keepQuals = c(1))
+loadMantaNc(x, keepQuals = c(1), keepEffort = TRUE)
 }
 \arguments{
 \item{x}{path to .nc file}
@@ -14,6 +14,12 @@ integers from (1, 2, 3, 4) corresponding to flag labels "Good",
 "Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
 HMD levels for points with data quality flags outside of \code{keepQuals}
 will be marked as \code{NA}.}
+
+\item{keepEffort}{if \code{TRUE} or \code{FALSE}, a logical flag whether or
+not to keep the effort information with the outputs (number of seconds
+per minute). If a numeric value, then any minutes with an effort value
+less than \code{keepEffort} will be removed (e.g. \code{50} will remove
+minutes with less than 50 seconds of effort)}
 }
 \value{
 a dataframe with first column UTC and other columns

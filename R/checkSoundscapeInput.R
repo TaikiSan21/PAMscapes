@@ -103,7 +103,7 @@ checkSoundscapeInput <- function(x,
     if(is.character(x) &&
        length(x) > 1) {
         return(bind_rows(future_lapply(x, function(f) {
-            checkSoundscapeInput(f, needCols=needCols, skipCheck=skipCheck,
+            loadSoundscapeData(f, needCols=needCols, skipCheck=skipCheck,
                                  timeBin=timeBin, binFunction=binFunction,
                                  octave=octave, label=label,
                                  tz=tz)
