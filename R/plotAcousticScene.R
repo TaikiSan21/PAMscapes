@@ -15,6 +15,9 @@
 #' @param title optional title to use for the plot
 #' @param bin time bin to use for plotting time axis. Each detection will
 #'   be displayed as covering this amount of time
+#' @param by if not \code{NULL}, column name to facet plot by (e.g. site)
+#' @param combineYears logical flag to combine all observations to display
+#'   as a single year, see \link{binDetectionData} for details
 #' @param scale one of \code{log} or \code{linear}, the frequency scale for
 #'   the plot
 #' @param freqMin optional minimum frequency for plot, useful for log scale
@@ -46,19 +49,47 @@
 #'                       color=c('darkgreen', 'blue'))
 #' plotAcousticScene(detDf, freqMap=freqMap, typeCol='species', bin='1day')
 #'
-#' @importFrom dplyr left_join join_by distinct
+#' @importFrom dplyr left_join join_by distinct across
 #'
 #' @export
 #'
-plotAcousticScene <- function(x, freqMap, typeCol='species',
-                              title=NULL, bin='1day', scale=c('log', 'linear'),
-                              freqMin=NULL, freqMax=NULL,
+plotAcousticScene <- function(x, 
+                              freqMap=NULL, 
+                              typeCol='species',
+                              title=NULL, 
+                              bin='1day', 
+                              by=NULL,
+                              combineYears=FALSE,
+                              scale=c('log', 'linear'),
+                              freqMin=NULL, 
+                              freqMax=NULL,
                               fill=TRUE,
-                              alpha=1, returnData=FALSE, add=FALSE) {
+                              alpha=1, 
+                              returnData=FALSE, 
+                              add=FALSE) {
     x <- checkSimple(x, needCols=c('UTC', typeCol))
-    x$plotStart <- floor_date(x$UTC, unit=bin)
-    thisPeriod <- unitToPeriod(bin)
-    x$plotEnd <- x$plotStart + thisPeriod
+    dropY <- FALSE
+    if(is.null(freqMap)) {
+        if(is.factor(x[[typeCol]])) {
+            freqMap <- data.frame(type=levels(x[[typeCol]])) 
+        } else {
+            freqMap <- data.frame(type = unique(x[[typeCol]]))
+        }
+    }
+    if(!'freqMin' %in% names(freqMap)) {
+        freqMap$freqMin <- (nrow(freqMap):1) - .4
+        freqMap$freqMax <- (nrow(freqMap):1) + .4
+        scale <- 'linear'
+        dropY <- TRUE
+    }
+    if(!is.null(by) &&
+       !by %in% colnames(x)) {
+        warning('"by" column not present in data')
+        by <- NULL
+    }
+    x <- binDetectionData(x, bin=bin, columns=c(typeCol, by), rematchGPS=FALSE,
+                          combineYears=combineYears)
+    
     scale <- switch(match.arg(scale),
                     'log' = 'log10',
                     'identity'
@@ -74,25 +105,32 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
     x$TEMPJOINCOLUMN <- x[[typeCol]]
     x <- left_join(x, freqMap, by=join_by('TEMPJOINCOLUMN' =='type'))
     x$TEMPJOINCOLUMN <- NULL
-
+    # remove detections with no match in map
     x <- x[!is.na(x[['freqMin']]), ]
-    x <- distinct(x[c('plotStart', 'plotEnd', 'freqMin', 'freqMax', typeCol)])
-    x <- bind_rows(lapply(split(x, x[[typeCol]]), function(d) {
-        if(nrow(d) == 1) {
+    x <- distinct(x[c('UTC', 'end', 'freqMin', 'freqMax', typeCol, by)])
+    if(!is.factor(x[[typeCol]])) {
+        x[[typeCol]] <- factor(x[[typeCol]], levels=freqMap$type)
+    }
+    # this is making contiguous start/end sections so that if we dont fill
+    # boxes they look right
+    if(is.null(by)) {
+        splitList <- x[[typeCol]]
+    } else {
+        splitList <- list(x[[typeCol]], x[[by]])
+    }
+    x <- bind_rows(lapply(split(x, splitList), function(d) {
+        if(is.null(d) | (nrow(d) <= 1)) {
             return(d)
         }
         d$difftime <- TRUE
-        d$difftime[2:nrow(d)] <- d$plotStart[2:nrow(d)] != d$plotEnd[1:(nrow(d)-1)]
+        d$difftime[2:nrow(d)] <- d$UTC[2:nrow(d)] != d$end[1:(nrow(d)-1)]
         d$group <- cumsum(d$difftime)
-        # d <- group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax) %>%
-        #     summarise(plotStart = min(.data$plotStart),
-        #               plotEnd = max(.data$plotEnd)) %>%
-        #     ungroup()
+
         d <- ungroup(
             summarise(
-                group_by(d, .data$group, .data[[typeCol]], .data$freqMin, .data$freqMax),
-                plotStart = min(.data$plotStart),
-                plotEnd = max(.data$plotEnd)
+                group_by(d, across(c('group', typeCol, by, 'freqMin', 'freqMax'))),
+                UTC = min(.data$UTC),
+                end = max(.data$end)
             )
         )
         d$group <- NULL
@@ -122,8 +160,8 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
     if(isTRUE(fill)) {
         g <- g +
             geom_rect(data=x,
-                      aes(xmin=.data$plotStart,
-                          xmax=.data$plotEnd,
+                      aes(xmin=.data$UTC,
+                          xmax=.data$end,
                           ymin=.data$freqMin,
                           ymax=.data$freqMax,
                           fill=.data[[typeCol]]),
@@ -131,18 +169,16 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
     } else { # or only color
         g <- g +
             geom_rect(data=x,
-                      aes(xmin=.data$plotStart,
-                          xmax=.data$plotEnd,
+                      aes(xmin=.data$UTC,
+                          xmax=.data$end,
                           ymin=.data$freqMin,
                           ymax=.data$freqMax,
                           color=.data[[typeCol]]),
                       fill=NA,
                       alpha=alpha)
     }
-    # g <- g +
-    #     scale_x_datetime()
-    # scale_y_continuous(trans=scale)
-
+    
+    dateFormat <- ifelse(isTRUE(combineYears), '%b', '%b-%Y')
     if(isFALSE(add)) {
         if(scale == 'log10') {
             g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')
@@ -152,7 +188,7 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
             labs(y='Frequency (Hz)',
                  x='Date',
                  fill='Sound Type') +
-            scale_x_datetime()
+            scale_x_datetime(date_labels=dateFormat)
 
     }
     if('color' %in% colnames(freqMap)) {
@@ -165,6 +201,16 @@ plotAcousticScene <- function(x, freqMap, typeCol='species',
             g <- g +
                 scale_color_manual(values = colNames, name='Sound Type')
         }
+    }
+    if(isTRUE(dropY)) {
+        g <- g +
+            theme(axis.text.y=element_blank(),
+                  axis.ticks.y = element_blank()) +
+            labs(y='')
+    }
+    if(!is.null(by)) {
+        g <- g +
+            facet_wrap(~ .data[[by]], ncol=1, strip.position='left')
     }
     g
 }

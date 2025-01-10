@@ -38,10 +38,12 @@ binSoundscapeData <- function(x,
     if(isWide(cols)) {
         valCols <- cols[whichFreqCols(cols)]
         byCols <- c('UTC')
-    }
-    if(isLong(cols)) {
+    } else if(isLong(cols)) {
         valCols <- 'value'
         byCols <- c('frequency', 'type', 'UTC')
+    } else {
+        valCols <- character(0)
+        byCols <- c('UTC')
     }
     x$UTC <- floor_date(x[['UTC']], unit=bin)
     nonFreqCols <- getNonFreqCols(x)

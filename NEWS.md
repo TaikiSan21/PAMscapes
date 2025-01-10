@@ -1,3 +1,13 @@
+# PAMscapes 0.9.0
+
+- Adding `binDetectionData` function for converting detection data to
+presence data (e.g. hourly/daily presence)
+
+- Adding `by` option to `plotAcousticScene` to allow for faceting the plot
+
+- Adding ability for `plotAcousticScene` to work without frequency ranges,
+just plotting equal size bars for each detection type present
+
 # PAMscapes 0.8.2
 
 - Adding `binCount` to `loadSoundscapeData`, `binSoundscapeData`, and

@@ -162,6 +162,9 @@ unitToPeriod <- function(x) {
     if(x[1] == '') {
         x[1] <- '1'
     }
+    if(x[1] == '1') {
+        return(period(1, units=x[2]))
+    }
     # doing this to convert to roundest unit
     # e.g. 720 seconds -> 12 minutes
     seconds_to_period(

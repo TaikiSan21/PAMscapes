@@ -6,10 +6,12 @@
 \usage{
 plotAcousticScene(
   x,
-  freqMap,
+  freqMap = NULL,
   typeCol = "species",
   title = NULL,
   bin = "1day",
+  by = NULL,
+  combineYears = FALSE,
   scale = c("log", "linear"),
   freqMin = NULL,
   freqMax = NULL,
@@ -35,6 +37,11 @@ column in \code{freqMap}}
 
 \item{bin}{time bin to use for plotting time axis. Each detection will
 be displayed as covering this amount of time}
+
+\item{by}{if not \code{NULL}, column name to facet plot by (e.g. site)}
+
+\item{combineYears}{logical flag to combine all observations to display
+as a single year, see \link{binDetectionData} for details}
 
 \item{scale}{one of \code{log} or \code{linear}, the frequency scale for
 the plot}
