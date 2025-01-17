@@ -37,15 +37,15 @@ jobs:
       with:
         config: ${{ github.event.inputs.config }}
       id: rhub-setup
-      - name: Install Xorg ubuntu-latest
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt update
-          sudo apt-get install -y xorg
-      - name: Start Xvfb virtual display
-        if: runner.os == 'Linux'
-        run: |
-          sudo /usr/bin/Xvfb $DISPLAY -screen 0 1280x1024x24 &
+    - name: Install Xorg ubuntu-latest
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt update
+        sudo apt-get install -y xorg
+    - name: Start Xvfb virtual display
+      if: runner.os == 'Linux'
+      run: |
+        sudo /usr/bin/Xvfb $DISPLAY -screen 0 1280x1024x24 &
   linux-containers:
     needs: setup
     if: ${{ needs.setup.outputs.containers != '[]' }}
