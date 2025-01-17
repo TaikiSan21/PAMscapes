@@ -51,6 +51,16 @@ jobs:
       image: ${{ matrix.config.container }}
 
     steps:
+      - name: Install Xorg ubuntu-latest
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt-get install -y xorg
+      - name: Start Xvfb virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo /usr/bin/Xvfb $DISPLAY -screen 0 1280x1024x24 &
+
       - uses: r-hub/actions/checkout@v1
       - uses: r-hub/actions/platform-info@v1
         with:
