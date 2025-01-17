@@ -1,3 +1,7 @@
+# PAMscapes 0.9.1
+
+- Bug fix for bad Lat/Long WKT in some nc files
+
 # PAMscapes 0.9.0
 
 - Adding `binDetectionData` function for converting detection data to

@@ -104,15 +104,21 @@ loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
     }
     coords <- ncatt_get(nc, varid=0, attname='geospatial_bounds')
     if(isTRUE(coords$hasatt)) {
-        coordVals <- st_coordinates(
-            st_as_sf(
-                data.frame(geometry=coords$value),
-                wkt='geometry'
+        wkt <- checkValidWKT(coords$value)
+        if(is.null(wkt)) {
+            warning('geospatial_bounds attribute could not parsed as proper WKT ',
+                    'for file ', basename(nc), ' Lat/Long will not be included.')
+        } else {
+            coordVals <- st_coordinates(
+                st_as_sf(
+                    data.frame(geometry=wkt),
+                    wkt='geometry'
+                )
             )
-        )
-        if(length(coordVals) == 2) {
-            hmd$Latitude <- coordVals[1]
-            hmd$Longitude <- coordVals[2]
+            if(length(coordVals) == 2) {
+                hmd$Latitude <- coordVals[1]
+                hmd$Longitude <- coordVals[2]
+            }
         }
     }
     platform <- ncatt_get(nc, varid=0, 'platform')
@@ -120,6 +126,24 @@ loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
         hmd$platform <- platform$value
     }
     hmd
+}
+
+checkValidWKT <- function(x) {
+    if(is.null(x)) {
+        return(x)
+    }
+    nCommas <- length(gregexpr(',', x)[[1]])
+    if(nCommas == 1) {
+        x <- gsub(',', '', x)
+    }
+    if(nCommas == 0) {
+        return(x)
+    }
+    tryWKT <- try(st_as_sf(data.frame(geometry=x), wkt='geometry'), silent=TRUE)
+    if(inherits(tryWKT, 'try-error')) {
+        return(NULL)
+    }
+    x
 }
 
 #' @importFrom lubridate parse_date_time
@@ -135,7 +159,7 @@ ncTimeToPosix <- function(vals, units) {
     #     return(vals)
     # }
     isNa <- is.na(vals)
-
+    
     if(grepl('hours? since', units, ignore.case=TRUE)) {
         or <- gsub('hours? since ', '', units, ignore.case=TRUE)
         or <- gsub('\\s{0,1}UTC', '', or)
