@@ -120,7 +120,9 @@ loadDetectionData <- function(x,
         return(NULL)
     }
     if(is.character(x)) {
-        result <- read.csv(x, stringsAsFactors = FALSE)
+        # result <- read.csv(x, stringsAsFactors = FALSE)
+        result <- fread(x, header=TRUE)
+        setDF(result)
     }
     if(is.data.frame(x)) {
         result <- x
@@ -129,6 +131,9 @@ loadDetectionData <- function(x,
         columnMap <- getColMaps('makara')
         result$project <- detFileToCode(x)
         extraCols <- c(extraCols, 'call', 'project')
+        if(is.null(detectedValues)) {
+            detectedValues <- 'DETECTED'
+        }
     }
     if(is.null(columnMap)) {
         columnMap <- getColMaps('standard')
@@ -214,8 +219,12 @@ loadDetectionData <- function(x,
                                values_transform=as.character,
                                names_to='species',
                                values_to='detectedFlag')
+    }
+    if('detectedFlag' %in% names(result) &&
+       !is.null(detectedValues)) {
         result <- result[result$detectedFlag %in% detectedValues, ]
-        result$detectedFlag <- NULL
+        extraCols <- c(extraCols, 'detectedFlag')
+        # result$detectedFlag <- NULL
     }
     result <- select(result, all_of(unique(c(reqCols, extraCols))))
     result

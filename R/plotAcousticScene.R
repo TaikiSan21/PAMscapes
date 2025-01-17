@@ -178,7 +178,6 @@ plotAcousticScene <- function(x,
                       alpha=alpha)
     }
     
-    dateFormat <- ifelse(isTRUE(combineYears), '%b', '%b-%Y')
     if(isFALSE(add)) {
         if(scale == 'log10') {
             g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')
@@ -187,9 +186,18 @@ plotAcousticScene <- function(x,
             ggtitle(title) +
             labs(y='Frequency (Hz)',
                  x='Date',
-                 fill='Sound Type') +
-            scale_x_datetime(date_labels=dateFormat)
-
+                 fill='Sound Type')
+        if(isTRUE(combineYears)) {
+            g <- g +
+                scale_x_datetime(date_labels='%b', 
+                                 breaks=seq(from=as.POSIXct('2020-01-01', tz='UTC'), by='month', length.out=12),
+                                 # limits=as.POSIXct(c('2020-01-01', '2020-12-31'), tz='UTC') + c(-1, 1),
+                                 expand=c(0, 0)) +
+                theme(panel.grid.minor.x = element_blank())
+        } else {
+            g <- g + 
+                scale_x_datetime(date_labels='%b-%Y')
+        }
     }
     if('color' %in% colnames(freqMap)) {
         colNames <- freqMap[['color']]

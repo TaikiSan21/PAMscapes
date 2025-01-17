@@ -157,11 +157,13 @@ unitToPeriod <- function(x) {
     if(is.period(x)) {
         return(x)
     }
+    x <- gsub(' ', '', x)
     x <- gsub('([0-9]*)(.*)', '\\1_\\2', x)
     x <- strsplit(x, '_')[[1]]
     if(x[1] == '') {
         x[1] <- '1'
     }
+    return(period(as.numeric(x[1]), units=x[2]))
     if(x[1] == '1') {
         return(period(1, units=x[2]))
     }

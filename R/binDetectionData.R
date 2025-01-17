@@ -79,45 +79,16 @@ binDetectionData <- function(x,
     # if(isTRUE(weekBin)) {
     #     x$UTC <- lubridate::isoweek(x$UTC)
     # }
-    # binSplitIx <- numeric(0)
     rowsIn <- nrow(x)
     if('end' %in% colnames(x) &&
        any(!is.na(x$end))) {
-        # spread each row if cover multiple bins
-        # if(old) {
-        #     x <- bind_rows(lapply(1:nrow(x), function(i) {
-        #         if(is.na(x$end[i])) {
-        #             return(x[i, ])
-        #         }
-        #         floorEnd <- floor_date(x$end[i], unit=bin)
-        #         # if((as.numeric(difftime(floorEnd, x$UTC[i], units='secs')) > thisPeriod) &&
-        #         #    x$detectionType[i] == 'presence') {
-        #         #     binSplitIx <<- c(binSplitIx, i)
-        #         # }
-        #         # if(isTRUE(weekBin)) {
-        #         #     floorEnd <- lubridate::isoweek(floorEnd)
-        #         # }
-        #         if(floorEnd == x$end[i]) {
-        #             floorEnd <- floorEnd - .01
-        #         }
-        #         dates <- seq(from=x$UTC[i], to=floorEnd, by=bin)
-        #         # dates <- seq(from=x$UTC[i], to=floorEnd, by=as.numeric(thisPeriod))
-        #         if(length(dates) > 1 &&
-        #            x$detectionType[i] == 'presence') {
-        #             binSplitIx <<- c(binSplitIx, i)
-        #         }
-        #         result <- as.list(x[i, ])
-        #         result$UTC <- dates
-        #         result
-        #     }))
-        # } else {
         naEnd <- is.na(x$end)
         floorEnd <- floor_date(x$end[!naEnd], unit=bin)
         sameFloor <- floorEnd == x$end[!naEnd]
         floorEnd[sameFloor] <- floorEnd[sameFloor] - .01
         dateSeq <- as.list(x$UTC)
         newSeqs <- mapply(function(x, y) {
-            seq(from=x, to=y, by=bin)
+            seq(from=x, to=y, by=binForSeq(bin))
         }, x$UTC[!naEnd], floorEnd, SIMPLIFY =FALSE)
         dateSeq[!naEnd] <- newSeqs
         nDates <- sapply(dateSeq, length)
@@ -183,4 +154,14 @@ binDetectionData <- function(x,
         x$end <- x$UTC + thisPeriod
     }
     x
+}
+
+binForSeq <- function(x) {
+    x <- gsub(' ', '', x)
+    x <- gsub('([0-9]*)(.*)', '\\1_\\2', x)
+    x <- strsplit(x, '_')[[1]]
+    if(x[1] == '') {
+        x[1] <- '1'
+    }
+    paste0(x[1], ' ', x[2])
 }
