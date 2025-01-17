@@ -54,7 +54,7 @@ jobs:
       - name: Install Xorg ubuntu-latest
         if: runner.os == 'Linux'
         run: |
-          sudo apt update
+          apt update
           apt install sudo
           sudo apt-get install -y xorg
       - name: Start Xvfb virtual display
