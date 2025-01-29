@@ -49,10 +49,17 @@
 #'
 #' @export
 #'
-plotLTSA <- function(x, bin='1hour', scale=c('log', 'linear'),
-                     title=NULL, freqRange=NULL, dbRange=NULL, units=NULL,
+plotLTSA <- function(x, 
+                     bin='1hour', 
+                     scale=c('log', 'linear'),
+                     title=NULL, 
+                     freqRange=NULL, 
+                     dbRange=NULL, 
+                     units=NULL,
                      facet=NULL,
-                     cmap=viridis_pal()(25), toTz='UTC', alpha=1,
+                     cmap=viridis_pal()(25), 
+                     toTz='UTC', 
+                     alpha=1,
                      maxBins=800,
                      returnData=FALSE) {
     x <- loadSoundscapeData(x, needCols='UTC')

@@ -9,8 +9,7 @@ binDetectionData(
   bin,
   columns = c("species", "project"),
   rematchGPS = TRUE,
-  gpsGroup = NULL,
-  combineYears = FALSE
+  gpsGroup = NULL
 )
 }
 \arguments{
@@ -33,12 +32,6 @@ the outputs is the center of each output time bin.}
 \item{gpsGroup}{the name of the column in \code{x} that denotes different
 GPS groupings within the data, usually something like "site" or
 "deployment." Not needed if all data are from the same location.}
-
-\item{combineYears}{logical flag whether or not to combine all years to
-a single year. Year of the UTC column will be set to 2020 because this
-is a leap year, then end values will add the appropriate bin amount to
-that. This should allow for roughly accurate behavior around leap day
-detections}
 }
 \value{
 a dataframe where each row represents detection presence of

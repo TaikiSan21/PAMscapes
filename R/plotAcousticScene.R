@@ -17,7 +17,10 @@
 #'   be displayed as covering this amount of time
 #' @param by if not \code{NULL}, column name to facet plot by (e.g. site)
 #' @param combineYears logical flag to combine all observations to display
-#'   as a single year, see \link{binDetectionData} for details
+#'   as a single "year". The year will be set to 2019, and detections falling
+#'   on leap days (February 29th) will be removed
+#' @param effort if not \code{NULL}, a dataframe decribing effort data to be
+#'   be formatted with \link{formatEffort}
 #' @param scale one of \code{log} or \code{linear}, the frequency scale for
 #'   the plot
 #' @param freqMin optional minimum frequency for plot, useful for log scale
@@ -60,6 +63,7 @@ plotAcousticScene <- function(x,
                               bin='1day', 
                               by=NULL,
                               combineYears=FALSE,
+                              effort=NULL,
                               scale=c('log', 'linear'),
                               freqMin=NULL, 
                               freqMax=NULL,
@@ -68,7 +72,8 @@ plotAcousticScene <- function(x,
                               returnData=FALSE, 
                               add=FALSE) {
     x <- checkSimple(x, needCols=c('UTC', typeCol))
-    dropY <- FALSE
+    # are we niche (frequencies) or presence (same width)
+    isPresence <- FALSE
     if(is.null(freqMap)) {
         if(is.factor(x[[typeCol]])) {
             freqMap <- data.frame(type=levels(x[[typeCol]])) 
@@ -76,20 +81,50 @@ plotAcousticScene <- function(x,
             freqMap <- data.frame(type = unique(x[[typeCol]]))
         }
     }
+    if(typeCol %in% names(freqMap) &&
+       !'type' %in% names(freqMap)) {
+        freqMap$type <- freqMap[[typeCol]]
+    }
     if(!'freqMin' %in% names(freqMap)) {
         freqMap$freqMin <- (nrow(freqMap):1) - .4
         freqMap$freqMax <- (nrow(freqMap):1) + .4
         scale <- 'linear'
-        dropY <- TRUE
+        isPresence <- TRUE
     }
     if(!is.null(by) &&
        !by %in% colnames(x)) {
         warning('"by" column not present in data')
         by <- NULL
     }
-    x <- binDetectionData(x, bin=bin, columns=c(typeCol, by), rematchGPS=FALSE,
-                          combineYears=combineYears)
-    
+    x <- binDetectionData(x, bin=bin, columns=c(typeCol, by), rematchGPS=FALSE)
+    if(isTRUE(combineYears)) {
+        yearDiff <- year(x$end) - year(x$UTC)
+        year(x$UTC) <- 2020
+        year(x$end) <- 2020 + yearDiff
+        start229 <- is229(x$UTC)
+        end229 <- is229(x$end)
+        
+        x$UTC[start229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
+        x$end[end229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
+        diffs <- as.numeric(difftime(x$end, x$UTC, units='secs'))
+        dropBoth <-  diffs <= 0
+        start229[dropBoth] <- FALSE
+        end229[dropBoth] <- FALSE
+        if(any(dropBoth)) {
+            warning(sum(dropBoth), ' detections removed because they fell on',
+                    ' leap day (combineYears=TRUE)')
+            x <- x[!dropBoth, ]
+            diffs <- diffs[!dropBoth]
+        }
+        if(any(start229 | end229)) {
+            # doesnt matter for this?
+        }
+        year(x$UTC) <- year(x$UTC) - 1
+        year(x$end) <- year(x$end) - 1
+    }
+
+    # expand effort from ALLVALUES to multirows
+    # join y values to effort
     scale <- switch(match.arg(scale),
                     'log' = 'log10',
                     'identity'
@@ -125,7 +160,7 @@ plotAcousticScene <- function(x,
         d$difftime <- TRUE
         d$difftime[2:nrow(d)] <- d$UTC[2:nrow(d)] != d$end[1:(nrow(d)-1)]
         d$group <- cumsum(d$difftime)
-
+        
         d <- ungroup(
             summarise(
                 group_by(d, across(c('group', typeCol, by, 'freqMin', 'freqMax'))),
@@ -190,13 +225,13 @@ plotAcousticScene <- function(x,
         if(isTRUE(combineYears)) {
             g <- g +
                 scale_x_datetime(date_labels='%b', 
-                                 breaks=seq(from=as.POSIXct('2020-01-01', tz='UTC'), by='month', length.out=12),
+                                 breaks=seq(from=as.POSIXct('2019-01-01', tz='UTC'), by='month', length.out=12),
                                  # limits=as.POSIXct(c('2020-01-01', '2020-12-31'), tz='UTC') + c(-1, 1),
                                  expand=c(0, 0)) +
                 theme(panel.grid.minor.x = element_blank())
         } else {
             g <- g + 
-                scale_x_datetime(date_labels='%b-%Y')
+                scale_x_datetime(date_labels='%b-%Y', expand=c(0, 0))
         }
     }
     if('color' %in% colnames(freqMap)) {
@@ -210,7 +245,7 @@ plotAcousticScene <- function(x,
                 scale_color_manual(values = colNames, name='Sound Type')
         }
     }
-    if(isTRUE(dropY)) {
+    if(isTRUE(isPresence)) {
         g <- g +
             theme(axis.text.y=element_blank(),
                   axis.ticks.y = element_blank()) +
@@ -219,6 +254,36 @@ plotAcousticScene <- function(x,
     if(!is.null(by)) {
         g <- g +
             facet_wrap(~ .data[[by]], ncol=1, strip.position='left')
+    }
+    if(!is.null(effort)) {
+        for(col in c(by, typeCol)) {
+            if(!col %in% names(effort)) {
+                next
+            }
+            effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
+        }
+        effort <- formatEffort(effort, range=c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE)), 
+                               resolution=bin, combineYears = combineYears, columns=c(by, typeCol))
+        colVals <- lapply(c(by, typeCol), function(c) unique(x[[c]]))
+        names(colVals) <- c(by, typeCol)
+        effort <- spreadEffort(effort, colVals=colVals)
+        # rename to same names as original plot for easy adding
+        effort$UTC <- effort$start
+        effort$type <- effort[[typeCol]]
+        effort <- effort[effort$status == 'off', ]
+        effort <- left_join(effort, freqMap[c('type', 'freqMin', 'freqMax')], by='type')
+        if(isPresence) {
+            effort$freqMin <- effort$freqMin - 0.1
+            effort$freqMax <- effort$freqMax + 0.1
+        }
+        g <- g +
+            geom_rect(data=effort, 
+                      aes(xmin=.data$UTC,
+                          xmax=.data$end,
+                          ymin=.data$freqMin,
+                          ymax=.data$freqMax),
+                      fill='gray',
+                      alpha=0.5)
     }
     g
 }

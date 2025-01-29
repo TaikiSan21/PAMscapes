@@ -9,8 +9,9 @@
 #' @param title title for the plot
 #' @param units name of units for plot labeling, default is taken from
 #'   common soundscape units
-#' @param cpal colors to use for different lines, can either be a color
+#' @param color colors to use for different lines, can either be a color
 #'   palette function or a vector of color names
+#' @param cpal Deprecated in favor of \code{color} for naming consistency
 #' @param lwd line width, either a single value or a vector of widths
 #'   matching the length of \code{columns}
 #' @param minVals minimum value for each of \code{columns} to use for rescaling,
@@ -64,8 +65,15 @@
 #'
 #' @export
 #'
-plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
-                                 cpal=hue_pal(), lwd=.5, minVals=NA, relMax=1,
+plotScaledTimeseries <- function(x, 
+                                 columns, 
+                                 title=NULL, 
+                                 units=NULL,
+                                 color=hue_pal(),
+                                 cpal, 
+                                 lwd=.5, 
+                                 minVals=NA, 
+                                 relMax=1,
                                  toTz='UTC') {
     x <- checkSimple(x, needCols='UTC')
     x$UTC <- with_tz(x$UTC, tzone=toTz)
@@ -78,7 +86,12 @@ plotScaledTimeseries <- function(x, columns, title=NULL, units=NULL,
     if(is.null(units)) {
         units <- 'Value'
     }
-    cpal <- checkCpal(cpal, length(columns))
+    # check if using old arg name and reassign
+    if(!missing(cpal) && missing(color)) {
+        warning('Argument "cpal" is deprecated, please use "color" instead')
+        color <- cpal
+    }
+    cpal <- checkCpal(color, length(columns))
     names(cpal) <- columns
     if(length(columns) > 1) {
         for(i in 2:length(columns)) {

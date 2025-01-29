@@ -1,4 +1,4 @@
-context('Test data loading and formatting')
+context('Test soundscape data loading and formatting')
 
 test_that('Test MANTA load', {
     mfile1 <- system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes')

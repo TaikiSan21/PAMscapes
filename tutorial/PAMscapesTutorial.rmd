@@ -501,15 +501,15 @@ plotScaledTimeseries(gps, columns=c('OL_250', 'windMag'), title='Bottom is Minim
 ```
 
 The default colors for the different columns uses `scales::hue_pal` (which is the same
-default color palette as `ggplot`, but this can be changed with the `cpal` argument.
+default color palette as `ggplot`, but this can be changed with the `color` argument.
 You can either provide a different color palette generating function, or a vector
 of color names equal to the number of `columns`.
 
 ```{r}
 plotScaledTimeseries(gps, columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
-                     cpal=scales::viridis_pal()) /
+                     color=scales::viridis_pal()) /
     plotScaledTimeseries(gps, columns=c('OL_250', 'BB_100-24000', 'nShips', 'windMag'),
-                     cpal=c('red', 'green', 'darkgreen', 'blue'))
+                     color=c('red', 'green', 'darkgreen', 'blue'))
 ```
 
 #### plotAcousticScene - Frequency Contributions from Different Detections

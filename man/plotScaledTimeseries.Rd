@@ -9,7 +9,8 @@ plotScaledTimeseries(
   columns,
   title = NULL,
   units = NULL,
-  cpal = hue_pal(),
+  color = hue_pal(),
+  cpal,
   lwd = 0.5,
   minVals = NA,
   relMax = 1,
@@ -27,8 +28,10 @@ be rescaled to appear similar to range of the first column}
 \item{units}{name of units for plot labeling, default is taken from
 common soundscape units}
 
-\item{cpal}{colors to use for different lines, can either be a color
+\item{color}{colors to use for different lines, can either be a color
 palette function or a vector of color names}
+
+\item{cpal}{Deprecated in favor of \code{color} for naming consistency}
 
 \item{lwd}{line width, either a single value or a vector of widths
 matching the length of \code{columns}}

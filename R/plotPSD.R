@@ -76,11 +76,14 @@
 #'
 #' @export
 #'
-plotPSD <- function(x, style=c('quantile', 'density'),
+plotPSD <- function(x,
+                    style=c('quantile', 'density'),
                     scale=c('log', 'linear'),
-                    q=.5, color='black',
+                    q=.5, 
+                    color='black',
                     freqRange=NULL,
-                    dbRange=NULL, dbInt=1,
+                    dbRange=NULL,
+                    dbInt=1,
                     densityRange=NULL,
                     units='dB re: 1uPa^2/Hz',
                     cmap=viridis_pal()(25),

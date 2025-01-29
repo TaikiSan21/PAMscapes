@@ -18,11 +18,6 @@
 #' @param gpsGroup the name of the column in \code{x} that denotes different
 #'   GPS groupings within the data, usually something like "site" or
 #'   "deployment." Not needed if all data are from the same location.
-#' @param combineYears logical flag whether or not to combine all years to
-#'   a single year. Year of the UTC column will be set to 2020 because this
-#'   is a leap year, then end values will add the appropriate bin amount to
-#'   that. This should allow for roughly accurate behavior around leap day 
-#'   detections
 #'   
 #' @return a dataframe where each row represents detection presence of
 #'   one time unit
@@ -49,8 +44,7 @@ binDetectionData <- function(x,
                              bin,
                              columns=c('species', 'project'), 
                              rematchGPS=TRUE,
-                             gpsGroup=NULL,
-                             combineYears=FALSE) {
+                             gpsGroup=NULL) {
     columns <- columns[columns %in% colnames(x)]
     if(length(columns) == 0) {
         warning('None of the columns ', 
@@ -75,10 +69,7 @@ binDetectionData <- function(x,
     thisPeriod <- unitToPeriod(bin)
     x <- select(x, any_of(c('UTC', 'end', 'detectionType', columns)))
     x$UTC <- floor_date(x$UTC, unit=bin)
-    # weekBin <- as.numeric(thisPeriod)/86400 == 7
-    # if(isTRUE(weekBin)) {
-    #     x$UTC <- lubridate::isoweek(x$UTC)
-    # }
+
     rowsIn <- nrow(x)
     if('end' %in% colnames(x) &&
        any(!is.na(x$end))) {
@@ -93,7 +84,7 @@ binDetectionData <- function(x,
         dateSeq[!naEnd] <- newSeqs
         nDates <- sapply(dateSeq, length)
         checkMislead <- (nDates > 1) & (x$detectionType == 'presence')
-        dupeSeq <- unlist(sapply(seq_along(nDates), function(x) {
+        dupeSeq <- unlist(lapply(seq_along(nDates), function(x) {
             rep(x, each=nDates[x])
         }))
         x <- x[dupeSeq, ]
@@ -149,10 +140,20 @@ binDetectionData <- function(x,
             x$TEMPGPSGROUP <- NULL
         }
     }
-    if(isTRUE(combineYears)) {
-        year(x$UTC) <- 2020
-        x$end <- x$UTC + thisPeriod
-    }
+    # if(isTRUE(combineYears)) {
+    #     year(x$UTC) <- 2020
+    #     x$end <- x$UTC + thisPeriod
+    #     # start29 <- checkFeb29(x$UTC)
+    #     # end29 <- checkFeb29(x$end)
+    #     # if(any(start29)) {
+    #     #     day(x$UTC[start29]) <- 28
+    #     # }
+    #     # if(any(end29)) {
+    #     #     day(x$end[end29]) <- 28
+    #     # }
+    #     # badFix <- x$start > x$end
+    #     
+    # }
     x
 }
 

@@ -39,8 +39,11 @@
 #'
 #' @export
 #'
-plotHourlyLevel <- function(x, title=NULL, units=NULL,
-                            scale=c('log', 'linear'), freqMin=NULL,
+plotHourlyLevel <- function(x, 
+                            title=NULL,
+                            units=NULL,
+                            scale=c('log', 'linear'),
+                            freqMin=NULL,
                             dbRange=NULL,
                             toTz='UTC',
                             cmap=viridis_pal()(25),

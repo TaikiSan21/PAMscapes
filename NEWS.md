@@ -1,6 +1,22 @@
+# PAMscapes 0.10.0
+
+- Adding `formatEffort` and related internal helper functions
+
+- Adding `effort` to `plotAcousticScene` to plot off-effort times
+
+- Adding some tests for detection data processing
+
+- Adding `plotDetectionBoxplot` plotting function
+
+- Deprecating `cpal` argument in `plotScaledTimeseries` in favor of `color`
+for better naming consistency
+
 # PAMscapes 0.9.1
 
 - Bug fix for bad Lat/Long WKT in some nc files
+
+- Reducing columns of PSD example file to 3kHz instead of 24kHz because
+it was causing UBSAN errors (I think)
 
 # PAMscapes 0.9.0
 
