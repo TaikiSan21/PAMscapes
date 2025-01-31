@@ -25,4 +25,13 @@ test_that('Test effort formatting', {
           effort$end <- lubridate::ymd(effort$end)
           expect_warning(siteEff <- formatEffort(effort, columns='site', combineYears=TRUE),
                          '1 effort entries modified')
+          
+          commaSplit <- data.frame(
+              a=c('a', 'b'),
+              b=c('c', 'c,d')
+          )
+          newComma <- spreadEffort(commaSplit, commas='a')
+          expect_identical(newComma, commaSplit)
+          newComma <- spreadEffort(commaSplit, commas='b')
+          expect_identical(newComma, data.frame(a=c('a', 'b', 'b'), b=c('c', 'c', 'd')))
 })

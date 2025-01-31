@@ -69,7 +69,7 @@ parseToUTC <- function(x,
         }
     })
     if(!inherits(x, 'POSIXct')) {
-        origTz <- parse_date_time(x, orders=format, tz=tz, exact=TRUE, truncated=3)
+        origTz <- parse_date_time(x, orders=format, tz=tz, exact=FALSE, truncated=3)
         if(!inherits(origTz, 'POSIXct')) {
             stop('Unable to convert to POSIXct time.', call.=FALSE)
         }

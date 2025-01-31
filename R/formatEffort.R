@@ -209,7 +209,28 @@ is229 <- function(x) {
 # effort[[columnName]] can be ALLVALUES, so spread to uniqueVals
 # problem if have one with a specific value but not also an ALLVALUES
 # - if theyve listed only a specific effort but not a general effort
-spreadEffort <- function(effort, colVals) {
+spreadEffort <- function(effort, colVals=NULL, commas=NULL) {
+    effort <- distinct(effort)
+    for(c in commas) {
+        whichCom <- grepl(',', effort[[c]])
+        if(!any(whichCom)) {
+            next
+        }
+        newEff <- vector('list', length=max(which(whichCom)))
+        for(i in which(whichCom)) {
+            spreadVals <- gsub(' ', '', strsplit(effort[[c]][i], ',')[[1]])
+            thisEff <- effort[rep(i, length(spreadVals)), ]
+            thisEff[[c]] <- spreadVals
+            newEff[[i]] <- thisEff
+        }
+        newEff <- bind_rows(newEff)
+        effort <- effort[-which(whichCom), ]
+        effort <- bind_rows(effort, newEff)
+        row.names(effort) <- NULL
+    }
+    if(is.null(colVals)) {
+        return(effort)
+    }
     # if column (e.g species) is missing, fill it with ALL before spreading
     for(n in names(colVals)) {
         if(!n %in% names(effort)) {
@@ -219,7 +240,9 @@ spreadEffort <- function(effort, colVals) {
     for(c in names(colVals)) {
         otherCols <- names(colVals)[names(colVals) != c]
         whichAll <- effort[[c]] == 'ALLVALUES'
-        if(!any(whichAll)) next
+        if(!any(whichAll)) {
+            next
+        }
         hasVals <- character(0)
         newEff <- vector('list', length=max(which(whichAll)))
         for(i in which(whichAll)) {
@@ -246,24 +269,25 @@ spreadEffort <- function(effort, colVals) {
     if(nrow(effort) == 0) {
         return(effort)
     }
-    row.names(effort) <- 1:nrow(effort)
+    row.names(effort) <- NULL
     effort
 }
 
 # change x to have 0/1 detected or not based on effort
 # missing dates are then off-effort
 fillEffortZeroes <- function(x, effort=NULL, resolution, columns) {
-    if(!'status' %in% names(effort)) {
-        effort <- formatEffort(effort, resolution=resolution, columns=columns)
-    }
     if(!'effortDetection' %in% names(x)) {
         x$effortDetection <- 1
     }
+    # remove the non-detections before re-adding them later
+    x <- x[x$effortDetection != 0, ]
     if(is.null(effort)) {
         return(x)
     }
-    # remove the non-detections before re-adding them later
-    x <- x[x$effortDetection != 0, ]
+    if(!'status' %in% names(effort)) {
+        effort <- formatEffort(effort, resolution=resolution, columns=columns,
+                               range=c(min(x$UTC), max(x$end)))
+    }
     effort <- effort[effort$status == 'on', ]
     colVals <- lapply(columns, function(c) unique(x[[c]]))
     names(colVals) <- columns

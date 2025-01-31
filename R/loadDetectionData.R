@@ -129,8 +129,8 @@ loadDetectionData <- function(x,
     }
     if(source == 'makara') {
         columnMap <- getColMaps('makara')
-        result$project <- detFileToCode(x)
-        extraCols <- c(extraCols, 'call', 'project')
+        result$deployment <- detFileToCode(x)
+        extraCols <- c(extraCols, 'call', 'deployment')
         if(is.null(detectedValues)) {
             detectedValues <- 'DETECTED'
         }

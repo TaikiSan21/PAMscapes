@@ -166,8 +166,9 @@ loadSoundscapeData <- function(x,
             x <- loadMantaNc(x, keepEffort=keepEffort)
         }
     }
+    colnames(x) <- checkTimeName(colnames(x))
     if(isFALSE(skipCheck)) {
-        x <- checkTriton(x)
+        # x <- checkTriton(x)
         x <- checkManta(x)
         x <- checkInfinite(x)
     }
@@ -266,6 +267,31 @@ checkTriton <- function(x) {
     alternate <- 'yyyy.mm.ddTHH.MM.SSZ'
     if(alternate %in% colnames(x)) {
         colnames(x)[colnames(x) == alternate] <- 'UTC'
+    }
+    alternate <- 'yyyy_mm_ddTHH_MM_SSZ'
+    if(alternate %in% colnames(x)) {
+        colnames(x)[colnames(x) == alternate] <- 'UTC'
+    }
+    x
+}
+
+checkTimeName <- function(x) {
+    if(is.data.frame(x)) {
+        names <- checkTimeName(names(x))
+        names(x) <- names
+        return(x)
+    }
+    tritonTime <- "yyyy-mm-ddTHH:MM:SSZ"
+    if(tritonTime %in% x) {
+        x[x == tritonTime] <- 'UTC'
+    }
+    alternate <- 'yyyy.mm.ddTHH.MM.SSZ'
+    if(alternate %in% x) {
+        x[x == alternate] <- 'UTC'
+    }
+    alternate <- 'yyyy_mm_ddTHH_MM_SSZ'
+    if(alternate %in% x) {
+        x[x == alternate] <- 'UTC'
     }
     x
 }

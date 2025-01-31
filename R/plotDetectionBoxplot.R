@@ -81,6 +81,12 @@ plotDetectionBoxplot <- function(x,
     if(any(missCol)) {
         stop('Column(s) ', paste0(missCol, collapse=', '), ' are not in "x"')
     }
+    for(col in group) {
+        if(!col %in% names(effort)) {
+            next
+        }
+        effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
+    }
     # e.g. bin to days (of day/week)
     x <- binDetectionData(x, bin=smallBin, columns=group, rematchGPS=FALSE)
     x <- fillEffortZeroes(x, effort=effort, resolution=smallBin, columns=group)
