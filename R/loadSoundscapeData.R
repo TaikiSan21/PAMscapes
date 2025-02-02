@@ -81,16 +81,16 @@
 #' @importFrom lubridate force_tz with_tz
 #' @importFrom future.apply future_lapply
 #'
-loadSoundscapeData <- function(x, 
-                               needCols=c('UTC'), 
+loadSoundscapeData <- function(x,
+                               needCols=c('UTC'),
                                skipCheck=FALSE,
-                               timeBin=NULL, 
-                               binFunction='median', 
+                               timeBin=NULL,
+                               binFunction='median',
                                binCount=FALSE,
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
                                keepEffort=TRUE,
-                               dropNonHmd=TRUE, 
+                               dropNonHmd=TRUE,
                                tz='UTC',
                                extension=c('nc', 'csv')) {
     if(is.character(x) &&
@@ -118,7 +118,7 @@ loadSoundscapeData <- function(x,
             loadSoundscapeData(f, needCols=needCols, skipCheck=skipCheck,
                                timeBin=timeBin, binFunction=binFunction,
                                binCount=binCount,
-                               octave=octave, label=label, keepEffort=keepEffort, 
+                               octave=octave, label=label, keepEffort=keepEffort,
                                dropNonHmd = FALSE,
                                tz=tz)
         }, future.seed=NULL))
@@ -167,9 +167,9 @@ loadSoundscapeData <- function(x,
         }
     }
     colnames(x) <- checkTimeName(colnames(x))
+    x <- checkManta(x, keepEffort=keepEffort)
     if(isFALSE(skipCheck)) {
         # x <- checkTriton(x)
-        x <- checkManta(x)
         x <- checkInfinite(x)
     }
     missingCols <- needCols[!needCols %in% colnames(x)]
@@ -189,7 +189,8 @@ loadSoundscapeData <- function(x,
         warning('Input "x" could not be formatted properly.')
         return(NULL)
     }
-    
+    # for now this check is just fixing 31_5 to 31.5
+    colnames(x) <- checkFreqNames(colnames(x))
     freqCols <- whichFreqCols(x)
     freqVals <- colsToFreqs(colnames(x)[freqCols])
     type <- gsub('([A-z]*)_.*', '\\1', colnames(x)[freqCols][1])
@@ -297,7 +298,7 @@ checkTimeName <- function(x) {
 }
 
 # colnames are d-m-y h:m:s, 0, 0-freq end
-checkManta <- function(x) {
+checkManta <- function(x, keepEffort=FALSE) {
     if(all(grepl('^X', colnames(x)))) {
         colnames(x) <- gsub('^X', '', colnames(x))
     }
@@ -315,14 +316,26 @@ checkManta <- function(x) {
     secondCol <- grepl('^0\\.{3}[0-9]{1}$', colnames(x)[2]) ||
         (colnames(x)[2] == '0' & colnames(x)[3] %in% c('0', '0.1'))
     checkSeconds <- checkSeconds & secondCol
-    if(isTRUE(checkSeconds )) {
-        x[[2]] <- NULL
-        colnames(x)[2] <- '0'
+    freqIx <- 2:ncol(x)
+    if(isTRUE(checkSeconds)) {
+        if(isFALSE(keepEffort)) {
+            x[[2]] <- NULL
+            colnames(x)[2] <- '0'
+            freqIx <- 2:ncol(x)
+        } else if(isTRUE(keepEffort)) {
+            colnames(x)[2:3] <- c('effortSeconds', '0')
+            freqIx <- 3:ncol(x)
+        }
     }
     # manta should have columns named just frequency for 2:ncol
     # if we cant convert w/o NA, then its not manta
-    freqCols <- colnames(x)[2:ncol(x)]
+    freqCols <- colnames(x)[freqIx]
     tryFreq <- suppressWarnings(as.numeric(freqCols))
+    # sometimes written as 31_5 instead of 31.5?
+    if(anyNA(tryFreq)) {
+        freqCols <- gsub('_', '.', freqCols)
+        tryFreq <- suppressWarnings(as.numeric(freqCols))
+    }
     if(anyNA(tryFreq)) {
         return(x)
     }
@@ -330,6 +343,15 @@ checkManta <- function(x) {
     if(is.character(x$UTC)) {
         x$UTC <- parse_date_time(x$UTC, orders=mantaFormat, tz='UTC', truncated=2)
     }
-    colnames(x)[2:ncol(x)] <- paste0('HMD_', colnames(x)[2:ncol(x)])
+    colnames(x)[freqIx] <- paste0('HMD_', freqCols)
+    x
+}
+
+checkFreqNames <- function(x) {
+    if(is.data.frame(x)) {
+        x <- colnames(x)
+    }
+    # grepl('[0-9]+_[0-9]+', x)
+    x <- gsub('(.*)([0-9]+)_([0-9]+)', '\\1\\2.\\3', x)
     x
 }

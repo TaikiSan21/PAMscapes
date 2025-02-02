@@ -30,9 +30,9 @@ test_that('Test MANTA load', {
 
 test_that('Test octave', {
     mantaFile <- system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes')
-    manta <- loadSoundscapeData(mantaFile, dropNonHmd = FALSE)
+    manta <- loadSoundscapeData(mantaFile, dropNonHmd = FALSE, keepEffort = FALSE)
     ol <- createOctaveLevel(manta, type='ol')
-    olDirect <- loadSoundscapeData(mantaFile, dropNonHmd=FALSE, octave='ol')
+    olDirect <- loadSoundscapeData(mantaFile, dropNonHmd=FALSE, octave='ol', keepEffort = FALSE)
     expect_identical(ol, olDirect)
     tol <- createOctaveLevel(manta, type='tol')
     expect_true(all(grepl('^OL_', colnames(ol[2:ncol(ol)]))))
