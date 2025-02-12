@@ -2,6 +2,8 @@
 
 - Added `keepQuals` argument to `loadSoundscapeData` and `loadMultiscapeData`
 
+- Some bug fixes for loading SanctSound data
+
 # PAMscapes 0.10.0
 
 - Adding `formatEffort` and related internal helper functions
