@@ -28,6 +28,11 @@
 #'   \link{createOctaveLevel}
 #' @param label optional, if not \code{NULL} then this value will be
 #'   added as an additional column "label" to the output
+#' @param keepQuals quality flag values to keep. Accepts vector of
+#'   integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+#'   "Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+#'   HMD levels for points with data quality flags outside of \code{keepQuals}
+#'   will be marked as \code{NA}.
 #' @param keepEffort if \code{TRUE} or \code{FALSE}, a logical flag whether or
 #'   not to keep the effort information with the outputs (number of seconds
 #'   per minute). If a numeric value, then any minutes with an effort value
@@ -89,6 +94,7 @@ loadSoundscapeData <- function(x,
                                binCount=FALSE,
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
+                               keepQuals=c(1),
                                keepEffort=TRUE,
                                dropNonHmd=TRUE, 
                                tz='UTC',
@@ -118,7 +124,8 @@ loadSoundscapeData <- function(x,
             loadSoundscapeData(f, needCols=needCols, skipCheck=skipCheck,
                                timeBin=timeBin, binFunction=binFunction,
                                binCount=binCount,
-                               octave=octave, label=label, keepEffort=keepEffort, 
+                               octave=octave, label=label,
+                               keepQuals=keepQuals, keepEffort=keepEffort, 
                                dropNonHmd = FALSE,
                                tz=tz)
         }, future.seed=NULL))
@@ -163,7 +170,7 @@ loadSoundscapeData <- function(x,
             x <- fread(x, header=TRUE)
             setDF(x)
         } else if(grepl('nc$', x, ignore.case=TRUE)) {
-            x <- loadMantaNc(x, keepEffort=keepEffort)
+            x <- loadMantaNc(x, keepQuals=keepQuals, keepEffort=keepEffort)
         }
     }
     colnames(x) <- checkTimeName(colnames(x))

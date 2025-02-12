@@ -1,3 +1,7 @@
+# PAMscapes 0.10.1
+
+- Added `keepQuals` argument to `loadSoundscapeData` and `loadMultiscapeData`
+
 # PAMscapes 0.10.0
 
 - Adding `formatEffort` and related internal helper functions

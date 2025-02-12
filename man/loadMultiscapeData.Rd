@@ -11,6 +11,7 @@ loadMultiscapeData(
   binCount = FALSE,
   octave = c("original", "tol", "ol"),
   label = NULL,
+  keepQuals = c(1),
   keepEffort = TRUE,
   dropNonHmd = TRUE,
   tz = "UTC",
@@ -37,6 +38,12 @@ or Third-Octave-Level ("tol") measurements using
 \link{createOctaveLevel}}
 
 \item{label}{if not \code{NUL}, then must be of equal length to \code{x}}
+
+\item{keepQuals}{quality flag values to keep. Accepts vector of
+integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+"Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+HMD levels for points with data quality flags outside of \code{keepQuals}
+will be marked as \code{NA}.}
 
 \item{keepEffort}{if \code{TRUE} or \code{FALSE}, a logical flag whether or
 not to keep the effort information with the outputs (number of seconds
@@ -77,11 +84,6 @@ The only other difference is that if no labels are supplied for the folders,
 then one will be generated either from the names of \code{x} if it is a
 named vector, or the name of the folder using \link{basename}. This is to
 ensure that each separate folder can be identified once read in.
-}
-\examples{
-
-x <- 1
-
 }
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}

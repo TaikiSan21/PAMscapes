@@ -13,6 +13,7 @@ loadSoundscapeData(
   binCount = FALSE,
   octave = c("original", "tol", "ol"),
   label = NULL,
+  keepQuals = c(1),
   keepEffort = TRUE,
   dropNonHmd = TRUE,
   tz = "UTC",
@@ -49,6 +50,12 @@ or Third-Octave-Level ("tol") measurements using
 
 \item{label}{optional, if not \code{NULL} then this value will be
 added as an additional column "label" to the output}
+
+\item{keepQuals}{quality flag values to keep. Accepts vector of
+integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+"Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+HMD levels for points with data quality flags outside of \code{keepQuals}
+will be marked as \code{NA}.}
 
 \item{keepEffort}{if \code{TRUE} or \code{FALSE}, a logical flag whether or
 not to keep the effort information with the outputs (number of seconds

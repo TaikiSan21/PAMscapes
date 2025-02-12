@@ -59,7 +59,7 @@ loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
     # if qual flags present, replace some HMD with NA
     if('quality_flag' %in% names(nc$var)) {
         quality <- ncvar_get(nc, varid='quality_flag', start=c(1, 1), count=c(-1, -1))
-        qTypes <- unique(as.vector(quality))
+        qTypes <- sort(unique(as.vector(quality)))
         if(!all(keepQuals %in% c(1,2,3,4))) {
             warning('"keepQuals" expects values from (1, 2, 3, 4)')
             keepQuals <- keepQuals[keepQuals %in% c(1, 2, 3, 4)]
@@ -67,10 +67,13 @@ loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
         # manuscript https://cdn.ioos.noaa.gov/media/2017/12/QARTOD_PassiveAcousticsManual_Final_V1.0_signed.pdf
         # these should be
         # "Pass", "Not Evaulated", "Suspect or High Interest", "Fail", "Missing Data"=9
-        dqLevels <- c('Good', 'Not evaluated/Unknown', 'Compromised/Questionable', 'Unusable/Bad')
+        dqLevels <- c('1 (Good)', 
+                      '2 (Not evaluated/Unknown)',
+                      '3 (Compromised/Questionable)', 
+                      '4 (Unusable/Bad)')
         dqDrop <- qTypes[!qTypes %in% keepQuals]
         if(length(dqDrop) > 0) {
-            message('Data quality flags ', paste0(dqLevels, collapse=', '),
+            message('Data quality flag(s) ', paste0(dqLevels[dqDrop], collapse=', '),
                     ' found in data, corresponding levels marked as NA.')
         }
         dropIx <- matrix(!quality %in% keepQuals, nrow=nrow(quality))
@@ -166,6 +169,18 @@ ncTimeToPosix <- function(vals, units) {
         or <- gsub('\\.0+$', '', or)
         or <- ymd_hms_fast(or)
         out <- as.POSIXct(vals * 3600, origin=or, tz='UTC')
+        if(anyNA(out[!isNa])) {
+            warning('Conversion failed for units ', units)
+        }
+        return(out)
+    }
+    
+    if(grepl('minutes? since', units, ignore.case=TRUE)) {
+        or <- gsub('minutes? since ', '', units, ignore.case=TRUE)
+        or <- gsub('\\s{0,1}UTC', '', or)
+        or <- gsub('\\.0+$', '', or)
+        or <- ymd_hms_fast(or)
+        out <- as.POSIXct(vals * 60, origin=or, tz='UTC')
         if(anyNA(out[!isNa])) {
             warning('Conversion failed for units ', units)
         }

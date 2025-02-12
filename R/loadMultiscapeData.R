@@ -19,6 +19,11 @@
 #'   or Third-Octave-Level ("tol") measurements using
 #'   \link{createOctaveLevel}
 #' @param label if not \code{NUL}, then must be of equal length to \code{x}
+#' @param keepQuals quality flag values to keep. Accepts vector of
+#'   integers from (1, 2, 3, 4) corresponding to flag labels "Good",
+#'   "Not evaluated/Unknown", "Compromised/Questionable", and "Unusable/Bad".
+#'   HMD levels for points with data quality flags outside of \code{keepQuals}
+#'   will be marked as \code{NA}.
 #' @param keepEffort if \code{TRUE} or \code{FALSE}, a logical flag whether or
 #'   not to keep the effort information with the outputs (number of seconds
 #'   per minute). If a numeric value, then any minutes with an effort value
@@ -49,10 +54,6 @@
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
 #' @return a dataframe
-#'
-#' @examples
-#'
-#' x <- 1
 #' 
 #' @export
 #' @importFrom dplyr bind_rows
@@ -64,6 +65,7 @@ loadMultiscapeData <- function(x,
                                binCount=FALSE,
                                octave=c('original', 'tol', 'ol'),
                                label=NULL,
+                               keepQuals=c(1),
                                keepEffort=TRUE,
                                dropNonHmd=TRUE,
                                tz='UTC',
@@ -107,6 +109,7 @@ loadMultiscapeData <- function(x,
                                           octave=octave,
                                           label=label[i],
                                           tz=tz,
+                                          keepQuals=keepQuals,
                                           keepEffort=keepEffort,
                                           dropNonHmd=FALSE,
                                           extension=extension)
