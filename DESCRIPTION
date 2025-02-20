@@ -32,11 +32,14 @@ Imports:
     data.table,
     geosphere,
     sf,
-    PAMmisc,
+    PAMmisc (>= 1.12.3),
     ncdf4,
     tdigest,
     purrr,
     shiny,
-    future.apply
+    future.apply,
+    signal,
+    tuneR,
+    DT
 Suggests:
     testthat

@@ -197,7 +197,7 @@ getPsdLevels <- function(freqRange=NULL) {
                                          nominalFreqs <= freqRange[2]]
     }
     limits <- c(max(0, nominalFreqs[1]-0.5), nominalFreqs + 0.5)
-    list(limits=limits, labels=paste0('PSD_', nominalFreqs), nominalFreqs)
+    list(limits=limits, labels=paste0('PSD_', nominalFreqs), freqs=nominalFreqs)
 }
 
 getHmdLevels <- function(freqRange=NULL) {
@@ -278,6 +278,7 @@ planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
         result$lims <- thisLim
         inLim <- lowLim:highLim
         result$labels <- inLevels$labels[lowLim:(highLim-1)]
+        result$freqs <- inLevels$freqs[lowLim:(highLim-1)]
         result$hmd_lims <- inLevels$limits[inLim]
         nHmdLim <- length(result$hmd_lims)
         if(nHmdLim == 2) {
