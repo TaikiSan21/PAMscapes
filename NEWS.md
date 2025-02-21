@@ -1,3 +1,10 @@
+# PAMscapes 0.11.0
+
+- Adding QAQC functions `evaluateRecordings`, `evaluateDeployment` and
+`runQAQCReview`
+
+- Oh and the plotting functions
+
 # PAMscapes 0.10.1
 
 - Added `keepQuals` argument to `loadSoundscapeData` and `loadMultiscapeData`
