@@ -32,7 +32,7 @@ Imports:
     data.table,
     geosphere,
     sf,
-    PAMmisc (>= 1.12.3),
+    PAMmisc (>= 1.12.4),
     ncdf4,
     tdigest,
     purrr,

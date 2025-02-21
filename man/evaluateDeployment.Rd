@@ -55,7 +55,8 @@ a warning will be issued and no calculations will be done, returning
 \code{NULL}}
 
 \item{name}{a name to assign for this deployment, used for plot labeling,
-logging, and stored as \code{projectName} with the output dataframe}
+logging, and stored as \code{projectName} with the output dataframe. If
+left as \code{NULL}, then the basename of \code{dir} will be used.}
 
 \item{subDirPattern}{if not \code{NULL}, a pattern to use for selecting
 which subfolders of \code{dir} to use for analysis. E.g. if folders

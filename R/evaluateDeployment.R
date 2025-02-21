@@ -35,7 +35,8 @@
 #'   a warning will be issued and no calculations will be done, returning
 #'   \code{NULL}
 #' @param name a name to assign for this deployment, used for plot labeling, 
-#'   logging, and stored as \code{projectName} with the output dataframe
+#'   logging, and stored as \code{projectName} with the output dataframe. If
+#'   left as \code{NULL}, then the basename of \code{dir} will be used.
 #' @param subDirPattern if not \code{NULL}, a pattern to use for selecting
 #'   which subfolders of \code{dir} to use for analysis. E.g. if folders
 #'   "Site1_Recordings" and "Site2_Recordings" both exist in \code{dir}, then
@@ -100,6 +101,9 @@ evaluateDeployment <- function(dir,
     if(isTRUE(log) && is.null(outDir)) {
         warning('Cannot create log file without specifying "outDir"')
         return(NULL)
+    }
+    if(is.null(name)) {
+        name <- basename(dir[1])
     }
     procStart <- Sys.time()
     on.exit({

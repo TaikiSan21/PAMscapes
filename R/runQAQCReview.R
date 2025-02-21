@@ -291,7 +291,9 @@ runQAQCReview <- function(data, issue=NULL, freqLims=c(30, Inf)) {
                 out <- appData$log[c('projectName', 'qaqcStatus')]
                 out <- out[out$qaqcStatus %in% input$statusCheck, ]
             } else {
-                out <- appData$data[c('UTC', 'file')]
+                # out <- appData$data[c('UTC', 'file')]
+                out <- data.frame(projectName = appData$data$projectName[1],
+                                  nFiles = nrow(appData$data))
             }
             out
         },
