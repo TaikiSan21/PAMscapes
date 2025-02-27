@@ -1,24 +1,26 @@
 #' @title Create Octave Level Measurements
 #'
-#' @description Creates octave or third octave level measurements from finer
+#' @description Creates (third) octave level or broadband measurements from finer
 #'   resolution soundscape metrics, like Power Spectral Density (PSD) or
 #'   Hybrid Millidecade (HMD) measures
 #'
-#' @details Note that these measures are not as precise as they could be, mostly
-#'   meant to be used for visualizations. Bands of the original data that do not
-#'   fit entirely within a single octave band are not proportionately split between
-#'   the two proper output bands. Instead an output band will contain all inputs where
-#'   the center frequency falls between the limits of the output band. For higher
-#'   frequencies this should result in negligible differences, but lower frequencies
-#'   will be more imprecise.
+#' @details To create new measurements, finer resolution metrics are cast to 
+#'   linear space, summed, and then re-logged. If input measurements are
+#'   HMD values then they are assumed to be normalized per Hz, so levels are
+#'   first corrected by the bandwidth before summing. In all other cases inputs
+#'   are assumed to not be normalized per Hz measurements and are just summed.
 #'
 #' @param x dataframe of soundscape metrics
-#' @param type either \code{'ol'} to create octave level or \code{'tol'} to create
-#'   third octave level measures
+#' @param type one of \code{'ol'} to create octave level, \code{'tol'} to create
+#'   third octave level measures, or \code{'broadband'} or \code{'bb'} to create
+#'   an arbitrary broadband measure. For broadband measures, \code{freqRange} must
+#'   be supplied to define the range
 #' @param freqRange a vector of the minimum and maximum center frequencies (Hz) desired
 #'   for the output. If \code{NULL}, full available range of frequencies will be used.
+#'   If output \code{type} is broadband, this is used to define the lower and upper
+#'   bounds of the desired output broadband level
 #' @param normalized logical flag to return values normalized by the bandwidth of
-#'   each octave level band
+#'   each octave level band (per Hz)
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -33,57 +35,16 @@
 #' str(tol)
 #' ol <- createOctaveLevel(tol, type='ol')
 #' str(ol)
+#' bb <- createOctaveLevel(psd, type='bb', freqRange=c(20, 150))
+#' str(bb)
 #'
 #' @importFrom dplyr group_by summarise ungroup rename mutate
 #' @importFrom data.table `:=`
 #'
 createOctaveLevel <- function(x,
-                              type=c('ol', 'tol'),
+                              type=c('ol', 'tol', 'broadband', 'bb'),
                               freqRange=NULL,
                               normalized=FALSE) {
-    # startLong <- isLong(x)
-    # if(startLong) {
-        # inType <- x$type[1]
-    # } else {
-        # whichFreq <- whichFreqCols(x)
-        # inType <- gsub('_[0-9\\.-]+', '', colnames(x)[whichFreq[1]])
-    # }
-    # if(inType == 'HMD') {
-        # millidecade band parts are normalized by bandwidth, we need to un-norm them
-        # x <- correctHmdLevels(x)
-    # }
-    # x <- toLong(x)
-    # nonFreqCols <- getNonFreqCols(x)
-    # nonFreqData <- distinct(x[c('UTC', nonFreqCols)])
-# 
-#     type <- match.arg(type)
-#     octLevels <- getOctaveLevels(type)
-#     if(!is.null(freqRange)) {
-#         # freqRange <- range(x$frequency)
-#         lowCut <- min(which(freqRange[1] <= octLevels$freqs))
-#         highCut <- max(which(freqRange[2] >= octLevels$freqs))
-#         octLevels$freqs <- octLevels$freqs[lowCut:highCut]
-#         octLevels$limits <- octLevels$limits[lowCut:(highCut+1)]
-#     }
-#     x$octave <- cut(x$frequency, octLevels$limits, labels=octLevels$freqs)
-#     if(anyNA(x$octave)) {
-#         x <- x[!is.na(x$octave), ]
-#     }
-#     x$value <- 10^(x$value / 10)
-#     FUN <- switch(match.arg(method),
-#                   'sum' = function(x) sum(x, na.rm=TRUE),
-#                   'mean' = function(x) mean(x, na.rm=TRUE),
-#                   'median' = function(x) median(x, na.rm=TRUE)
-#     )
-#     setDT(x)
-#     x <- x[, lapply(.SD, FUN), .SDcols='value', by=c('UTC', 'octave', nonFreqCols)]
-#     setDF(x)
-# 
-#     x$type <- toupper(type)
-#     x <- rename(x, frequency = 'octave')
-#     x$frequency <- as.numeric(levels(x$frequency))[as.numeric(x$frequency)]
-#     x$value <- 10 * log10(x$value)
-    #######################
     # do prep band work
     inWide <- isWide(x)
     if(!inWide) {
@@ -128,26 +89,22 @@ createOctaveLevel <- function(x,
         return(toLong(x))
     }
     x
-    #########################
-    # if all NA in a category they get set to 0 so then Inf'd on log
-    # x <- checkInfinite(x, doWarn=FALSE)
-    # if(isTRUE(normalized)) {
-    #     levDf <- data.frame(frequency=octLevels$freqs, bw=10*log10(diff(octLevels$limits)))
-    #     x <- mutate(
-    #         left_join(x, levDf, by='frequency'),
-    #         value = .data$value - .data$bw
-    #     )
-    #     x$bw <- NULL
-    # }
-    # if(!startLong) {
-    #     return(toWide(x))
-    # }
-    # 
-    # x
 }
 
-getOctaveLevels <- function(type=c('ol', 'tol', 'hmd', 'psd'), freqRange=NULL) {
+getOctaveLevels <- function(type=c('ol', 'tol', 'hmd', 'psd', 'broadband', 'bb'), freqRange=NULL) {
+    # limits n+1, labels n, freqs n
     type <- match.arg(type)
+    if(type %in% c('broadband', 'bb')) {
+        if(is.null(freqRange)) {
+            stop('"freqRange" required to create broadband level')
+        }
+        result <- list(
+            limits = freqRange,
+            labels = paste0('BB_', freqRange[1], '-', freqRange[2]),
+            freqs = mean(freqRange)
+        )
+        return(result)
+    }
     if(type == 'hmd') {
         return(getHmdLevels(freqRange))
     }

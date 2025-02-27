@@ -1,3 +1,11 @@
+# PAMscapes 0.11.1
+
+- Adding a better error message when users attempt to load MANTA Metadata NetCDF
+files with `loadSoundscapeData`
+
+- Adding broadband option to `type` for `createOctaveLevel` to allow users to
+create arbitrary broadband measures
+
 # PAMscapes 0.11.0
 
 - Adding QAQC functions `evaluateRecordings`, `evaluateDeployment` and

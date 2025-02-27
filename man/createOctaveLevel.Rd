@@ -6,7 +6,7 @@
 \usage{
 createOctaveLevel(
   x,
-  type = c("ol", "tol"),
+  type = c("ol", "tol", "broadband", "bb"),
   freqRange = NULL,
   normalized = FALSE
 )
@@ -14,31 +14,33 @@ createOctaveLevel(
 \arguments{
 \item{x}{dataframe of soundscape metrics}
 
-\item{type}{either \code{'ol'} to create octave level or \code{'tol'} to create
-third octave level measures}
+\item{type}{one of \code{'ol'} to create octave level, \code{'tol'} to create
+third octave level measures, or \code{'broadband'} or \code{'bb'} to create
+an arbitrary broadband measure. For broadband measures, \code{freqRange} must
+be supplied to define the range}
 
 \item{freqRange}{a vector of the minimum and maximum center frequencies (Hz) desired
-for the output. If \code{NULL}, full available range of frequencies will be used.}
+for the output. If \code{NULL}, full available range of frequencies will be used.
+If output \code{type} is broadband, this is used to define the lower and upper
+bounds of the desired output broadband level}
 
 \item{normalized}{logical flag to return values normalized by the bandwidth of
-each octave level band}
+each octave level band (per Hz)}
 }
 \value{
 a dataframe with summarised octave level band measurements
 }
 \description{
-Creates octave or third octave level measurements from finer
+Creates (third) octave level or broadband measurements from finer
 resolution soundscape metrics, like Power Spectral Density (PSD) or
 Hybrid Millidecade (HMD) measures
 }
 \details{
-Note that these measures are not as precise as they could be, mostly
-meant to be used for visualizations. Bands of the original data that do not
-fit entirely within a single octave band are not proportionately split between
-the two proper output bands. Instead an output band will contain all inputs where
-the center frequency falls between the limits of the output band. For higher
-frequencies this should result in negligible differences, but lower frequencies
-will be more imprecise.
+To create new measurements, finer resolution metrics are cast to
+linear space, summed, and then re-logged. If input measurements are
+HMD values then they are assumed to be normalized per Hz, so levels are
+first corrected by the bandwidth before summing. In all other cases inputs
+are assumed to not be normalized per Hz measurements and are just summed.
 }
 \examples{
 psd <- loadSoundscapeData(system.file('extdata/PSDSmall.csv', package='PAMscapes'))
@@ -47,6 +49,8 @@ tol <- createOctaveLevel(psd, type='tol')
 str(tol)
 ol <- createOctaveLevel(tol, type='ol')
 str(ol)
+bb <- createOctaveLevel(psd, type='bb', freqRange=c(20, 150))
+str(bb)
 
 }
 \author{

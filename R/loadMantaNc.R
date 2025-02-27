@@ -40,6 +40,14 @@ loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
     on.exit(nc_close(nc))
     dimNames <- c('time', 'frequency')
     if(!all(dimNames %in% names(nc$dim))) {
+        # check for manta metadata NC
+        if(nc$ndims > 10 &&
+           nc$nvars > 10 &&
+           file.size(x) < 2e6) {
+            stop('NetCDF file format not recognized, it appears to be',
+                 ' a MANTA Metadata file that does not have SPL data.',
+                 'Try loading the MANTA CSV output instead.')
+        }
         stop('NetCDF file format not recognized, missing expected',
              ' "time" and "frequency" dimensions.')
     }
