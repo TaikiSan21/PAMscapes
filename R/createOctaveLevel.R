@@ -63,17 +63,14 @@ createOctaveLevel <- function(x,
     }
     type <- match.arg(type)
     bandPlan <- planBandSum(inType, type, inRange=range(freqVals), outRange=freqRange)
-    
     setDT(x)
     x[, (freqCols) := lapply(.SD, function(c) 10^(c/10)), .SDcols=freqCols]
     for(i in seq_along(bandPlan)) {
         thisBand <- bandPlan[[i]]
-        # thisBand$factor <- round(thisBand$factor, 4)
         names(thisBand$factor) <- thisBand$labels
         x[, 
           (names(bandPlan)[i]) := 10*log10(rowSums(
               .SD[, lapply(names(.SD), function(c) .SD[[c]]*thisBand$factor[c])],
-              # .SD*thisBand$factor[.SD],
               na.rm=TRUE)), 
           .SDcols=thisBand$labels]
     }
@@ -176,45 +173,11 @@ getHmdLevels <- function(freqRange=NULL) {
     labels[labels < 1e3] <- round(labels[labels < 1e3], 0)
     labels[labels >= 1e3] <- round(labels[labels >= 1e3], 0)
     labels <- paste0('HMD_', labels)
-    # labels <- paste0('HMD_', round(nominalFreqs, 1))
-    
     list(limits=freqLims, labels=labels, freqs=nominalFreqs)
 }
 
-# millidecade bands are normalized by bandwidth, need to multiple back
-# the bandwidth before summing
-# correctHmdLevels <- function(x) {
-#     # changeFreq <- 434
-#     # lowHalf <- x[x$frequency <= changeFreq, ]
-#     # highHalf <- x[x$frequency > changeFreq, ]
-#     inLong <- FALSE
-#     if(isLong(x)) {
-#         inLong <- TRUE
-#         x <- toWide(x)
-#     }
-#     freqCols <- whichFreqCols(x)
-#     freqVals <- colsToFreqs(names(x)[freqCols])
-#     hmdLevels <- getHmdLevels(freqRange=range(freqVals))
-#     bwList <- c(10*log10(diff(hmdLevels$limits)))
-#     names(bwList) <- hmdLevels$labels
-#     # levDf <- data.frame(freq=round(hmdLevels$freqs, 1), bw=10*log10(diff(hmdLevels$limits)))
-#     # matchDf <- left_join(data.frame(freq=freqVals, ix=freqCols),
-#                          # levDf, by='freq')
-#     
-#     for(f in names(bwList)) {
-#         x[[f]] <- x[[f]] + bwList[f]
-#     }
-#     if(inLong) {
-#         x <- toLong(x)
-#     }
-#     x
-# }
-
 planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
     inLevels <- getOctaveLevels(tolower(inBand), freqRange=inRange)
-    # if(is.null(outRange)) {
-    #     outRange <- range(inLevels$limits)
-    # }
     outLevels <- getOctaveLevels(tolower(outBand), freqRange=outRange)
     outs <- vector('list', length=length(outLevels$labels))
     names(outs) <- outLevels$labels

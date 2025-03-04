@@ -79,20 +79,20 @@ doMakSpeciesJoin <- function(x, glob_source) {
     x
 }
 
-org <- '../Data/Acousdet/makDB/Copy of Makara - Phase 2 Review - Organization-Specific Data - 20241121.xlsx'
+org <- '../Data/Acousdet/makDB/Phase 2 Review - Organization-Specific Data - 20241121.xlsx'
 glob <- '../Data/Acousdet/makDB/Makara - Phase 2 Review - Global References - 20241121.xlsx'
 ana <- readxl::read_excel(org, sheet='analyses', range=readxl::cell_cols('B:O'))
 detFiles <- list.files('../Data/Acousdet/SEFSC/', full.names=T)
 
 hm <- loadDetectionData(detFiles, source='makara')
 str(hm)
+library(dplyr)
 joind <- doMakJoins(hm, org=org, global=glob)
 joind$site <- gsub('Y[0-9]{1}', '', joind$site)
 
 effs <- distinct(joind[c('effortStart', 'effortEnd', 'species', 'site')])
 effs$site <- gsub('Y[0-9]{1}', '', effs$site)
 names(effs) <- c('start', 'end', 'species', 'site')
-library(dplyr)
 
 library(patchwork)
 scene <- joind %>% 
@@ -102,4 +102,4 @@ scene
 boxer <- joind %>% 
     filter(project =='LISTEN_GOMEX') %>% 
     plotDetectionBoxplot(group='site', facet='species',effort = effs, combineYears = T)
-
+boxer
