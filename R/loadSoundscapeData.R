@@ -125,7 +125,7 @@ loadSoundscapeData <- function(x,
                                timeBin=timeBin, binFunction=binFunction,
                                binCount=binCount,
                                octave=octave, label=label,
-                               keepQuals=keepQuals, keepEffort=keepEffort, 
+                               keepQuals=keepQuals, keepEffort=keepEffort,
                                dropNonHmd = FALSE,
                                tz=tz)
         }, future.seed=NULL))
@@ -199,10 +199,10 @@ loadSoundscapeData <- function(x,
     # for now this check is just fixing 31_5 to 31.5
     colnames(x) <- checkFreqNames(colnames(x))
     freqCols <- whichFreqCols(x)
-    freqVals <- colsToFreqs(colnames(x)[freqCols])
     type <- gsub('([A-z]*)_.*', '\\1', colnames(x)[freqCols][1])
     # standardizing to round to integer on all HMD columns
     if(type == 'HMD') {
+        freqVals <- colsToFreqs(colnames(x)[freqCols])
         standardHmd <- paste0('HMD_', round(freqVals, 0))
         colnames(x)[freqCols] <- standardHmd
         hmdLevels <- getHmdLevels(freqRange=range(freqVals)+c(-1, 1))
