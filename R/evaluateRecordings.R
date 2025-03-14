@@ -1,11 +1,11 @@
 #' @title Evaluate Recording Files for Issues
-#' 
+#'
 #' @description Evaluates recording files for potential problems. Sound
 #'   levels are calculated for a small section of each recording file, this
 #'   is typically done to check for recorder malfunction. Additionally
 #'   times between the starts and ends of files are calculated, this is
 #'   typically done to check for gaps in data.
-#' 
+#'
 #' @param wavFiles file paths to wav files to evaluate, or the directory
 #'   containing the wav files
 #' @param sampleWindow start and end (in seconds) of the time window to use
@@ -21,25 +21,25 @@
 #'   to apply. Must have "frequency" and "gain" (in dB), can either be a .tf
 #'   file, a CSV file with columns for frequency and gain, or a dataframe with
 #'   columns frequency and gain
-#' @param sensitivity the sensitivity of the recording device in dB, this 
+#' @param sensitivity the sensitivity of the recording device in dB, this
 #'   is typically a large negative number
 #' @param progress logical flag to show a progress bar
-#' 
+#'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
-#' 
+#'
 #' @return a dataframe containing the sound level and data gap measurements
 #'   for each file
 #'
 #' @importFrom PAMmisc pwelch
 #' @importFrom signal interp1 hamming
 #' @importFrom tuneR readWave
-#' 
+#'
 #' @export
-#' 
-evaluateRecordings <- function(wavFiles, 
+#'
+evaluateRecordings <- function(wavFiles,
                              sampleWindow=c(60, 120),
                              octave=c('tol', 'ol'),
-                             channel=1, 
+                             channel=1,
                              freqRange=NULL,
                              calibration=NULL,
                              sensitivity=0,
@@ -78,6 +78,18 @@ evaluateRecordings <- function(wavFiles,
                 wavClip <- fastReadWave(x, from=from, to=to)
 
             })
+            if(length(wavClip) == 0) {
+                warning('File ', x, ' appears to be corrupt (length of 0)')
+                if(progress) {
+                    ix <<- ix + 1
+                    setTxtProgressBar(pb, value=ix)
+                }
+                return(
+                    list(UTC=fileToTime(x),
+                         wavLength=0,
+                         file=basename(x))
+                )
+            }
             # if no error break
             if(!inherits(readTry, 'try-error')) {
                 break
@@ -105,12 +117,12 @@ evaluateRecordings <- function(wavFiles,
         # apply calibration - sens only, or sens + transfer function
         calValues <- sensitivity
         if(!is.null(calibration)) {
-            calValues <- calValues + 
+            calValues <- calValues +
                 interp1(calibration$frequency, calibration$gain, xi=welch$freq, method='pchip')
         }
         # calibration is in log space
         welch$spec <- welch$spec * 10^(-calValues / 10)
-        
+
         if(is.null(OCTPLAN) ||
            max(welch$freq) != PLANFREQ) {
             PLANFREQ <<- max(welch$freq)
@@ -122,7 +134,7 @@ evaluateRecordings <- function(wavFiles,
         for(i in seq_along(tolVals)) {
             tolVals[[i]] <- 10*log10(sum(OCTPLAN[[i]]$factor * welch$spec[OCTPLAN[[i]]$freqs]))
         }
-        
+
         # tolBins <- cut(welch$freq, octaves$limits, octaves$labels)
         # tolVals <- lapply(split(welch$spec, tolBins, drop=TRUE), function(p) {
         #     10*log10(sum(p))

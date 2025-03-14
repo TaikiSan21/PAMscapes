@@ -1,3 +1,7 @@
+# PAMscapes 0.11.2
+
+- Addressing minor QAQC workflow potential bugs
+
 # PAMscapes 0.11.1
 
 - Adding a better error message when users attempt to load MANTA Metadata NetCDF

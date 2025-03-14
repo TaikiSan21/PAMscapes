@@ -1,5 +1,5 @@
 #' @title Evaluate deployment of recording files for potential problems
-#' 
+#'
 #' @description Runs a number of quality assurance / quality control (QAQC)
 #'   checks on a folder of recording files to identify potential problems.
 #'   These include checking the start and end times of files for consistency
@@ -8,10 +8,8 @@
 #'   battery and temperature data to identify potential instrument failure.
 #'   Can also create spectrogram images throughout the deployment to aid in
 #'   visually checking for problems or noise.
-#' 
-#' @details XXX
 #'
-#' @param dir folder or folders containing recordings and optionally Soundtrap 
+#' @param dir folder or folders containing recordings and optionally Soundtrap
 #'   .log.xml files. All .wav and .log.xml files within \code{dir} will be
 #'   analysed, as well as all files in each subfolder of \code{dir} (only
 #'   going down one level).
@@ -23,7 +21,7 @@
 #'   for analysis, e.g. \code{c(40, 100)} will use a 60 second window starting
 #'   40 seconds into the file
 #' @param channel channel number of recording files to use for analysis
-#' @param sensitivity the sensitivity of the recording device in dB, this 
+#' @param sensitivity the sensitivity of the recording device in dB, this
 #'   is typically a large negative number
 #' @param calibration if not \code{NULL}, the frequency dependent calibration
 #'   to apply. Must have "frequency" and "gain" (in dB), can either be a .tf
@@ -34,13 +32,13 @@
 #'   end times of of the recording files are earlier or later than these, then
 #'   a warning will be issued and no calculations will be done, returning
 #'   \code{NULL}
-#' @param name a name to assign for this deployment, used for plot labeling, 
+#' @param name a name to assign for this deployment, used for plot labeling,
 #'   logging, and stored as \code{projectName} with the output dataframe. If
 #'   left as \code{NULL}, then the basename of \code{dir} will be used.
 #' @param subDirPattern if not \code{NULL}, a pattern to use for selecting
 #'   which subfolders of \code{dir} to use for analysis. E.g. if folders
 #'   "Site1_Recordings" and "Site2_Recordings" both exist in \code{dir}, then
-#'   \code{subDirPattern="^Site1"} would result in analysing only the first 
+#'   \code{subDirPattern="^Site1"} would result in analysing only the first
 #'   folder of recordings
 #' @param outDir if not \code{NULL}, a directory to store outputs. Outputs include
 #'   plots, a CSV of the calculated metrics, and a .txt log file if \code{log=TRUE}
@@ -55,20 +53,20 @@
 #'   awkwardly long plots. If \code{specLength=360} and \code{panelLength=60},
 #'   then the result will be a 6 panel plot where each section is 60 seconds long
 #' @param log if \code{TRUE} and \code{outDir} is not \code{NULL}, then a text
-#'   file named "(name)_EvaluateRecorder_LogFile.txt" will be created in 
+#'   file named "(name)_EvaluateRecorder_LogFile.txt" will be created in
 #'   \code{outDir} logging progress and warning messages
 #' @param progress logical flag to show a progress bar
 #' @param verbose logical flag to show some messages
-#' 
+#'
 #' @returns a dataframe of the QAQC metric outputs for each recording file
 #'
 #' @importFrom PAMmisc fastReadWave processSoundtrapLogs
 #' @importFrom scales label_log
 #' @importFrom utils write.csv
-#' 
+#'
 #' @export
-#' 
-evaluateDeployment <- function(dir, 
+#'
+evaluateDeployment <- function(dir,
                                excludeDirs=c('Post_Retrieval_Data', 'Pre_Deployment_Data'),
                                sampleWindow=c(60, 120),
                                channel=1,
@@ -86,9 +84,9 @@ evaluateDeployment <- function(dir,
                                verbose=TRUE) {
     # subDirPattern is used when multiple device IDs were prsent in same main
     # folder so that they can be processed separately
-    
+
     # add option that dir can be multiple if XML and wav not same main folder
-    
+
     # wav, log.xml, these are only file types we currently allow
     exts <- '\\.wav|\\.log\\.xml'
     if(!dir.exists(dir)) {
@@ -136,7 +134,7 @@ evaluateDeployment <- function(dir,
         cat('Analyzing project', name, '\n---\n')
     }
     dirName <- basename(dir)
-    
+
     # only going down one subfolder
     # subDirs <- list.dirs(dir, full.names=TRUE, recursive=FALSE)
     subDirs <- unlist(lapply(dir, list.dirs, full.names=TRUE, recursive=FALSE))
@@ -147,13 +145,19 @@ evaluateDeployment <- function(dir,
         dir <- grep('_ST$', subDirs, value=TRUE)
         subDirs <- list.dirs(dir, full.names=TRUE, recursive=FALSE)
     }
+    if(length(subDirs) == 1) {
+        oneMore <- list.dirs(subDirs, full.names=TRUE, recursive=FALSE)
+        if(length(oneMore) != 0) {
+            subDirs <- oneMore
+        }
+    }
     keepDirs <- rep(TRUE, length(subDirs))
     for(e in excludeDirs) {
         keepDirs <- keepDirs & !grepl(e, basename(subDirs), ignore.case=TRUE)
     }
     subDirs <- subDirs[keepDirs]
     if(!is.null(subDirPattern)) {
-        keepSub <- grepl(subDirPattern, subDirs)
+        keepSub <- grepl(subDirPattern, basename(subDirs))
         if(!any(keepSub)) {
             warning('subDirPattern ', subDirPattern, ' did not match any subfolders',
                     ' in folder ', dir, immediate.=TRUE)
@@ -162,7 +166,7 @@ evaluateDeployment <- function(dir,
         subDirs <- subDirs[keepSub]
     }
     # subDirs <- subDirs[!basename(subDirs) %in% excludeDirs]
-    # list files from both base and sub dirs 
+    # list files from both base and sub dirs
     allFiles <- unlist(lapply(c(dir, subDirs), function(x) {
         list.files(x, pattern=exts, full.names=TRUE, recursive=FALSE)
     }))
@@ -181,7 +185,7 @@ evaluateDeployment <- function(dir,
     }
     isLog <- grepl('\\.log\\.xml', allFiles)
     logFiles <- allFiles[isLog]
-    
+
     wavTimes <- fileToTime(wavFiles)
     if(!is.null(timeRange)) {
         startWav <- which.min(wavTimes)
@@ -339,7 +343,7 @@ evaluateDeployment <- function(dir,
             }
         }
     }
-    
+
     if(isTRUE(log)) {
         cat('------------------------------------------\n')
         cat('Evaluation finished without issue on',
@@ -357,7 +361,7 @@ psxTo8601 <- function(x) {
 }
 
 #' @importFrom tools file_path_sans_ext
-#' 
+#'
 fileToTime <- function(x) {
     if(length(x) > 1) {
         result <- lapply(x, fileToTime)

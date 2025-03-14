@@ -101,6 +101,3 @@ battery and temperature data to identify potential instrument failure.
 Can also create spectrogram images throughout the deployment to aid in
 visually checking for problems or noise.
 }
-\details{
-XXX
-}
