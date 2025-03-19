@@ -2,6 +2,12 @@
 
 - Addressing minor QAQC workflow potential bugs
 
+- Fixing issue with `dropNonHmd` option of `loadSoundscapeData` and
+added warning when it appears to be fully non-standard HMD
+
+- Adding error catch to `createOctaveLevel` for non-standard HMD levels
+since these can't accurately be summed
+
 # PAMscapes 0.11.1
 
 - Adding a better error message when users attempt to load MANTA Metadata NetCDF

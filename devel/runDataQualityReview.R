@@ -10,12 +10,13 @@ runDataQualityReview <- function(nc, outFile=NULL) {
         'Data Quality Reviewer',
         tabPanel(
             'Plots',
-            paste0('LTSA of file ', basename(nc)),
+            tags$h4(paste0('LTSA of file: "', basename(nc), '"'),
+                    style='font-weight:bold; text-align:center;'),
             fluidRow(
-                plotOutput(outputId = 'ltsaPlot', brush=brushOpts(id='ltsaBrush'))
+                plotOutput(outputId = 'ltsaPlot', brush=brushOpts(id='ltsaBrush'), height='360px')
             ),
             fluidRow(
-                plotOutput(outputId = 'dqPlot')
+                plotOutput(outputId = 'dqPlot', height='360px')
             ),
             fluidRow(
                 column(2, actionButton('addButton', label='Add Annotation')),
@@ -284,7 +285,7 @@ longQuality <- function(x) {
     x <- PAMscapes:::toLong(x, spec=longSpec)
     x
 }
-
+# runDailyQualityReview for name
 runDataQualityReview('../Data/ncmod/modified.nc')
 
 

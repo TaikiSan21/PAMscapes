@@ -6,23 +6,18 @@ test_that('Test MANTA load', {
     expect_warning(loadSoundscapeData(mfile1), 'Found 1 non-standard')
     base1 <- read.csv(mfile1, stringsAsFactors = FALSE)
     base2 <- read.csv(mfile2, stringsAsFactors = FALSE)
-    # readr1 <- read_csv(mfile1, show_col_types = FALSE)
-    # readr2 <- read_csv(mfile2, show_col_types = FALSE)
+
     base1 <- checkManta(base1)
     base2 <- checkManta(base2)
-    # readr1 <- checkManta(readr1)
-    # readr2 <- checkManta(readr2)
+
     expect_true(all(c('UTC', 'HMD_0', 'HMD_1', 'HMD_2') %in% colnames(base1)[1:4]))
     expect_true(all(c('UTC', 'HMD_0', 'HMD_1', 'HMD_2') %in% colnames(base2)[1:4]))
-    # expect_true(all(c('UTC', 'HMD_0', 'HMD_1', 'HMD_2') %in% colnames(readr1)[1:4]))
-    # expect_true(all(c('UTC', 'HMD_0', 'HMD_1', 'HMD_2') %in% colnames(readr2)[1:4]))
+
     base1 <- loadSoundscapeData(base1, dropNonHmd = FALSE)
-    base2 <- loadSoundscapeData(base2, dropNonHmd = FALSE)
-    expect_warning(checkSoundscapeInput(base1), 'This function has')
-    # readr1 <- loadSoundscapeData(readr1)
-    # readr2 <- loadSoundscapeData(readr2)
-    # expect_equal(base1, data.frame(readr1))
-    # expect_equal(base2, data.frame(readr2))
+    base2 <- expect_warning(loadSoundscapeData(base2, dropNonHmd = FALSE),
+                          'Input does not appear to be standard')
+    expect_warning(checkSoundscapeInput(base1), 'This function has been renamed')
+
     base1[3, 10] <- Inf
     expect_warning(base1 <- loadSoundscapeData(base1, dropNonHmd = FALSE))
     expect_true(is.na(base1[3, 10, drop=TRUE]))
@@ -30,9 +25,11 @@ test_that('Test MANTA load', {
 
 test_that('Test octave', {
     mantaFile <- system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes')
-    manta <- loadSoundscapeData(mantaFile, dropNonHmd = FALSE, keepEffort = FALSE)
+    manta <- expect_warning(loadSoundscapeData(mantaFile, dropNonHmd = TRUE, keepEffort = FALSE),
+                            'Found 1 non-standard')
     ol <- createOctaveLevel(manta, type='ol')
-    olDirect <- loadSoundscapeData(mantaFile, dropNonHmd=FALSE, octave='ol', keepEffort = FALSE)
+    olDirect <- expect_warning(loadSoundscapeData(mantaFile, dropNonHmd=TRUE, octave='ol', keepEffort = FALSE),
+                               'Found 1 non-standard')
     expect_identical(ol, olDirect)
     tol <- createOctaveLevel(manta, type='tol')
     expect_true(all(grepl('^OL_', colnames(ol[2:ncol(ol)]))))
@@ -47,7 +44,8 @@ test_that('Test octave', {
 
 test_that('Test long wide', {
     manta <- system.file('extdata/MANTAExampleSmall1.csv', package='PAMscapes')
-    manta <- loadSoundscapeData(manta, dropNonHmd = FALSE)
+    manta <- expect_warning(loadSoundscapeData(manta, dropNonHmd = TRUE),
+                            'Found 1 non-standard')
     ol <- createOctaveLevel(manta, type='ol')
     expect_identical(ol, toWide(ol))
     expect_identical(ol, data.frame(toWide(toLong(ol))))

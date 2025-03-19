@@ -4,7 +4,7 @@
 #'   resolution soundscape metrics, like Power Spectral Density (PSD) or
 #'   Hybrid Millidecade (HMD) measures
 #'
-#' @details To create new measurements, finer resolution metrics are cast to 
+#' @details To create new measurements, finer resolution metrics are cast to
 #'   linear space, summed, and then re-logged. If input measurements are
 #'   HMD values then they are assumed to be normalized per Hz, so levels are
 #'   first corrected by the bandwidth before summing. In all other cases inputs
@@ -57,8 +57,18 @@ createOctaveLevel <- function(x,
         hmdLevels <- getHmdLevels(freqRange=range(freqVals))
         bwList <- c(10*log10(diff(hmdLevels$limits)))
         names(bwList) <- hmdLevels$labels
+        missBand <- character(0)
         for(f in names(bwList)) {
+            if(!f %in% names(x)) {
+                missBand <- c(missBand, f)
+                next
+            }
             x[[f]] <- x[[f]] + bwList[f]
+        }
+        if(length(missBand) > 0) {
+            stop('Expected HMD band(s) ', printN(missBand),
+                    ' were not found. Input is likely not standard HMD,',
+                 ' cannot proceed accurately.')
         }
     }
     type <- match.arg(type)
@@ -68,10 +78,10 @@ createOctaveLevel <- function(x,
     for(i in seq_along(bandPlan)) {
         thisBand <- bandPlan[[i]]
         names(thisBand$factor) <- thisBand$labels
-        x[, 
+        x[,
           (names(bandPlan)[i]) := 10*log10(rowSums(
               .SD[, lapply(names(.SD), function(c) .SD[[c]]*thisBand$factor[c])],
-              na.rm=TRUE)), 
+              na.rm=TRUE)),
           .SDcols=thisBand$labels]
     }
     x[, c(freqCols) := NULL]
@@ -154,7 +164,7 @@ getPsdLevels <- function(freqRange=NULL) {
     list(limits=limits, labels=paste0('PSD_', nominalFreqs), freqs=nominalFreqs)
 }
 
-getHmdLevels <- function(freqRange=NULL) {
+getHmdLevels <- function(freqRange=NULL, allowPartial=TRUE) {
     n <- 1639:5000 # tail limit is 1e6
     lowCenter <- 0:434
     lowLims <- c(0, 0:434 + 0.5)
@@ -163,8 +173,16 @@ getHmdLevels <- function(freqRange=NULL) {
     freqLims <- c(lowLims, highLims)
     nominalFreqs <- c(lowCenter, highCenter)
     if(!is.null(freqRange) && length(freqRange) == 2) {
-        inRange <- nominalFreqs >= freqRange[1] &
-            nominalFreqs <= freqRange[2]
+        nLims <- length(freqLims)
+        if(isTRUE(allowPartial)) {
+            inRange <- freqLims[-1] >= freqRange[1] &
+                freqLims[-nLims] <= freqRange[2]
+        } else {
+            inRange <- freqLims[-nLims] >= freqRange[1] &
+                freqLims[-1] <= freqRange[2]
+        }
+        # inRange <- nominalFreqs >= freqRange[1] &
+            # nominalFreqs <= freqRange[2]
         nominalFreqs <- nominalFreqs[inRange]
         freqLims <- freqLims[c(which(inRange), max(which(inRange))+1)]
     }

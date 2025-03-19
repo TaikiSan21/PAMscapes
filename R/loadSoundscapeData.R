@@ -139,15 +139,21 @@ loadSoundscapeData <- function(x,
             hmdLevels <- getHmdLevels(freqRange=range(freqVals)+c(-1, 1))
             nonStandard <- !standardHmd %in% hmdLevels$labels
             newLabs <- fixHmdLabels(freqVals[nonStandard], hmdLevels=hmdLevels)
+            repeatLabs <- newLabs[!is.na(newLabs)] %in% colnames(x)
+            if(any(repeatLabs)) {
+                warning('Input does not appear to be standard hybrid millidecade,',
+                        ' proceed with caution')
+                newLabs[!is.na(newLabs)][repeatLabs] <- NA
+            }
             colnames(x)[freqCols][nonStandard][!is.na(newLabs)] <- newLabs[!is.na(newLabs)]
             if(anyNA(newLabs) &&
                isTRUE(dropNonHmd)) {
                 warning('Found ', sum(is.na(newLabs)), ' non-standard ',
                         'hybrid millidecade frequencies (',
-                        paste0(standardHmd[nonStandard][is.na(newLabs)], collapse=', '),
+                        printN(standardHmd[nonStandard][is.na(newLabs)], collapse=', '),
                         ') these will be removed. Run with "dropNonHmd=FALSE"',
                         ' to keep them.')
-                for(col in standardHmd[nonStandard[is.na(newLabs)]]) {
+                for(col in standardHmd[nonStandard][is.na(newLabs)]) {
                     x[[col]] <- NULL
                 }
             }
@@ -208,15 +214,21 @@ loadSoundscapeData <- function(x,
         hmdLevels <- getHmdLevels(freqRange=range(freqVals)+c(-1, 1))
         nonStandard <- !standardHmd %in% hmdLevels$labels
         newLabs <- fixHmdLabels(freqVals[nonStandard], hmdLevels=hmdLevels)
+        repeatLabs <- newLabs[!is.na(newLabs)] %in% colnames(x)
+        if(any(repeatLabs)) {
+            warning('Input does not appear to be standard hybrid millidecade,',
+                    ' proceed with caution')
+            newLabs[!is.na(newLabs)][repeatLabs] <- NA
+        }
         colnames(x)[freqCols][nonStandard][!is.na(newLabs)] <- newLabs[!is.na(newLabs)]
         if(anyNA(newLabs) &&
            isTRUE(dropNonHmd)) {
             warning('Found ', sum(is.na(newLabs)), ' non-standard ',
                     'hybrid millidecade frequencies (',
-                    paste0(standardHmd[nonStandard][is.na(newLabs)], collapse=', '),
+                    printN(standardHmd[nonStandard][is.na(newLabs)], collapse=', '),
                     ') these will be removed. Run with "dropNonHmd=FALSE"',
                     ' to keep them.')
-            for(col in standardHmd[nonStandard[is.na(newLabs)]]) {
+            for(col in standardHmd[nonStandard][is.na(newLabs)]) {
                 x[[col]] <- NULL
             }
         }

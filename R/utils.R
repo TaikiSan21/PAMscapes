@@ -361,3 +361,14 @@ calcSliceLength <- function(dates, maxSlice) {
     binPer <- unitToPeriod(binString)
     binPer
 }
+
+printN <- function(x, n=6, collapse=', ') {
+    nItems <- length(x)
+    if(nItems == 0) {
+        return('')
+    }
+    if(nItems > n) {
+        x <- c(x[1:n], paste0('... (', nItems-n, ' more not shown)'))
+    }
+    paste0(paste(x, collapse=collapse))
+}
