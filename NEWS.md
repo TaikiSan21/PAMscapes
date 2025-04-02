@@ -1,3 +1,9 @@
+# PAMscapes 0.11.3
+
+- Adding ability for `1day` style presence for loading detections
+
+- Small rework of naming pattern for column maps in `loadDetectionData`
+
 # PAMscapes 0.11.2
 
 - Addressing minor QAQC workflow potential bugs

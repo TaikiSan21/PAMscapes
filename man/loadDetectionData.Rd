@@ -6,7 +6,7 @@
 \usage{
 loadDetectionData(
   x,
-  source = c("csv", "makara"),
+  source = c("makara", "csv"),
   columnMap = NULL,
   detectionType = c("auto", "presence", "detection"),
   presenceDuration = NULL,
@@ -28,9 +28,9 @@ just specify specific formatting options}
 
 \item{columnMap}{a list or data.frame specifying how to map the input
 column names to the required standard names of "UTC", "end", and "species".
-If a list, must be a named list where the names are the existing
-column names and the values are the standardized names, e.g.
-\code{list('start'='UTC', 'SpeciesName'='species')}. If a data.frame,
+If a list, must be a named list where the names are the standardized
+column names and the values are the existing names, e.g.
+\code{list('UTC'='start', 'species'='SpeciesName')}. If a data.frame,
 must have columns "old" with the existing column names and "new" with
 the standardized name to change it to. All columns successfully changed
 will be kept with the output}
@@ -47,7 +47,8 @@ hour or exactly one day will be marked as "presence", any other duration
 will be marked as "detection"}
 
 \item{presenceDuration}{if \code{detectionType='presence'}, the duration in
-seconds, e.g. 86400 for daily presence}
+seconds, e.g. 86400 for daily presence. Alternative can be a character
+of the form "(NUMBER)(DURATION)" e.g "2hour" or "1day"}
 
 \item{dateFormat}{format string of dates, see \link{strptime}. Can be a
 vector of multiple formats}
