@@ -199,6 +199,7 @@ planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
     outLevels <- getOctaveLevels(tolower(outBand), freqRange=outRange)
     outs <- vector('list', length=length(outLevels$labels))
     names(outs) <- outLevels$labels
+    incomplete <- FALSE
     for(ix in seq_along(outs)) {
         thisLim <- outLevels$limits[ix:(ix+1)]
         if(thisLim[2] < inLevels$limits[1]) {
@@ -225,16 +226,37 @@ planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
             next
         }
         lowFact <- (result$hmd_lims[2]-thisLim[1]) / diff(result$hmd_lims[1:2])
+        # this means incomplete output band
+        if(result$hmd_lims[1] > thisLim[1]) {
+            incomplete <- TRUE
+            if(!tolower(outBand) %in% c('bb', 'broadband')) {
+                next
+            }
+            lowFact <- 1
+        }
         if(lowFact < 0) {
             lowFact <- 1
         }
         highFact <- (thisLim[2]-result$hmd_lims[nHmdLim-1])/diff(result$hmd_lims[(nHmdLim-1):nHmdLim])
+        # this means incomplete output band
+        if(result$hmd_lims[nHmdLim] < thisLim[2]) {
+            incomplete <- TRUE
+            if(!tolower(outBand) %in% c('bb', 'broadband')) {
+                next
+            }
+            highFact <- 1
+        }
         if(highFact < 0) {
             highFact <- 1
         }
         result$factor <- c(lowFact, rep(1, max(nHmdLim-3, 0)), highFact)
         result$bw <- 10*log10(diff(thisLim))
         outs[[ix]] <- result
+    }
+    if(tolower(outBand) %in% c('bb', 'broadband') &&
+       isTRUE(incomplete)) {
+        warning('Selected broadband range is not completely covered by frequency range in data',
+                call.=FALSE)
     }
     outs <- outs[sapply(outs, function(x) !is.null(x))]
     outs

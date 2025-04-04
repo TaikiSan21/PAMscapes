@@ -74,7 +74,8 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
             df$matchTime_mean <- NA
             return(df)
         }
-        base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/'
+        # base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/'
+        base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed
         url <- formatURL_GFS(df, base=base)
         vars <- url$vars
         file <- fileNameManager()

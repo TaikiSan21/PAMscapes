@@ -1,3 +1,10 @@
+# PAMscapes 0.11.4
+
+- Occasional problem with edge bands with `createOctaveLevel`, partial bands
+were not correctly identified and removed
+
+- `matchGFS` URL changed seemingly yesterday so was borked
+
 # PAMscapes 0.11.3
 
 - Adding ability for `1day` style presence for loading detections
