@@ -201,17 +201,9 @@ Axiom presentation - how does their spectrogram load so fast for a full year
 of data. Image pyramid IDK wtf that means. How are they compressing - median
 or some such, or just downsampling?
 
-Showing distribution of categories in a `plotPSD(by='')` plot is smart for
-environmental data so you know if you have small sample size for some
-
-Okay fine I'll add the code text to `runSoundscapeExplorer`
-
 `plotLTSA` also needs a `by` column to create the multi-LTSA style plot thats 
 in the slides. I guess that's pretty awkward and maybe breaks if time scales 
 are different...e.x. if you try and do a jank environmental category or something
-
-Question - is it appropriate to `createOctaveLevel` based on HMD data? bc of
-the different frequency spacing
 
 Default color scaling from 50 to 105 on the Soundcoop portal. Me too?
 
@@ -227,8 +219,6 @@ Data quality plotting - currently just marking NA on load, does this need
 more options? Unfortunately going to require carrying a lot of crap around
 and making sure that all the functions know how to continue carrying it.
 e.g. `toWide` `toLong` are going to STB
-
-decidecade option for `createOctaveLevel` ?
 
 What is actually the "correct" time-binned/resampled summarisation? mean
 is wrong, median is "okay", shouldn't linear-mean be best?

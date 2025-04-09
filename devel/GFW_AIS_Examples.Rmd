@@ -26,6 +26,15 @@ plotPSD(nrs11, style='quantile', q=.05)
 ```
 
 ```{r}
+nrs11 <- matchGFS(nrs11)
+nrs11$windCat <- cut(nrs11$windMag, c(0, 10, 15, 20))
+```
+
+```{r}
+plotPSD(nrs11, style='quantile', by='windCat', q=.05)
+```
+
+```{r}
 downloadMarCadAIS(nrs11, outDir=here('AIS'), overwrite = FALSE, unzip=TRUE)
 ```
 ```{r}

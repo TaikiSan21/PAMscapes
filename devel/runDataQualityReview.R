@@ -4,10 +4,12 @@ library(ncdf4)
 library(PAMscapes)
 library(ggplot2)
 library(DT)
+library(tictoc)
 runDataQualityReview <- function(nc, outFile=NULL) {
     ui <- navbarPage(
         id='Main',
         'Data Quality Reviewer',
+        # UI PLOT ####
         tabPanel(
             'Plots',
             tags$h4(paste0('LTSA of file: "', basename(nc), '"'),
@@ -16,25 +18,36 @@ runDataQualityReview <- function(nc, outFile=NULL) {
                 plotOutput(outputId = 'ltsaPlot', brush=brushOpts(id='ltsaBrush'), height='360px')
             ),
             fluidRow(
-                plotOutput(outputId = 'dqPlot', height='360px')
-            ),
-            fluidRow(
                 column(2, actionButton('addButton', label='Add Annotation')),
-                column(3, selectizeInput('dqValue', label='Quality Flag',
+                column(2, selectizeInput('dqValue', label='Quality Flag',
                                          choices=list('(1) Good'=1,
                                                       '(2) Not Evaluated'=2,
                                                       '(3) Compromised'=3,
                                                       '(4) Bad'=4), selected=2)),
-                column(6, verbatimTextOutput('currentRange'))
+                column(5, verbatimTextOutput('currentRange')),
+                # column(2, selectizeInput('ltsaRes', label='LTSA Resolution',
+                #                          choices=list('1 Minute' = '1min',
+                #                                       '10 Minute' = '10min',
+                #                                       '30 Minute' = '30min',
+                #                                       '1 Hour' = '1hour'),
+                #                          selected = '30min')),
+            ),
+            fluidRow(
+                plotOutput(outputId = 'dqPlot', height='360px')
             )
         ),
+        # UI ANNOTATIONS ####
         tabPanel(
             'Annotations',
+            tags$h4(paste0('Click to select row, double click to select and edit value in a cell'),
+                    style='text-align:center;'),
             DTOutput('annoTable'),
             actionButton('removeAnno', label='Remove Annotation')
         )
     )
     server <- function(input, output, session) {
+        # Data Loading ####
+        tic('Initial load and format of DQ data')
         dqInit <- loadQuality(nc)
         labels <- dqInit$freq
         labels[labels < 1e3] <- round(labels[labels < 1e3], 0)
@@ -46,29 +59,62 @@ runDataQualityReview <- function(nc, outFile=NULL) {
         dqdf <- cbind(dqInit$time, dqdf)
         names(dqdf)[1] <- 'UTC'
         dqPlotBase <- longQuality(dqdf)
+        dqPlotBase <- dplyr::filter(dqPlotBase, .data$freqLow > 0)
         dqPlotBase$value <- factor(as.character(dqPlotBase$value), levels=as.character(1:4))
+        toc()
+        tic('Smollify only')
         dqPlotBase <- smollify(dqPlotBase, TRUE)
+        toc()
+        tic('Initial load of soundscape')
+        ncData <- loadSoundscapeData(nc, keepQuals = 1:4)
+        toc()
+        tic('LTSA data format')
+        ltsaData <- plotLTSA(ncData, bin='30min', maxBins=2e3, returnData=TRUE)
+        toc()
         vals <- reactiveValues(
-            data=loadSoundscapeData(nc, keepQuals = 1:4),
+            data=ncData,
             timeRange = NA,
             freqRange = NA,
             dq = dqInit$dq,
             dqBasePlot = NA,
             dqTime=dqInit$time,
             dqFreq=dqInit$freq,
-            annots=NULL
+            annots=NULL,
+            ltsaData=ltsaData
         )
+
         plotColors <- c('1'='darkgreen', '2'='steelblue', '3'='yellow', '4'='red')
+        # Plot LTSA ####
         output$ltsaPlot <- renderPlot({
-            plotLTSA(vals$data, bin='30min', maxBins=2e3)
+            tic('Plot LTSA')
+            # g <- plotLTSA(vals$data, bin='30min', maxBins=2e3)
+            g <- ggplot(vals$ltsaData) +
+                geom_rect(aes(xmin=.data$UTC,
+                              xmax=.data$UTCend,
+                              ymin=.data$freqLow,
+                              ymax=.data$frequency,
+                              fill=.data$value)) +
+                scale_fill_gradientn(colors=scales::viridis_pal()(25),
+                                     limits=range(vals$ltsaData$value),
+                                     oob=scales::squish) +
+                scale_x_datetime(expand=c(0,0)) +
+                scale_y_log10(expand=c(0,0), guide=guide_axis(position='left')) +
+                # labs(fill=units) +
+                theme(legend.title = element_text(angle=90)) +
+                guides(fill=guide_colorbar(title.position='right', barheight=unit(1, 'null'), title.hjust=.5))
+            toc()
+            g
         })
+        # Plot DQ ####
         output$dqPlot <- renderPlot({
+            tic('Plot DQ')
             dqPlot <- ggplot() +
-                geom_rect(data=dqPlotBase, aes(xmin=UTC,
-                                               xmax=UTCend,
-                                               ymin=freqLow,
-                                               ymax=frequency,
-                                               fill=value),
+                geom_rect(data=dqPlotBase,
+                          aes(xmin=UTC,
+                              xmax=UTCend,
+                              ymin=freqLow,
+                              ymax=frequency,
+                              fill=value),
                           show.legend=TRUE) +
                 scale_x_datetime(expand=c(0,0)) +
                 scale_y_log10(expand=c(0,0)) +
@@ -84,15 +130,21 @@ runDataQualityReview <- function(nc, outFile=NULL) {
                              ymax=vals$annots[[i]]$freqMax,
                              fill=plotColors[vals$annots[[i]]$value])
             }
+            toc()
             dqPlot
         })
+        # LTSA Brush ####
         observeEvent(input$ltsaBrush, {
+            tic('Brush input')
             plotData <- plotLTSA(vals$data, returnData = TRUE)
             brush <- input$ltsaBrush
             vals$timeRange <- as.POSIXct(round(c(brush$xmin, brush$xmax), 0), origin='1970-01-01 00:00:00', tz='UTC')
             vals$freqRange <- round(c(brush$ymin, brush$ymax), 1)
+            toc()
         })
+        # Add Anno ####
         observeEvent(input$addButton, {
+            tic('Add button')
             vals$dq <- markDQMatrix(vals$dq,
                                     freqRange=vals$freqRange,
                                     timeRange=vals$timeRange,
@@ -111,7 +163,10 @@ runDataQualityReview <- function(nc, outFile=NULL) {
             } else {
                 vals$annots[[length(vals$annots)+1]] <- newAnnot
             }
+            ANNOTS <<- vals$annots
+            toc()
         })
+        # Anno Text ####
         output$currentRange <- renderText({
             paste0(
                 'Selected frequency: ',
@@ -122,12 +177,28 @@ runDataQualityReview <- function(nc, outFile=NULL) {
                 vals$timeRange[2]
             )
         })
+        # Anno Table ####
         output$annoTable <- renderDT({
+            tic('Render Table')
             annoTable <- bind_rows(vals$annots)
+            toc()
             annoTable
         },
         server=FALSE,
-        options=list(dom='rtip'))
+        options=list(dom='rtip'),
+        editable=TRUE)
+        # Table Editors ####
+        observeEvent(input$annoTable_cell_edit, {
+            edit <- input$annoTable_cell_edit
+            valAdd <- edit$value
+            print(valAdd)
+            if(edit$col %in% c(3, 4)) {
+                valAdd <- as.POSIXct(valAdd, format='%Y-%m-%dT%H:%M:%S', tz='UTC')
+            }
+            print(valAdd)
+            print(vals$annots[[edit$row]][edit$col])
+            vals$annots[[edit$row]][[edit$col]] <- valAdd
+        })
         observeEvent(input$removeAnno, {
             dropIx <- input$annoTable_rows_selected
             if(is.null(dropIx)) {
@@ -138,6 +209,7 @@ runDataQualityReview <- function(nc, outFile=NULL) {
         })
     }
     runApp(shinyApp(ui=ui, server=server))
+    on.exit(return(ANNOTS))
 }
 
 markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, freqs) {
@@ -286,7 +358,5 @@ longQuality <- function(x) {
     x
 }
 # runDailyQualityReview for name
-runDataQualityReview('../Data/ncmod/modified.nc')
-
-
-
+ncFile <- 'testData/nrs_products_sound_level_metrics_11_nrs_11_20191023-20211004_hmd_data_NRS11_H5R6.1.5000_20191024_DAILY_MILLIDEC_MinRes.nc'
+hm <- runDataQualityReview(ncFile)

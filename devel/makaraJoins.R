@@ -22,11 +22,12 @@ doMakJoins <- function(x, org, global) {
             c('code', 'name')
         ]
     }
-    
+
     org_deploy <- readxl::read_excel(org, sheet='deployments')[
-        c('deployment_code', 'site_code', 'project_code', 'deployment_latitude', 'deployment_longitude')
+        c('deployment_code', 'site_code', 'project_code', 'deployment_latitude', 'deployment_longitude',
+          'organization_code')
     ]
-    names(org_deploy) <- c('deployment', 'site', 'project', 'depLatitude', 'depLongitude')
+    names(org_deploy) <- c('deployment', 'site', 'project', 'depLatitude', 'depLongitude', 'organization')
     if('deployment' %in% names(x)) {
         x <- left_join(x, org_deploy, by='deployment')
         if('Latitude' %in% names(x)) {
@@ -42,13 +43,13 @@ doMakJoins <- function(x, org, global) {
         x$depLatitude <- NULL
         x$depLongitude <- NULL
     }
-    
+
     org_ana <- readxl::read_excel(org, sheet='analyses', readxl::cell_cols('B:O'))[
         c('deployment_code', 'analysis_sound_source_codes', 'analysis_start_datetime', 'analysis_end_datetime')
     ]
     names(org_ana) <- c('deployment', 'species_code', 'effortStart', 'effortEnd')
-    # org_ana$effortStart <- as.POSIXct((as.numeric(org_ana$effortStart) - 2)*3600*24, origin='1900-01-01', tz='UTC')
-    # org_ana$effortEnd <- as.POSIXct((as.numeric(org_ana$effortEnd) - 2)*3600*24, origin='1900-01-01', tz='UTC')
+
+
     org_ana <- PAMscapes:::spreadEffort(org_ana, commas='species_code')
     org_ana <- doMakSpeciesJoin(org_ana, glob_source)
     if('deployment' %in% names(x)) {
@@ -95,11 +96,11 @@ effs$site <- gsub('Y[0-9]{1}', '', effs$site)
 names(effs) <- c('start', 'end', 'species', 'site')
 
 library(patchwork)
-scene <- joind %>% 
-    filter(project =='LISTEN_GOMEX') %>% 
+scene <- joind %>%
+    filter(project =='LISTEN_GOMEX') %>%
     plotAcousticScene(by='site', effort=effs, title='SEFSC LISTEN_GOMEX Example')
 scene
-boxer <- joind %>% 
-    filter(project =='LISTEN_GOMEX') %>% 
+boxer <- joind %>%
+    filter(project =='LISTEN_GOMEX') %>%
     plotDetectionBoxplot(group='site', facet='species',effort = effs, combineYears = T)
 boxer

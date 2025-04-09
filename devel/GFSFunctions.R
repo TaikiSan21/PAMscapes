@@ -3,11 +3,12 @@ library(httr)
 library(lubridate)
 library(dplyr)
 library(PAMmisc)
-
+#' @importFrom PAMmisc ncToData
+#'
 matchGFS <- function(df, base='https://rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/') {
     # ranges of GFS data from UCAR
     minTime <- as.POSIXct('2015-01-15 00:00:00', tz='UTC')
-    maxTime <- PAMmisc:::nowUTC() - 36*3600
+    maxTime <- nowUTC() - 36*3600
     origCols <- colnames(df)
     splitDf <- split(df, round_date(df$UTC, unit='3hour'))
     splitDf <- lapply(splitDf, function(x) {
@@ -24,7 +25,7 @@ matchGFS <- function(df, base='https://rda.ucar.edu/thredds/ncss/grid/files/g/ds
         }
         url <- formatURL_GFS(x)
         vars <- url$vars
-        file <- PAMmisc:::fileNameManager()
+        file <- fileNameManager()
         dl <- GET(url$url, write_disk(file, overwrite = TRUE), progress())
         if(dl$status_code != 200) {
             warning('URL ', url$url, ' is invalid, pasting this into a browser may give more information.')

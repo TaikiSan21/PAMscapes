@@ -7,7 +7,7 @@ library(PAMscapes) #octave, tLong, freqs (shiny app mostly)
 library(signal) #misc - interp1 and hanning
 library(lubridate) #both
 library(shiny) #scapes
-library(ggplot2) #both 
+library(ggplot2) #both
 library(dplyr) # both
 library(DT) # neither
 # library(patchwork)
@@ -20,7 +20,7 @@ library(PAMpal)# just timeJoin
 # folder so that they can be processed separately
 
 # add option that dir can be multiple if XML and wav not same main folder
-# evaluateDeployment <- function(dir, 
+# evaluateDeployment <- function(dir,
 #                                excludeDirs=c('Post_Retrieval_Data', 'Pre_Deployment_Data'),
 #                                sampleWindow=c(60, 120),
 #                                channel=1,
@@ -97,7 +97,7 @@ library(PAMpal)# just timeJoin
 #         subDirs <- subDirs[keepSub]
 #     }
 #     # subDirs <- subDirs[!basename(subDirs) %in% excludeDirs]
-#     # list files from both base and sub dirs 
+#     # list files from both base and sub dirs
 #     allFiles <- unlist(lapply(c(dir, subDirs), function(x) {
 #         list.files(x, pattern=exts, full.names=TRUE, recursive=FALSE)
 #     }))
@@ -116,7 +116,7 @@ library(PAMpal)# just timeJoin
 #     }
 #     isLog <- grepl('\\.log\\.xml', allFiles)
 #     logFiles <- allFiles[isLog]
-#     
+#
 #     wavTimes <- wavToTime(wavFiles)
 #     if(!is.null(timeRange)) {
 #         startWav <- which.min(wavTimes)
@@ -138,7 +138,7 @@ library(PAMpal)# just timeJoin
 #             return(NULL)
 #         }
 #     }
-#     
+#
 #     if(log) {
 #         cat('Calculating TOLs from', sampleWindow[1], 'to', sampleWindow[2],
 #             'for', length(wavFiles), 'files', '\n')
@@ -165,19 +165,19 @@ library(PAMpal)# just timeJoin
 #         wavQaqc$projectName <- name
 #     }
 #     if(!is.null(outDir)) {
-#         tolPlot <- plotQAQCTol(wavQaqc, dbRange=c(50, 140), freqMin=30, title=name) + 
+#         tolPlot <- plotQAQCTol(wavQaqc, dbRange=c(50, 140), freqMin=30, title=name) +
 #             theme(plot.title = element_text(hjust = 0.5))
 #         ggsave(filename=file.path(outDir, paste0(name, '_TOLPlot.png')),
 #                plot=tolPlot, width=4e3, height=3e3, units='px')
-#         
-#         gapPlot <- plotQAQCGap(wavQaqc, title=name) + 
+#
+#         gapPlot <- plotQAQCGap(wavQaqc, title=name) +
 #             theme(plot.title = element_text(hjust = 0.5))
 #         ggsave(filename=file.path(outDir, paste0(name, '_GapPlot.png')),
 #                plot=gapPlot, width=3e3, height=4e3, units='px')
 #         if(!is.na(calibration)) {
 #             calPoints <- checkCalibration(calibration)
 #             freqs <- seq(from=min(calPoints$frequency), to=max(calPoints$frequency), by=1)
-#             calSmooth <- data.frame(frequency=freqs, 
+#             calSmooth <- data.frame(frequency=freqs,
 #                                     gain=signal::interp1(calPoints$frequency, calPoints$gain, xi=freqs, method='pchip'))
 #             logFreq <- floor(range(log10(freqs)))
 #             logBreaks <- 10^((logFreq[1]):(logFreq[2]))
@@ -191,7 +191,7 @@ library(PAMpal)# just timeJoin
 #                    plot=calPlot, width=3e3, height=2e3, units='px')
 #         }
 #     }
-#     
+#
 #     # IF st log files exist add the batt/temp data
 #     if(any(isLog)) {
 #         if(log) {
@@ -213,9 +213,9 @@ library(PAMpal)# just timeJoin
 #         wavQaqc$extBatt[nrow(wavQaqc)] <- logQaqc$extBatt[lastIn]
 #         wavQaqc$temp[1] <- logQaqc$temp[firstIn]
 #         wavQaqc$temp[nrow(wavQaqc)] <- logQaqc$temp[lastIn]
-#         
+#
 #         if(!is.null(outDir)) {
-#             tvPlot <- plotQAQCTV(wavQaqc, title=name) + 
+#             tvPlot <- plotQAQCTV(wavQaqc, title=name) +
 #                 theme(plot.title = element_text(hjust = 0.5))
 #             ggsave(filename=file.path(outDir, paste0(name, '_TempVoltPlot.png')),
 #                    plot=tvPlot, width=3e3, height=2e3, units='px')
@@ -224,7 +224,7 @@ library(PAMpal)# just timeJoin
 #     if(!is.null(outDir)) {
 #         wavQaqc$UTC <- psxTo8601(wavQaqc$UTC)
 #         write.csv(wavQaqc,
-#                   file=file.path(outDir, paste0(name, '_QAQCData.csv')), 
+#                   file=file.path(outDir, paste0(name, '_QAQCData.csv')),
 #                   row.names=FALSE)
 #         wavQaqc$UTC <- as.POSIXct(wavQaqc$UTC, format='%Y-%m-%dT%H:%M:%SZ', tz='UTC')
 #     }
@@ -251,8 +251,8 @@ library(PAMpal)# just timeJoin
 #         for(i in seq_along(toSpec)) {
 #             thisWav <- fastReadWave(wavFiles[toSpec[i]], from=0, to=specLength * 60)
 #             baseWav <- gsub('\\.[A-z]{1,4}$', '', basename(wavFiles[toSpec[i]]))
-#             thisFile <- paste0(name, '_', 
-#                                'Spectrogram', specLength, 'min_', 
+#             thisFile <- paste0(name, '_',
+#                                'Spectrogram', specLength, 'min_',
 #                                baseWav, '.png')
 #             trySpec <- try(createSpecImage(thisWav, channel=1, wl=2048, hop=1,
 #                                            title=paste0(name, '_', baseWav),
@@ -264,7 +264,7 @@ library(PAMpal)# just timeJoin
 #             }
 #         }
 #     }
-#     
+#
 #     if(log) {
 #         cat('------------------------------------------\n')
 #         cat('Evaluation finished without issue on',
@@ -275,7 +275,7 @@ library(PAMpal)# just timeJoin
 # }
 
 # plotQAQCTol <- function(x,
-#                         levels=c('ol', 'tol'), 
+#                         levels=c('ol', 'tol'),
 #                         tBuffer=0,
 #                         dbRange=NULL,
 #                         freqMin=NULL,
@@ -304,7 +304,7 @@ library(PAMpal)# just timeJoin
 #     }
 #     g
 # }
-# 
+#
 # plotQAQCGap <- function(x, title=NULL) {
 #     x <- x[c('UTC', 'file', 'diffBetweenLength', 'timeToNext')]
 #     names(x)[3:4] <- c('Wav End to Next File (s)',
@@ -322,7 +322,7 @@ library(PAMpal)# just timeJoin
 #     }
 #     g
 # }
-# 
+#
 # plotQAQCTV <- function(x, title=NULL) {
 #     if(all(is.na(x$extBatt)) ||
 #        max(x$extBatt, na.rm=TRUE) == 0) {
@@ -348,7 +348,7 @@ library(PAMpal)# just timeJoin
 #         tv <- plotQAQCTV(qData)
 #     } else {
 #         tv <- ggplot(data.frame(x=1, y=1, label='No Temp Volt Data')) +
-#             geom_text(aes(x=x, y=y, label=label)) + 
+#             geom_text(aes(x=x, y=y, label=label)) +
 #             theme_void()
 #     }
 #     layout <- '
@@ -364,8 +364,8 @@ library(PAMpal)# just timeJoin
 #                         theme=theme(plot.title=element_text(hjust=.5)))
 # }
 
-# createSpecImage <- function(clip, channel=1, wl=1024, hop=1, 
-#                             brightness=0, contrast=0, 
+# createSpecImage <- function(clip, channel=1, wl=1024, hop=1,
+#                             brightness=0, contrast=0,
 #                             cmap=gray.colors(64, start=1, end=0),
 #                             title=NULL,
 #                             startTime=NULL,
@@ -389,13 +389,13 @@ library(PAMpal)# just timeJoin
 #     oPar <- par()$mfrow
 #     par(mfrow=c(nPlots, 1))
 #     on.exit(par(mfrow=oPar), add=TRUE, after=FALSE)
-#     
+#
 #     for(i in unique(plotIx)) {
 #         thisGram <- gram
 #         thisGram$mat <- thisGram$mat[plotIx == i, ]
 #         thisGram$x <- thisGram$x[plotIx == i]
 #         gramToPlot(thisGram, file=NULL, startTime=startTime, cmap=cmap, title=title, ratio=ratio)
-#         
+#
 #     }
 # }
 
@@ -457,7 +457,7 @@ library(PAMpal)# just timeJoin
 #     xAxis <- (slices-1) / sr
 #     list(mat=mat, x=xAxis, y=yAxis)
 # }
-# 
+#
 # calcSpec <- function(wave, window = TRUE, sr, plan=NULL) {
 #     len <- length(wave)
 #     halfLen <- len %/% 2
@@ -524,7 +524,7 @@ processQAQCLog <- function(x, tolWindow=c(60, 120), nSpectrograms=0, rerun=FALSE
     if(!all(dir.exists(unique(x$qaqcBaseDir[toRun])))) {
         stop('Base QAQC directories do no exist - check path or remap')
     }
-    
+
     pb <- txtProgressBar(min=0, max=sum(toRun), style=3)
     ix <- 0
     for(i in which(toRun)) {
@@ -574,7 +574,7 @@ processQAQCLog <- function(x, tolWindow=c(60, 120), nSpectrograms=0, rerun=FALSE
             next
         }
         thisName <- paste0(x$projectName[i], '_', x$deviceId[i])
-        if(isFALSE(rerun) && 
+        if(isFALSE(rerun) &&
            dir.exists(file.path(outPath, 'QAQC_Output')) &&
            file.exists(file.path(outPath, 'QAQC_Output', paste0(thisName, '_QAQCData.csv')))) {
             warning('QAQC outputs for project ', x$projectName[i], ' already exist and ',
@@ -583,7 +583,7 @@ processQAQCLog <- function(x, tolWindow=c(60, 120), nSpectrograms=0, rerun=FALSE
             setTxtProgressBar(pb, value=ix)
             next
         }
-        
+
         # Then try running the eval code ####
         # This saves outputs in outDir if its not NULL
         tryEvalDep <- try(evaluateDeployment(
@@ -668,11 +668,11 @@ readQData <- function(dir, pattern=NULL) {
     result
 }
 
-# evaluateWavFiles <- function(wavFiles, 
+# evaluateWavFiles <- function(wavFiles,
 #                              sampleWindow=c(60, 120),
 #                              octave=c('tol', 'ol'),
-#                              plot=TRUE, 
-#                              channel=1, 
+#                              plot=TRUE,
+#                              channel=1,
 #                              freqRange=NULL,
 #                              calibration=NULL,
 #                              sensitivity=0,
@@ -690,9 +690,9 @@ readQData <- function(dir, pattern=NULL) {
 #         pb <- txtProgressBar(min=0, max=length(wavFiles), style=3)
 #         ix <- 0
 #     }
-#     
+#
 #     calibration <- checkCalibration(calibration)
-#     
+#
 #     maxTries <- 3
 #     # tol <- future.apply::future_lapply(wavFiles, function(x) {
 #     tol <- lapply(wavFiles, function(x) {
@@ -747,12 +747,12 @@ readQData <- function(dir, pattern=NULL) {
 #         # apply calibration - sens only, or sens + transfer function
 #         calValues <- sensitivity
 #         if(!is.null(calibration)) {
-#             calValues <- calValues + 
+#             calValues <- calValues +
 #                 signal::interp1(calibration$frequency, calibration$gain, xi=welch$freq, method='pchip')
 #         }
 #         welch$spec <- 10*log10(welch$spec) - calValues
 #         welch$spec <- 10^(welch$spec / 10)
-#         
+#
 #         tolBins <- cut(welch$freq, octaves$limits, octaves$labels)
 #         tolVals <- lapply(split(welch$spec, tolBins, drop=TRUE), function(p) {
 #             10*log10(sum(p))
@@ -793,7 +793,7 @@ readQData <- function(dir, pattern=NULL) {
 #     colnames(tf) <- c('frequency', 'gain')
 #     tf
 # }
-# 
+#
 # checkCalibration <- function(x) {
 #     if(is.null(x) || is.na(x)) {
 #         return(NULL)
@@ -971,7 +971,7 @@ mapProjectDir <- function(project, dir, levels=4, verbose=TRUE) {
            grepl('PROJECT_ADMIN_ACCDATA', curDir[isParksAus])) {
             curDir[isParksAus] <- paste0(curDir[isParksAus], '/Recorder Performance')
         }
-        
+
         levels <- levels - 1
         if(levels == 0) {
             if(verbose) {
@@ -1029,17 +1029,17 @@ addNefscDirs <- function(log, recBase, qaqcBase,levels=4, verbose=TRUE) {
     projCheck <- hasData & noProjLog
     qaqcCheck <- hasData & noQaqcLog
     if(any(projCheck)) {
-        log$projectDir[projCheck] <- mapProjectDir(log$projectName[projCheck], 
-                                                   dir=recBase, 
+        log$projectDir[projCheck] <- mapProjectDir(log$projectName[projCheck],
+                                                   dir=recBase,
                                                    levels=levels,
                                                    verbose=verbose)
     } else {
         cat('All project directories already entered!\n')
     }
     if(any(qaqcCheck)) {
-        log$qaqcDir[qaqcCheck] <- mapProjectDir(log$projectName[qaqcCheck], 
-                                                dir=qaqcBase, 
-                                                levels=levels, 
+        log$qaqcDir[qaqcCheck] <- mapProjectDir(log$projectName[qaqcCheck],
+                                                dir=qaqcBase,
+                                                levels=levels,
                                                 verbose=verbose)
     } else {
         cat('All QAQC directores already entered!\n')
@@ -1048,14 +1048,14 @@ addNefscDirs <- function(log, recBase, qaqcBase,levels=4, verbose=TRUE) {
     qaqcBad <- is.na(log$qaqcDir[qaqcCheck])
     if(any(projBad)) {
         warning('Could not find wav folders for ',
-                sum(projBad), 
-                ' projects:\n', 
+                sum(projBad),
+                ' projects:\n',
                 paste0(log$projectName[projCheck][projBad], collapse=', '))
     }
     if(any(qaqcBad)) {
         warning('Could not find QAQC folders for ',
-                sum(qaqcBad), 
-                ' projects:\n', 
+                sum(qaqcBad),
+                ' projects:\n',
                 paste0(log$projectName[qaqcCheck][qaqcBad], collapse=', '),
                 '\nThese must be created manually.')
     }
@@ -1095,7 +1095,7 @@ readPaUpload <- function(x) {
         status <- data.frame(readxl::read_excel(x, skip=4))
         # status[[1]][is.na(status[[1]])] <- ''
     }
-    
+
     statHeaders <- seq(from=1, to=nrow(status), by=8)
     statHeaders <- statHeaders[!is.na(status[[1]][statHeaders])]
     status <- split(status[1:(tail(statHeaders, 1)+7), ], rep(statHeaders, each=8))
@@ -1150,10 +1150,6 @@ readPaUploadSmartsheets <- function(x) {
                                         'T',
                                         status$usableEndTime[hasTime],
                                         'Z')
-    # status$usableEndTime <- NULL
-    # status$usableEndDate <- NULL
-    # status$usableStartTime <- NULL
-    # status$usableStartDate <- NULL
     status$deviceId <- sapply(status$deviceName, parseDeviceId)
     for(c in c('deploymentMakara', 'recoveryMakara')) {
         # do I need to change certian text to NA? i dont think so
@@ -1231,7 +1227,7 @@ nefscMondayToLog <- function(dataUpload, recPerf=NULL, qaqcSheet=NULL) {
         noSens <- is.na(status$sensitivity)
         if(any(noSens)) {
             warning('\nCould not find matching sensitivity values for ', sum(noSens),
-                    ' recording devices:\n', 
+                    ' recording devices:\n',
                     paste0(status$deviceName[noSens], collapse=', '))
         }
     } else {
@@ -1258,7 +1254,7 @@ nefscMondayToLog <- function(dataUpload, recPerf=NULL, qaqcSheet=NULL) {
     # if its not NA and we cant parse it, need to fix
     badStart <- !is.na(status$usableStart) & is.na(parseQDate(status$usableStart))
     badEnd <- !is.na(status$usableEnd) & is.na(parseQDate(status$usableEnd))
-    
+
     if(any(badStart | badEnd)) {
         warning(sum(badStart), ' Start and ',
                 sum(badEnd), ' End times could not be automatically',
@@ -1271,7 +1267,7 @@ nefscMondayToLog <- function(dataUpload, recPerf=NULL, qaqcSheet=NULL) {
     status$qaqcStatus[noData] <- 'NoData'
     status$qaqcStatus[notRun] <- 'NoQAQC'
     status$qaqcStatus[isRun] <- 'QAQCRun'
-    
+
     log <- data.frame(
         projectBaseDir = NA,
         projectDir = NA,
@@ -1385,7 +1381,7 @@ saveIssueLog <- function(data, dir) {
     }
     data <- bind_rows(old, data)
     data$UTC <- psxTo8601(data$UTC)
-    data$qaqcDate <- psxTo8601(data$qaqcDate) 
+    data$qaqcDate <- psxTo8601(data$qaqcDate)
     data <- distinct(data)
     write.csv(data, file=outfile, row.names=FALSE)
     invisible(outfile)
@@ -1547,7 +1543,7 @@ checkValidStatus <- function(x) {
     }
     badVals <- x[!isLowMatch]
     warning(length(badVals), ' "qaqcStatus" values did not match standard levels (',
-            paste0(QAQC_STATUS, collapse=','), 
+            paste0(QAQC_STATUS, collapse=','),
             ')\nProjects with non-standard levels will be skipped')
     x
 }
@@ -1597,8 +1593,8 @@ checkValidStatus <- function(x) {
 #             tabPanel(
 #                 'Home',
 #                 DTOutput('inData'),
-#                 checkboxGroupInput('statusCheck', 
-#                                    choices=QAQC_STATUS, 
+#                 checkboxGroupInput('statusCheck',
+#                                    choices=QAQC_STATUS,
 #                                    selected=c('QAQCRun', 'QAQCReviewed'),
 #                                    label=NULL,
 #                                    inline=TRUE),
@@ -1629,13 +1625,13 @@ checkValidStatus <- function(x) {
 #                     )
 #                 )
 #             ),
-#             
+#
 #             # Plot TOL ####
 #             tabPanel(
 #                 'TOL',
 #                 plotOutput('tolPlot',
 #                            brush = brushOpts(id = "tolBrush", fill = "#ccc", direction = "x")),
-#                 sliderInput('timeSliderTol', label='Time Range', 
+#                 sliderInput('timeSliderTol', label='Time Range',
 #                             min=0, max=1, value=c(0, 1),
 #                             width='100%'),
 #                 checkboxGroupInput('tolFreqs', choices=NULL, label='Frequency to Show',
@@ -1707,7 +1703,7 @@ checkValidStatus <- function(x) {
 #                 'Save and Exit',
 #                 h4('Save any updates to Log & Issues before hitting "Stop App"'),
 #                 fluidRow(
-#                     column(2, 
+#                     column(2,
 #                            actionButton('saveLog', label='Save Log Data')
 #                     ),
 #                     column(5,
@@ -1715,7 +1711,7 @@ checkValidStatus <- function(x) {
 #                     )
 #                 ),
 #                 fluidRow(
-#                     column(2, 
+#                     column(2,
 #                            actionButton('saveIssues', label='Save Issues Data')
 #                     ),
 #                     column(5, verbatimTextOutput('issueSaveTime')
@@ -1726,7 +1722,7 @@ checkValidStatus <- function(x) {
 #         )
 #     )
 #     server <- function(input, output, session) {
-#         
+#
 #         # Setup Reactives ####
 #         if(isFALSE(INLOG)) {
 #             appData <- reactiveValues(
@@ -1751,7 +1747,7 @@ checkValidStatus <- function(x) {
 #             }
 #             appData <- reactiveValues(
 #                 log=data,
-#                 data=readQData(file.path(data$qaqcBaseDir[loadIx], data$qaqcDir[loadIx]), 
+#                 data=readQData(file.path(data$qaqcBaseDir[loadIx], data$qaqcDir[loadIx]),
 #                                pattern=data$deviceId[loadIx]),
 #                 freqLevs=1,
 #                 project=data$projectName[loadIx],
@@ -1887,14 +1883,14 @@ checkValidStatus <- function(x) {
 #                 plotData <- dplyr::filter(plotData, .data$UTC >= input$timeSliderTol[1] &
 #                                               .data$UTC <= input$timeSliderTol[2])
 #             }
-#             
+#
 #             tRange <- range(plotData$UTC)
 #             plotLevels <- PAMscapes:::getOctaveLevels('ol', freqRange=range(plotData$frequency))
 #             plotData <- plotData[plotData$frequency %in% plotLevels$freqs, ]
 #             plotData$frequency <- factor(plotData$frequency, levels=appData$freqLevs)
 #             ggplot(plotData, aes(x=UTC, y=value, color=frequency)) +
 #                 geom_line() +
-#                 scale_color_manual(values=scales::hue_pal()(length(appData$freqLevs)), 
+#                 scale_color_manual(values=scales::hue_pal()(length(appData$freqLevs)),
 #                                    breaks=appData$freqLevs) +
 #                 scale_x_datetime(limits=tRange, expand=c(0, 0)) +
 #                 ggtitle(appData$project)
@@ -1990,7 +1986,7 @@ checkValidStatus <- function(x) {
 #             if(is.null(appData$data)) {
 #                 return('No data loaded')
 #             }
-#             
+#
 #             gapData <- appData$data[c('UTC', 'file', 'diffBetweenLength', 'timeToNext')]
 #             names(gapData)[3:4] <- c('Wav End to Next File (s)',
 #                                      'Time Between File Start (s)')
@@ -2108,12 +2104,12 @@ checkValidStatus <- function(x) {
 #                 appData$issue <- bind_rows(appData$issue, tvBrushData)
 #             }
 #             showNotification('Issue Logged')
-#             
+#
 #         })
 #         # Issue Log ####
 #         output$issueData <- renderDT({
 #             arrange(appData$issue, appData$issue$qaqcDate)
-#         }, 
+#         },
 #         server=FALSE,
 #         options=list(dom='rtip',
 #                      order=list(8, 'desc'))
@@ -2170,7 +2166,7 @@ checkValidStatus <- function(x) {
 #             out
 #         })
 #     }
-#     
+#
 #     runApp(shinyApp(ui=ui, server=server))
 # }
 

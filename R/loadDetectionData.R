@@ -229,6 +229,11 @@ loadDetectionData <- function(x,
                                names_to='species',
                                values_to='detectedFlag')
     }
+    if(!'species' %in% names(result)) {
+        warning('Could not find column "species", adjust "columnMap" or',
+                ' use "wide=TRUE" and "speciesCols" if applicable')
+        return(NULL)
+    }
     if('detectedFlag' %in% names(result) &&
        !is.null(detectedValues)) {
         result <- result[result$detectedFlag %in% detectedValues, ]
