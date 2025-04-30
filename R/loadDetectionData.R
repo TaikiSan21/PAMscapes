@@ -44,6 +44,7 @@
 #'   should be "1". Note that all values will be converted to characters,
 #'   so the string \code{"1"} must be used instead of the numeric \code{1}
 #' @param extraCols (optional) any additional columns to keep with the output
+#' @param verbose logical flag to show messages
 #' @param \dots additional arguments used for certain \code{source} values
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
@@ -51,6 +52,13 @@
 #' @return a dataframe with columns UTC, end, species, and detectionType, where
 #'   each row represents a single detection event. May have additional columns
 #'   depending on other parameters
+#'
+#' @examples
+#'
+#' detFile <- system.file('extdata/detectionExample.csv', package='PAMscapes')
+#' detData <- loadDetectionData(
+#'                detFile, source='csv',
+#'                columnMap=list(UTC='start',end='end', species='sound_code'))
 #'
 #' @export
 #'
@@ -63,7 +71,7 @@ loadDetectionData <- function(x,
                               columnMap=NULL,
                               detectionType=c('auto', 'presence', 'detection'),
                               presenceDuration=NULL,
-                              dateFormat=c('%Y-%m-%dT%H:%M:%S+0000',
+                              dateFormat=c('%Y-%m-%dT%H:%M:%S%z',
                                            '%Y-%m-%d %H:%M:%S',
                                            '%m-%d-%Y %H:%M:%S',
                                            '%Y/%m/%d %H:%M:%S',
@@ -73,6 +81,7 @@ loadDetectionData <- function(x,
                               speciesCols=NULL,
                               detectedValues=NULL,
                               extraCols=NULL,
+                              verbose=TRUE,
                               ...) {
     # Allow for '1day' style description of presence
     if(!is.null(presenceDuration) && is.character(presenceDuration)) {
@@ -99,7 +108,7 @@ loadDetectionData <- function(x,
                        warning('Must have an "end" column for detections to use "auto" detectionType')
                        return(NULL)
                    }
-                   result$detectionType <- inferDetType(result$UTC, result$end)
+                   result$detectionType <- inferDetType(result$UTC, result$end, verbose=verbose)
                },
                'presence' = {
                    if(is.null(presenceDuration)) {
@@ -196,7 +205,7 @@ loadDetectionData <- function(x,
                    warning('Must have an "end" column for detections to use "auto" detectionType')
                    return(NULL)
                }
-               result$detectionType <- inferDetType(result$UTC, result$end)
+               result$detectionType <- inferDetType(result$UTC, result$end, verbose=verbose)
            },
            'presence' = {
                if(is.null(presenceDuration)) {
@@ -214,14 +223,15 @@ loadDetectionData <- function(x,
            }
     )
     if(isTRUE(wide)) {
+        if(is.null(speciesCols)) {
+            warning('Must specify which columns contain detection data with',
+                    ' "speciesCols"')
+            return(NULL)
+        }
         if(is.null(detectedValues)) {
             warning('Must specify which values indicate a positive detection',
                     ' with "detectedValues"')
             return(NULL)
-        }
-        if(is.null(speciesCols)) {
-            warning('Must specify which columns contain detection data with',
-                    ' "speciesCols"')
         }
         result <- pivot_longer(result,
                                cols=all_of(speciesCols),

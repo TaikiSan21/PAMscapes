@@ -1,3 +1,8 @@
+# PAMscapes 0.12.0
+
+- Added `runDetLoadHelper` function to assist users with `loadDetectionData`
+parameter setup for arbitrary detection data
+
 # PAMscapes 0.11.4
 
 - Occasional problem with edge bands with `createOctaveLevel`, partial bands

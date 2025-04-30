@@ -1,7 +1,26 @@
-library(shiny)
-library(PAMscapes)
-
-runDetPrep <- function(data=NULL) {
+#' @title Run Detection Data Loading Helper App
+#'
+#' @description Runs a Shiny app that allows users to interactively
+#'   find the proper parameters to load a detection dataset using
+#'   \link{loadDetectionData}
+#'
+#' @param data file path to a CSV file containing detection data
+#'
+#' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
+#'
+#' @examples
+#' if(interactive()) {
+#'   detFile <- system.file('extdata/detectionExample.csv', package='PAMscapes')
+#'   runDetLoadHelper(detFile)
+#' }
+#'
+#' @importFrom shiny uiOutput renderUI reactive reactiveVal selectizeInput
+#' @importFrom shiny tabsetPanel renderTable
+#' @importFrom utils head
+#'
+#' @export
+#'
+runDetLoadHelper <- function(data=NULL) {
     if(is.null(data)) {
         data <- file.choose()
     }
@@ -22,7 +41,7 @@ runDetPrep <- function(data=NULL) {
             ),
             fluidRow(
                 h4('Data Preview - If this shows a table, load was successful!'),
-                uiOutput('dataHeader')
+              uiOutput('dataHeader')
             ),
             tabsetPanel(type='pills',
                         tabPanel(
@@ -55,13 +74,8 @@ runDetPrep <- function(data=NULL) {
         )
     )
     server <- function(input, output, session) {
-        if(is.null(data) || !file.exists(data)) {
-            df <- data.frame()
-            origNames <- character(0)
-        } else {
-            df <- read.csv(data, nrows = 10, stringsAsFactors = FALSE)
-            origNames <- reactiveVal(colnames(df))
-        }
+        df <- read.csv(data, nrows = 10, stringsAsFactors = FALSE)
+        origNames <- reactiveVal(colnames(df))
         funArgs <- reactiveVal(list(x=data))
         updateSelectInput(inputId='extraCols', choices=names(df))
         # Update args ####
@@ -161,6 +175,9 @@ runDetPrep <- function(data=NULL) {
 
         # Render Wide page ####
         output$wideBucket <- renderUI({
+            # if(!isTRUE(funArgs()$wide)) {
+            #     return(renderText('"wide" is not set to "TRUE"'))
+            # }
             fluidRow(
                 column(6,
                        selectizeInput('speciesCols',
@@ -187,10 +204,6 @@ runDetPrep <- function(data=NULL) {
         })
         output$codeSample <- renderPrint({
             argList <- funArgs()
-            if(is.null(argList[['x']])) {
-                # cat('No file loaded')
-                return('No file loaded')
-            }
             argText <- argToText(argList)
             argText <- paste0('loadDetectionData(', argText, ')')
             cat(argText)
@@ -267,6 +280,3 @@ argToText <- function(x, type='c', max=5) {
     x <- paste0(x, collapse=', ')
     x
 }
-
-wideFile <- '../Data/Acousdet/all_sp_dataframe.csv'
-runDetPrep(NULL)

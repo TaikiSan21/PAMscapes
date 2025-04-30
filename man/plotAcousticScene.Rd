@@ -89,6 +89,11 @@ freqMap <- data.frame(type=c('Dolphin', 'Whale'),
                       color=c('darkgreen', 'blue'))
 plotAcousticScene(detDf, freqMap=freqMap, typeCol='species', bin='1day')
 
+detFile <- system.file('extdata/detectionExample.csv', package='PAMscapes')
+detData <- loadDetectionData(detFile, source='csv',
+                     columnMap=list(UTC='start', end='end', species='sound_code'))
+plotAcousticScene(detData)
+
 }
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}

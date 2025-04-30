@@ -10,13 +10,14 @@ loadDetectionData(
   columnMap = NULL,
   detectionType = c("auto", "presence", "detection"),
   presenceDuration = NULL,
-  dateFormat = c("\%Y-\%m-\%dT\%H:\%M:\%S+0000", "\%Y-\%m-\%d \%H:\%M:\%S",
+  dateFormat = c("\%Y-\%m-\%dT\%H:\%M:\%S\%z", "\%Y-\%m-\%d \%H:\%M:\%S",
     "\%m-\%d-\%Y \%H:\%M:\%S", "\%Y/\%m/\%d \%H:\%M:\%S", "\%m/\%d/\%Y \%H:\%M:\%S"),
   tz = "UTC",
   wide = FALSE,
   speciesCols = NULL,
   detectedValues = NULL,
   extraCols = NULL,
+  verbose = TRUE,
   ...
 )
 }
@@ -73,6 +74,8 @@ so the string \code{"1"} must be used instead of the numeric \code{1}}
 
 \item{extraCols}{(optional) any additional columns to keep with the output}
 
+\item{verbose}{logical flag to show messages}
+
 \item{\dots}{additional arguments used for certain \code{source} values}
 }
 \value{
@@ -83,6 +86,14 @@ depending on other parameters
 \description{
 Loads and formats detection data into a common format for
 use in other PAMscapes functions
+}
+\examples{
+
+detFile <- system.file('extdata/detectionExample.csv', package='PAMscapes')
+detData <- loadDetectionData(
+               detFile, source='csv',
+               columnMap=list(UTC='start',end='end', species='sound_code'))
+
 }
 \author{
 Taiki Sakai \email{taiki.sakai@noaa.gov}

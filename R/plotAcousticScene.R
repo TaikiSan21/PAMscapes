@@ -52,31 +52,36 @@
 #'                       color=c('darkgreen', 'blue'))
 #' plotAcousticScene(detDf, freqMap=freqMap, typeCol='species', bin='1day')
 #'
+#' detFile <- system.file('extdata/detectionExample.csv', package='PAMscapes')
+#' detData <- loadDetectionData(detFile, source='csv',
+#'                      columnMap=list(UTC='start', end='end', species='sound_code'))
+#' plotAcousticScene(detData)
+#'
 #' @importFrom dplyr left_join join_by distinct across
 #'
 #' @export
 #'
-plotAcousticScene <- function(x, 
-                              freqMap=NULL, 
+plotAcousticScene <- function(x,
+                              freqMap=NULL,
                               typeCol='species',
-                              title=NULL, 
-                              bin='1day', 
+                              title=NULL,
+                              bin='1day',
                               by=NULL,
                               combineYears=FALSE,
                               effort=NULL,
                               scale=c('log', 'linear'),
-                              freqMin=NULL, 
+                              freqMin=NULL,
                               freqMax=NULL,
                               fill=TRUE,
-                              alpha=1, 
-                              returnData=FALSE, 
+                              alpha=1,
+                              returnData=FALSE,
                               add=FALSE) {
     x <- checkSimple(x, needCols=c('UTC', typeCol))
     # are we niche (frequencies) or presence (same width)
     isPresence <- FALSE
     if(is.null(freqMap)) {
         if(is.factor(x[[typeCol]])) {
-            freqMap <- data.frame(type=levels(x[[typeCol]])) 
+            freqMap <- data.frame(type=levels(x[[typeCol]]))
         } else {
             freqMap <- data.frame(type = unique(x[[typeCol]]))
         }
@@ -103,7 +108,7 @@ plotAcousticScene <- function(x,
         year(x$end) <- 2020 + yearDiff
         start229 <- is229(x$UTC)
         end229 <- is229(x$end)
-        
+
         x$UTC[start229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
         x$end[end229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
         diffs <- as.numeric(difftime(x$end, x$UTC, units='secs'))
@@ -160,7 +165,7 @@ plotAcousticScene <- function(x,
         d$difftime <- TRUE
         d$difftime[2:nrow(d)] <- d$UTC[2:nrow(d)] != d$end[1:(nrow(d)-1)]
         d$group <- cumsum(d$difftime)
-        
+
         d <- ungroup(
             summarise(
                 group_by(d, across(c('group', typeCol, by, 'freqMin', 'freqMax'))),
@@ -212,7 +217,7 @@ plotAcousticScene <- function(x,
                       fill=NA,
                       alpha=alpha)
     }
-    
+
     if(isFALSE(add)) {
         if(scale == 'log10') {
             g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')
@@ -224,13 +229,13 @@ plotAcousticScene <- function(x,
                  fill='Sound Type')
         if(isTRUE(combineYears)) {
             g <- g +
-                scale_x_datetime(date_labels='%b', 
+                scale_x_datetime(date_labels='%b',
                                  breaks=seq(from=as.POSIXct('2019-01-01', tz='UTC'), by='month', length.out=12),
                                  # limits=as.POSIXct(c('2020-01-01', '2020-12-31'), tz='UTC') + c(-1, 1),
                                  expand=c(0, 0)) +
                 theme(panel.grid.minor.x = element_blank())
         } else {
-            g <- g + 
+            g <- g +
                 scale_x_datetime(date_labels='%b-%Y', expand=c(0, 0))
         }
     }
@@ -262,7 +267,7 @@ plotAcousticScene <- function(x,
             }
             effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
         }
-        effort <- formatEffort(effort, range=c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE)), 
+        effort <- formatEffort(effort, range=c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE)),
                                resolution=bin, combineYears = combineYears, columns=c(by, typeCol))
         colVals <- lapply(c(by, typeCol), function(c) unique(x[[c]]))
         names(colVals) <- c(by, typeCol)
@@ -277,7 +282,7 @@ plotAcousticScene <- function(x,
             effort$freqMax <- effort$freqMax + 0.1
         }
         g <- g +
-            geom_rect(data=effort, 
+            geom_rect(data=effort,
                       aes(xmin=.data$UTC,
                           xmax=.data$end,
                           ymin=.data$freqMin,
