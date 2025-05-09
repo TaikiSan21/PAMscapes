@@ -12,11 +12,12 @@
 #' 
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #' 
+#' @return nothing, just runs the app
+#' 
+#' @importFrom shiny isolate invalidateLater icon
 #' @export
 #' 
-#' 
-#' 
-runDailyLTSAReview <- function(file, plotQuality=TRUE) {
+runDailyLTSAReview <- function(file, plotQuality=FALSE) {
     if(length(file) == 1 &&
        dir.exists(file)) {
         file <- list.files(file, pattern='nc$', full.names=TRUE)
@@ -182,11 +183,11 @@ runDailyLTSAReview <- function(file, plotQuality=TRUE) {
             # tic('Plot DQ')
             dqPlot <- ggplot() +
                 geom_rect(data=vals$dqPlotBase,
-                          aes(xmin=UTC,
-                              xmax=UTCend,
-                              ymin=freqLow,
-                              ymax=frequency,
-                              fill=value),
+                          aes(xmin=.data$UTC,
+                              xmax=.data$UTCend,
+                              ymin=.data$freqLow,
+                              ymax=.data$frequency,
+                              fill=.data$value),
                           show.legend=TRUE) +
                 scale_x_datetime(expand=c(0,0)) +
                 scale_y_log10(expand=c(0,0)) +
@@ -366,7 +367,7 @@ markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, fre
 }
 
 compressDQData <- function(dqLong, doFreq=TRUE) {
-    dqLong <- arrange(dqLong, UTC)
+    dqLong <- arrange(dqLong, .data$UTC)
     dqLong <- bind_rows(lapply(split(dqLong, list(dqLong$value, dqLong$frequency)), function(x) {
         if(nrow(x) <= 1) {
             return(x)
@@ -384,7 +385,7 @@ compressDQData <- function(dqLong, doFreq=TRUE) {
     if(isFALSE(doFreq)) {
         return(dqLong)
     }
-    dqLong <- arrange(dqLong, freqLow)
+    dqLong <- arrange(dqLong, .data$freqLow)
     dqLong <- bind_rows(lapply(split(dqLong, list(dqLong$value, dqLong$UTC, dqLong$UTCend)), function(x) {
         # browser()
         if(nrow(x) <= 1) {
@@ -508,8 +509,8 @@ fastLTSAData <- function(x,
         }
         freqRange <- sort(freqRange)
         x <- filter(x,
-                           .data$frequency <= freqRange[2],
-                           .data$frequency >= freqRange[1])
+                    .data$frequency <= freqRange[2],
+                    .data$frequency >= freqRange[1])
     }
     x$UTCend <- x$UTC + (bin)
     if(scale == 'log') {
@@ -519,11 +520,11 @@ fastLTSAData <- function(x,
 }
 
 # runDailyQualityReview for name
-ncDir <- 'testData/NRS11'
-ncFile <- 'testData/NRS11/NRS11_20200101.nc'
-# ncData <- loadSoundscapeData(ncFile)
-hm <- runDataQualityReview(ncDir, plotQuality=T)
-
-# TODO ####
+# ncDir <- 'testData/NRS11'
+# ncFile <- 'testData/NRS11/NRS11_20200101.nc'
+# # ncData <- loadSoundscapeData(ncFile)
+# hm <- runDataQualityReview(ncDir, plotQuality=T)
+# 
+# # TODO ####
 # dq plotting and prepping is gross :(
 # but it makes seeing marks very fast

@@ -55,11 +55,11 @@ readOldDetection <- function(x) {
         data$x21 <- NULL
     }
     if(any(grepl('call_type', names(data)))) {
-        data <- pivot_longer(data, cols=grep('call_type', names(data)), names_to='call_type', values_to='call_count')
+        data <- tidyr::pivot_longer(data, cols=grep('call_type', names(data)), names_to='call_type', values_to='call_count')
     }
-    date$detection_start_datetime <- paste(data$start_date, data$start_time)
-    data$detection_end_datetime <- paste(data$end_date, data$end_time)
-    data <- PAMpal:::dropCols(data, c('start_date', 'start_time', 'end_date', 'end_time'))
+    # data$detection_start_datetime <- paste(data$start_date, data$start_time)
+    # data$detection_end_datetime <- paste(data$end_date, data$end_time)
+    # data <- PAMpal:::dropCols(data, c('start_date', 'start_time', 'end_date', 'end_time'))
     data$file <- x
     data
 }

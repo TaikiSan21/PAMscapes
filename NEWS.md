@@ -1,3 +1,8 @@
+# PAMscapes 0.13.0
+
+- Added `runDailyLTSAReview` function to review and annotate NetCDF soundscape
+files with both data quality values and comments
+
 # PAMscapes 0.12.0
 
 - Added `runDetLoadHelper` function to assist users with `loadDetectionData`
