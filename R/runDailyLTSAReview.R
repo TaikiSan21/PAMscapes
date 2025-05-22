@@ -48,6 +48,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
             fluidRow(
                 plotOutput(outputId = 'ltsaPlot', brush=brushOpts(id='ltsaBrush'))
             ),
+            sliderInput('timeSlider', label='Time Range', 
+                        min=0, max=1, value=c(0, 1),
+                        width='100%'),
             fluidRow(
                 column(2, actionButton('addButton', label='Add Annotation')),
                 column(2, selectizeInput('dqValue', label='Quality Flag',
@@ -110,6 +113,16 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                     style='font-weight:bold; text-align:center;')
         })
         plotColors <- c('1'='darkgreen', '2'='steelblue', '3'='yellow', '4'='red')
+        observeEvent(vals$data, {
+            timeRange <- range(vals$data$UTC)
+            # print(timeRange)
+            updateSliderInput(inputId='timeSlider',
+                              min=timeRange[1],
+                              max=timeRange[2],
+                              value=timeRange,
+                              timeFormat= '%m-%d %H:%M',
+                              timezone='UTC')
+        })
         # Change File ####
         observeEvent(input$fileSelect, {
             skipPlot(1) # allows for prepping the header
@@ -153,15 +166,21 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                 invalidateLater(1, session)
                 return()
             }
+            plotData <- vals$ltsaData
+            if(inherits(input$timeSlider, 'POSIXct')) {
+                plotData <- filter(plotData, 
+                                   .data$UTC >= input$timeSlider[1],
+                                   .data$UTC <= input$timeSlider[2])
+            }
             # tic('Plot LTSA')
-            g <- ggplot(vals$ltsaData) +
+            g <- ggplot(plotData) +
                 geom_rect(aes(xmin=.data$UTC,
                               xmax=.data$UTCend,
                               ymin=.data$freqLow,
                               ymax=.data$frequency,
                               fill=.data$value)) +
                 scale_fill_gradientn(colors=viridis_pal()(25),
-                                     limits=range(vals$ltsaData$value),
+                                     limits=range(plotData$value),
                                      oob=squish) +
                 scale_x_datetime(expand=c(0,0)) +
                 scale_y_log10(expand=c(0,0), guide=guide_axis(position='left')) +
@@ -294,9 +313,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                 write.csv(out, file, row.names=FALSE)
             }
         )
-    }
+        }
     runApp(shinyApp(ui=ui, server=server))
-}
+    }
 
 markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, freqs) {
     if(is.null(freqRange) &&

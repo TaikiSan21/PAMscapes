@@ -1,3 +1,7 @@
+# PAMscapes 0.13.1
+
+- Adding time range slider to `runDailyLTSAReview`
+
 # PAMscapes 0.13.0
 
 - Added `runDailyLTSAReview` function to review and annotate NetCDF soundscape
