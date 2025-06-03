@@ -3,7 +3,7 @@
 #' @description Transforms detection data to presence-type data with user
 #'   specified time bin (e.g. hourly or daily presence). 
 #'   
-#' @param x dataframe of deteciton data
+#' @param x dataframe of detection data
 #' @param bin the amount time to bin by, must be a character of the form
 #'   \code{"#unit"} or \code{"unit"} e.g. "2hour" or "day"
 #' @param columns names of the columns in \code{x} that define which rows
@@ -42,7 +42,7 @@
 #' 
 binDetectionData <- function(x, 
                              bin,
-                             columns=c('species', 'project'), 
+                             columns=c('species'), 
                              rematchGPS=TRUE,
                              gpsGroup=NULL) {
     columns <- columns[columns %in% colnames(x)]

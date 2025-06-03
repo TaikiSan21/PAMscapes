@@ -24,6 +24,11 @@ runDetLoadHelper <- function(data=NULL) {
     if(is.null(data)) {
         data <- file.choose()
     }
+    if(is.data.frame(data)) {
+        DFNAME <- deparse(sys.call()[[2]])
+    } else {
+        DFNAME <- NULL
+    }
     tzVals <- c(
         'UTC',
         paste0('UTC+', 1:12),
@@ -34,14 +39,14 @@ runDetLoadHelper <- function(data=NULL) {
         id='Main',
         'loadDetectionData Helper',
         tabPanel(
-            'Data Prep',
+            'Data Loader',
             fluidRow(
                 h4('Code snippet - copy me!'),
                 verbatimTextOutput('codeSample')
             ),
             fluidRow(
                 h4('Data Preview - If this shows a table, load was successful!'),
-              uiOutput('dataHeader')
+                uiOutput('dataHeader')
             ),
             tabsetPanel(type='pills',
                         tabPanel(
@@ -71,10 +76,20 @@ runDetLoadHelper <- function(data=NULL) {
                             uiOutput('wideBucket')
                         )
             )
+        ),
+        tabPanel(
+            'Raw Data',
+            uiOutput('rawData')
         )
     )
     server <- function(input, output, session) {
-        df <- read.csv(data, nrows = 10, stringsAsFactors = FALSE)
+        if(is.character(data)) {
+            # df <- read.csv(data, nrows = 10, stringsAsFactors = FALSE)
+            df <- read.csv(data, stringsAsFactors = FALSE)
+        } else if(is.data.frame(data)) {
+            # df <- head(data, 10)
+            df <- data
+        }
         origNames <- reactiveVal(colnames(df))
         funArgs <- reactiveVal(list(x=data))
         updateSelectInput(inputId='extraCols', choices=names(df))
@@ -112,21 +127,27 @@ runDetLoadHelper <- function(data=NULL) {
         observeEvent(input$presenceDuration, {
             newArg <- funArgs()
             newVal <- input$presenceDuration
+            if(!is.na(suppressWarnings(as.numeric(newVal)))) {
+                newVal <- as.numeric(newVal)
+            }
             if(is.null(newVal) || length(newVal) == 0 || newVal == '') {
                 newArg$presenceDuration <- NULL
             } else {
-                newArg$presenceDuration <- input$presenceDuration
+                newArg$presenceDuration <- newVal
             }
             funArgs(newArg)
         }, ignoreNULL=FALSE)
         colListen <- reactive({
-            list(input$selectUTC, input$selectEnd, input$selectSpecies)
+            list(input$selectUTC, input$selectEnd, input$selectSpecies,
+                 input$selectEffortStart, input$selectEffortEnd)
         })
         observeEvent(colListen(), {
             utc <- input$selectUTC
             end <- input$selectEnd
             species <- input$selectSpecies
-            colMap <- list(UTC=NA, end=NA, species=NA)
+            effStart <- input$selectEffortStart
+            effEnd <- input$selectEffortEnd
+            colMap <- list(UTC=NA, end=NA, species=NA, effortStart=NA, effortEnd=NA)
             if(is.null(utc) || length(utc) == 0 || utc == '') {
                 colMap$UTC <- NULL
             } else {
@@ -142,6 +163,17 @@ runDetLoadHelper <- function(data=NULL) {
             } else {
                 colMap$species <- species
             }
+            if(is.null(effStart) || length(effStart) == 0 || effStart == '') {
+                colMap$effortStart <- NULL
+            } else {
+                colMap$effortStart <- effStart
+            }
+            if(is.null(effEnd) || length(effEnd) == 0 || effEnd == '') {
+                colMap$effortEnd <- NULL
+            } else {
+                colMap$effortEnd <- effEnd
+            }
+            
             newArg <- funArgs()
             if(length(colMap) == 0) {
                 newArg$columnMap <- NULL
@@ -158,21 +190,33 @@ runDetLoadHelper <- function(data=NULL) {
         # Render columnMap page ####
         output$colMap <- renderUI({
             fluidRow(
-                column(4,
-                       selectizeInput('selectUTC', '"UTC" column', choices=origNames(),
-                                      multiple=TRUE, options = list(maxItems=1))
+                fluidRow(
+                    column(4,
+                           selectizeInput('selectUTC', '"UTC" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    ),
+                    column(4,
+                           selectizeInput('selectEnd', '"end" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    ),
+                    column(4,
+                           selectizeInput('selectSpecies', '"species" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    )
                 ),
-                column(4,
-                       selectizeInput('selectEnd', '"end" column', choices=origNames(),
-                                      multiple=TRUE, options = list(maxItems=1))
-                ),
-                column(4,
-                       selectizeInput('selectSpecies', '"species" column', choices=origNames(),
-                                      multiple=TRUE, options = list(maxItems=1))
+                fluidRow(
+                    column(4,
+                           selectizeInput('selectEffortStart', '"effortStart" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    ),
+                    column(4,
+                           selectizeInput('selectEffortEnd', '"effortEnd" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    )
                 )
             )
         })
-
+        
         # Render Wide page ####
         output$wideBucket <- renderUI({
             # if(!isTRUE(funArgs()$wide)) {
@@ -204,7 +248,7 @@ runDetLoadHelper <- function(data=NULL) {
         })
         output$codeSample <- renderPrint({
             argList <- funArgs()
-            argText <- argToText(argList)
+            argText <- argToText(argList, dfName=DFNAME)
             argText <- paste0('loadDetectionData(', argText, ')')
             cat(argText)
         })
@@ -238,7 +282,10 @@ runDetLoadHelper <- function(data=NULL) {
             tryLoad$end <- format(tryLoad$end, format='%Y-%m-%d %H:%M:%S')
             renderTable(head(tryLoad))
         })
-
+        output$rawData <- renderUI({
+            renderTable(head(df, 10))
+        })
+        
     }
     runApp(shinyApp(ui=ui, server=server))
 }
@@ -253,11 +300,14 @@ utcToOlson <- function(tz) {
     tz
 }
 
-argToText <- function(x, type='c', max=5) {
+argToText <- function(x, type='c', max=5, dfName='x') {
     for(i in seq_along(x)) {
         val <- x[[i]]
         if(is.character(val)) {
             val <- paste0("'", val, "'")
+        }
+        if(is.data.frame(val)) {
+            val <- dfName
         }
         if(!is.list(val) && length(val) > 1) {
             val <- paste0(val, collapse=', ')

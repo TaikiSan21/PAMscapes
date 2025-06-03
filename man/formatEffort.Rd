@@ -13,8 +13,8 @@ formatEffort(
 )
 }
 \arguments{
-\item{effort}{dataframe with columns \code{start} and \code{end} describing
-on effort time ranges}
+\item{effort}{dataframe with columns \code{start} or \code{effortStart}
+and \code{end} or \code{effortEnd} describing on effort time ranges}
 
 \item{range}{if not \code{NULL}, the full extent time ranges to consider for
 marking off effort times}

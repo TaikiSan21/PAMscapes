@@ -42,7 +42,9 @@ as a single "year"}
 
 \item{effort}{if not \code{NULL}, a dataframe describing on effort times
 to be formatted with \link{formatEffort}. If effort data is not provided
-then times with zero detections will not be properly accounted for.}
+then times with zero detections will not be properly accounted for.
+Alternatively, if columns "effortStart" and "effortEnd" are present in
+\code{x}, then these values will be used for start and end of effort}
 
 \item{dropZeroes}{logical flag to remove boxplots where all observations
 are zero (these would normally appear as a flat line at zero)}

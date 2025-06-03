@@ -20,7 +20,9 @@
 #'   as a single "year". The year will be set to 2019, and detections falling
 #'   on leap days (February 29th) will be removed
 #' @param effort if not \code{NULL}, a dataframe decribing effort data to be
-#'   be formatted with \link{formatEffort}
+#'   be formatted with \link{formatEffort}. Alternatively, if columns
+#'   "effortStart" and "effortEnd" are present in \code{x}, then these will
+#'   be used.
 #' @param scale one of \code{log} or \code{linear}, the frequency scale for
 #'   the plot
 #' @param freqMin optional minimum frequency for plot, useful for log scale
@@ -100,6 +102,10 @@ plotAcousticScene <- function(x,
        !by %in% colnames(x)) {
         warning('"by" column not present in data')
         by <- NULL
+    }
+    if(is.null(effort) &&
+       all(c('effortStart', 'effortEnd') %in% names(x))) {
+        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', by, typeCol))))
     }
     x <- binDetectionData(x, bin=bin, columns=c(typeCol, by), rematchGPS=FALSE)
     if(isTRUE(combineYears)) {
@@ -260,6 +266,7 @@ plotAcousticScene <- function(x,
         g <- g +
             facet_wrap(~ .data[[by]], ncol=1, strip.position='left')
     }
+    
     if(!is.null(effort)) {
         for(col in c(by, typeCol)) {
             if(!col %in% names(effort)) {

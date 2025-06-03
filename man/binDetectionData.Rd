@@ -7,13 +7,13 @@
 binDetectionData(
   x,
   bin,
-  columns = c("species", "project"),
+  columns = c("species"),
   rematchGPS = TRUE,
   gpsGroup = NULL
 )
 }
 \arguments{
-\item{x}{dataframe of deteciton data}
+\item{x}{dataframe of detection data}
 
 \item{bin}{the amount time to bin by, must be a character of the form
 \code{"#unit"} or \code{"unit"} e.g. "2hour" or "day"}

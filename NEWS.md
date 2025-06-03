@@ -1,6 +1,22 @@
+# PAMScapes 0.14.0
+
+- Adding `matchDetectionData` function for integrating detections wiht
+other types of data
+
+- Added default Makara effort columns to `loadDetectionData`
+
+- Added effortStart/effortEnd to `runDetLoadHelper` column map
+
+- `plotDetectionBoxplot` and `plotAcousticScene` can automatically
+account for effort if "effortStart" and "effortEnd" columns are
+present (no separate effort dataframe required)
+
 # PAMscapes 0.13.1
 
 - Adding time range slider to `runDailyLTSAReview`
+
+- Fixing `loadDetectionData` and `runDetLoadHelper` to work with 
+dataframe input 
 
 # PAMscapes 0.13.0
 

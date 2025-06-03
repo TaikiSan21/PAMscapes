@@ -3,8 +3,8 @@
 #' @description Format effort data for use in other acoustic detection plotting
 #'   functions. Time ranges will be marked as either "on" or "off" effort
 #'   
-#' @param effort dataframe with columns \code{start} and \code{end} describing
-#'   on effort time ranges
+#' @param effort dataframe with columns \code{start} or \code{effortStart}
+#'   and \code{end} or \code{effortEnd} describing on effort time ranges
 #' @param range if not \code{NULL}, the full extent time ranges to consider for
 #'   marking off effort times
 #' @param resolution if not \code{NULL}, time resolution to round effort start
@@ -35,6 +35,22 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
         if(length(columns) == 0) {
             columns <- NULL
         }
+    }
+    if('effortStart' %in% names(effort)) {
+        effort <- rename(effort, 'start'='effortStart')
+    }
+    if('effortEnd' %in% names(effort)) {
+        effort <- rename(effort, 'end'='effortEnd')
+    }
+    if(!all(c('start', 'end') %in% names(effort))) {
+        warning('Effort must have columns "start" and "end"')
+        return(NULL)
+    }
+    if(!inherits(effort$start, 'POSIXct')) {
+        effort$start <- parseToUTC(effort$start)
+    }
+    if(!inherits(effort$end, 'POSIXct')) {
+        effort$end <- parseToUTC(effort$end)
     }
     # expecting input to only be on-effort times
     if('status' %in% names(effort)) {

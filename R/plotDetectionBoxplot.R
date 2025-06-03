@@ -38,7 +38,9 @@
 #'   as a single "year"
 #' @param effort if not \code{NULL}, a dataframe describing on effort times
 #'   to be formatted with \link{formatEffort}. If effort data is not provided
-#'   then times with zero detections will not be properly accounted for.
+#'   then times with zero detections will not be properly accounted for. 
+#'   Alternatively, if columns "effortStart" and "effortEnd" are present in
+#'   \code{x}, then these values will be used for start and end of effort
 #' @param dropZeroes logical flag to remove boxplots where all observations
 #'   are zero (these would normally appear as a flat line at zero)
 #' @param returnData if \code{TRUE} then no plot will be generated, instead the
@@ -81,6 +83,10 @@ plotDetectionBoxplot <- function(x,
     if(any(missCol)) {
         stop('Column(s) ', paste0(missCol, collapse=', '), ' are not in "x"')
     }
+    if(is.null(effort) &&
+       all(c('effortStart', 'effortEnd') %in% names(x))) {
+        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', group))))
+    }
     for(col in group) {
         if(!col %in% names(effort)) {
             next
@@ -115,7 +121,10 @@ plotDetectionBoxplot <- function(x,
         sumAcross <- c(sumAcross, 'year')
         switch(bigBin,
                'week' = {
-                   FUN <- isoweek
+                   FUN <- function(x) {
+                       isoweek(floor_date(x, unit='week'))
+                   }
+                   # FUN <- isoweek
                    levs <- 1:53
                    xLabs <- c('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec')
                    xAt <- 1 + c(0, 4, 8, 12, 17, 21, 25, 30, 34, 39, 43, 48)
@@ -250,7 +259,7 @@ plotDetectionBoxplot <- function(x,
         coord_cartesian(ylim=yLim)
     if(isTRUE(combineYears)) {
         g <- g +
-            scale_x_discrete(breaks=xAt, labels=xLabs, name=oneUp(bigBin))
+            scale_x_discrete(breaks=xAt, labels=xLabs, name=oneUp(bigBin), drop=FALSE)
     } else {
         g <- g +
             scale_x_datetime(date_labels = '%b-%Y', name='Date')

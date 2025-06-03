@@ -17,12 +17,12 @@ test_that('Test effort formatting', {
           expect_identical(allEff, siteEff[-3])
           effort <- 
               data.frame(
-                  start=c('2023-01-04', '2024-02-29','2020-02-29', '2023-04-01'),
-                  end = c('2023-03-02', '2024-04-05', '2020-03-01', '2024-01-04'),
+                  effortStart=c('2023-01-04', '2024-02-29','2020-02-29', '2023-04-01'),
+                  effortEnd = c('2023-03-02', '2024-04-05', '2020-03-01', '2024-01-04'),
                   site = c('a', 'b', 'a', 'a')
               )
-          effort$start <- lubridate::ymd(effort$start)
-          effort$end <- lubridate::ymd(effort$end)
+          effort$effortStart <- lubridate::ymd(effort$effortStart)
+          effort$effortEnd <- lubridate::ymd(effort$effortEnd)
           expect_warning(siteEff <- formatEffort(effort, columns='site', combineYears=TRUE),
                          '1 effort entries modified')
           

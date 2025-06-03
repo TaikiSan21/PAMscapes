@@ -99,6 +99,9 @@ plotPSD <- function(x,
        length(dbRange) > 2) {
         dbRange <- range(dbRange, na.rm=TRUE)
     }
+    if(missing(style)) {
+        style <- 'quantile'
+    }
     if(isTRUE(returnData) &&
        length(style) != 1) {
         warning('Can only return data for a single "style", select ',

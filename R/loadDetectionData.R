@@ -128,6 +128,9 @@ loadDetectionData <- function(x,
         return(result)
     }
     reqCols <- c('UTC', 'end', 'species', 'detectionType')
+    if(all(reqCols %in% names(x))) {
+        return(x)
+    }
     source <- match.arg(source)
     if(is.character(x) && !file.exists(x)) {
         warning('File ', x, ' does not exist')
@@ -147,7 +150,9 @@ loadDetectionData <- function(x,
             warning('Input does not appear to be Makara data, change "source"')
             return(NULL)
         }
-        result$deployment <- detFileToCode(x)
+        if(is.character(x)) {
+            result$deployment <- detFileToCode(x)
+        }
         extraCols <- c(extraCols, 'call', 'deployment')
         if(is.null(detectedValues)) {
             detectedValues <- 'DETECTED'
@@ -186,6 +191,22 @@ loadDetectionData <- function(x,
     }
     if('end' %in% names(result)) {
         result$end <- parse_date_time(result$end,
+                                      orders=dateFormat,
+                                      truncated = 3,
+                                      tz=tz,
+                                      quiet=TRUE,
+                                      exact=TRUE)
+    }
+    if('effortStart' %in% names(result)) {
+        result$effortStart <- parse_date_time(result$effortStart,
+                                      orders=dateFormat,
+                                      truncated = 3,
+                                      tz=tz,
+                                      quiet=TRUE,
+                                      exact=TRUE)
+    }
+    if('effortEnd' %in% names(result)) {
+        result$effortEnd <- parse_date_time(result$effortEnd,
                                       orders=dateFormat,
                                       truncated = 3,
                                       tz=tz,
@@ -260,9 +281,13 @@ getColMaps <- function(which=NULL) {
                         'end' = 'detection_end_datetime',
                         'species' = 'detection_sound_source_code',
                         'call' = 'detection_call_type_code',
+                        'deployment' = 'deployment_code',
                         'detectedFlag' = 'detection_type_code',
+                        'detectedFlag' = 'detection_result_code',
                         'Latitude' = 'detection_latitude',
-                        'Longitude' = 'detection_longitude'
+                        'Longitude' = 'detection_longitude',
+                        'effortStart' = 'analysis_start_datetime',
+                        'effortEnd' = 'analysis_end_datetime'
         ),
         'gen' = list('UTC' = 'StartDate',
                      'project' = 'PROJECT_DESCRIPTION',
@@ -324,6 +349,10 @@ renameToMap <- function(names, map) {
     map <- checkMap(map)
     lowNames <- tolower(names)
     lowOld <- tolower(map$old)
+    if(length(unique(lowOld)) != length(lowOld)) {
+        warning('The same column cannot be mapped to multiple names')
+        return(names)
+    }
     # # in case old and new seem obviously swapped, reverse and redo
     # if(!any(lowOld %in% lowNames) &&
     #    any(tolower(map$new) %in% lowNames)) {
