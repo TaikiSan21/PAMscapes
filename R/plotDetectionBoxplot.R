@@ -43,6 +43,7 @@
 #'   \code{x}, then these values will be used for start and end of effort
 #' @param dropZeroes logical flag to remove boxplots where all observations
 #'   are zero (these would normally appear as a flat line at zero)
+#' @param title optional title for the plot
 #' @param returnData if \code{TRUE} then no plot will be generated, instead the
 #'   dataframe that would normally be used to make the plot will be returned
 #'   
@@ -63,6 +64,7 @@ plotDetectionBoxplot <- function(x,
                                  combineYears=FALSE, 
                                  effort=NULL,
                                  dropZeroes=FALSE, 
+                                 title=NULL,
                                  returnData=FALSE) {
     binChoice <- c('hour', 'day', 'week', 'month')
     binSplit <- strsplit(bin, '/')[[1]]
@@ -73,7 +75,9 @@ plotDetectionBoxplot <- function(x,
     
     bigBin <- match.arg(binSplit[2], binChoice)
     smallBin <- match.arg(binSplit[1], binChoice)
-    
+    if(unitToPeriod(bigBin) <= unitToPeriod(smallBin)) {
+        stop('"bin" numerator must be smaller than denominator e.g. "day/week" not "week/day"')
+    }
     if(!is.null(facet) &&
        !facet %in% group) {
         # warning('"facet" must be included in "group"')
@@ -302,8 +306,13 @@ plotDetectionBoxplot <- function(x,
     groupTitle <- paste0(sumAcross, collapse=', ')
     groupTitle <- paste0('grouped across: ', groupTitle)
     binTitle <- paste0(oneUp(smallBin), 's per ', oneUp(bigBin))
-    title <- paste0(binTitle, ', ', groupTitle)
-    g <- g + ggtitle(title)
+    if(is.null(title)) {
+        title <- paste0(binTitle, ', ', groupTitle)
+        g <- g + ggtitle(title)
+    } else {
+        subtitle <- paste0(binTitle, ', ', groupTitle)
+        g <- g + ggtitle(title, subtitle = subtitle)
+    }
     g
 }
 

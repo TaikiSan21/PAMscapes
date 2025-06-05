@@ -13,6 +13,7 @@ plotDetectionBoxplot(
   combineYears = FALSE,
   effort = NULL,
   dropZeroes = FALSE,
+  title = NULL,
   returnData = FALSE
 )
 }
@@ -48,6 +49,8 @@ Alternatively, if columns "effortStart" and "effortEnd" are present in
 
 \item{dropZeroes}{logical flag to remove boxplots where all observations
 are zero (these would normally appear as a flat line at zero)}
+
+\item{title}{optional title for the plot}
 
 \item{returnData}{if \code{TRUE} then no plot will be generated, instead the
 dataframe that would normally be used to make the plot will be returned}

@@ -91,6 +91,7 @@ plotAcousticScene <- function(x,
     if(typeCol %in% names(freqMap) &&
        !'type' %in% names(freqMap)) {
         freqMap$type <- freqMap[[typeCol]]
+        freqMap[[typeCol]] <- NULL
     }
     if(!'freqMin' %in% names(freqMap)) {
         freqMap$freqMin <- (nrow(freqMap):1) - .4

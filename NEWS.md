@@ -11,6 +11,10 @@ other types of data
 account for effort if "effortStart" and "effortEnd" columns are
 present (no separate effort dataframe required)
 
+- `runDetectionExplorer` Shiny app created as a replacement and
+upgrade of the previous `runDetLoadHelper` app. Combines the data
+loading functionality with plot previews similar to `runSoundscapeExplorer`
+
 # PAMscapes 0.13.1
 
 - Adding time range slider to `runDailyLTSAReview`

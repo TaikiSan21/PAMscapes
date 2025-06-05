@@ -52,6 +52,13 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
     if(!inherits(effort$end, 'POSIXct')) {
         effort$end <- parseToUTC(effort$end)
     }
+    startNA <- is.na(effort$start)
+    endNA <- is.na(effort$end)
+    if(sum(startNA | endNA) > 0) {
+        warning(sum(startNA | endNA), ' effort entries had', 
+                ' NA start or end values, they are removed.')
+        effort <- effort[!(startNA | endNA), ]
+    }
     # expecting input to only be on-effort times
     if('status' %in% names(effort)) {
         effort <- effort[effort$status == 'on', ]
