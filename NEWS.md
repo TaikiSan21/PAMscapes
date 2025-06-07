@@ -15,6 +15,8 @@ present (no separate effort dataframe required)
 upgrade of the previous `runDetLoadHelper` app. Combines the data
 loading functionality with plot previews similar to `runSoundscapeExplorer`
 
+- Added `plotPolarDetections` plotting function
+
 # PAMscapes 0.13.1
 
 - Adding time range slider to `runDailyLTSAReview`

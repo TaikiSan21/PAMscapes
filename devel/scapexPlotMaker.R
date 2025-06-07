@@ -124,3 +124,9 @@ gfscene <- data %>%
     plotAcousticScene(freqMap=freqMap, title='plotAcousticScene')
 gfscene
 ggplot2::ggsave(gfscene, file='inst/images/freq-scene-ex.png', width=500, height=400, units='px', dpi=100)
+
+gpolar <- data %>% 
+    filter(species %in% c('Sei', 'Humpback', 'Dolphin', 'NARW')) %>% 
+    plotPolarDetections(group='site', facet='species', title='plotPolarDetections')
+gpolar
+ggplot2::ggsave(gpolar, file='inst/images/polar-ex.png', width=500, height=400, units='px', dpi=100)

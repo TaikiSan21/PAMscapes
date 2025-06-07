@@ -67,6 +67,11 @@ runDetectionExplorer <- function(data=NULL) {
                         tags$img(src='scapex-images/freq-scene-ex.png',
                                  height=buttonHeight)
             ),
+            tags$button(id='btn_polar',
+                        class='btn action-button',
+                        tags$img(src='scapex-images/polar-ex.png',
+                                 height=buttonHeight)
+            ),
         ),
         ## ui data ----
         tabPanel(
@@ -142,6 +147,46 @@ runDetectionExplorer <- function(data=NULL) {
                     ))
                 ),
                 DTOutput('scene_freqmap')
+            ),
+            tabPanel(
+                'plotPolarDetections',
+                h4(em('plotPolarDetections')),
+                'Polar Plot of Detections',
+                plotOutput('plot_polar'),
+                fluidRow(
+                    column(2, selectInput(
+                        'polar_bin1',
+                        label='bin1',
+                        choices=c('detection', 'hour', 'day'),
+                        selected='detection'
+                    )),
+                    column(2, selectInput(
+                        'polar_bin2',
+                        label='bin2',
+                        choices=c('hour', 'month'),
+                        selected='hour'
+                    )),
+                    column(3, selectInput(
+                        'polar_quantity',
+                        label='quantity',
+                        choices=c('count', 'mean', 'effort', 'percentEffort', 'percentTotal'),
+                        selected='count'
+                    )),
+                    column(3, selectizeInput(
+                        'polar_group',
+                        label='group',
+                        choices='species',
+                        selected='species',
+                        multiple=TRUE
+                    )),
+                    column(2, selectInput(
+                        'polar_facet',
+                        label='facet',
+                        choices='none',
+                        selected='none'
+                    ))
+                ),
+                verbatimTextOutput('code_polar')
             ),
             tabPanel(
                 'plotDetectionBoxplot',
@@ -246,6 +291,18 @@ runDetectionExplorer <- function(data=NULL) {
                     choices=c('none', cats[cats != 'species']),
                     selected=input$scene_by
                 )
+                updateSelectInput(
+                    session,
+                    'polar_facet',
+                    choices=c('none', cats),
+                    selected=input$polar_facet
+                )
+                updateSelectizeInput(
+                    session,
+                    'polar_group',
+                    choices=cats,
+                    selected=input$polar_group
+                )
             } else {
                 updateSelectInput(
                     session,
@@ -264,6 +321,18 @@ runDetectionExplorer <- function(data=NULL) {
                     'scene_by',
                     choices='none',
                     selected='none'
+                )
+                updateSelectInput(
+                    session,
+                    'polar_facet',
+                    choices='none',
+                    selected='none'
+                )
+                updateSelectizeInput(
+                    session,
+                    'polar_group',
+                    choices='species',
+                    selected='species'
                 )
             }
         })
@@ -481,6 +550,9 @@ runDetectionExplorer <- function(data=NULL) {
             updateSelectInput(session, 'scene_usefreq', selected='TRUE')
             updateNavbarPage(session, 'main', 'plotAcousticScene')
         })
+        observeEvent(input$btn_polar, {
+            updateNavbarPage(session, 'main', 'plotPolarDetections')
+        })
         # plots ----
         output$plot_scene <- renderPlot({
             data <- plotData()
@@ -574,6 +646,36 @@ runDetectionExplorer <- function(data=NULL) {
             
             argText <- argToText(argList, dfName=DFNAME)
             argText <- paste0('plotDetectionBoxplot(', argText, ')')
+            cat(argText)
+        })
+        output$plot_polar <- renderPlot({
+            data <- plotData()
+            if(is.character(data)) {
+                plot(x=1, y=1, type='n')
+                text(x=1, y=1, label='Data not properly loaded\nUse loadDetectionData panel')
+                return()
+            }
+            if(input$polar_facet == 'none') {
+                facet <- NULL
+            } else {
+                facet <- input$polar_facet
+            }
+            bin <- paste0(input$polar_bin1, '/', input$polar_bin2)
+            plotPolarDetections(data, bin=bin, facet=facet, group=input$polar_group,
+                                quantity=input$polar_quantity)
+        })
+        output$code_polar <- renderPrint({
+            argList <- list(x=data)
+            argList$group <- input$polar_group
+            if(input$polar_facet == 'none') {
+                facet <- NULL
+            } else {
+                argList$facet <- input$polar_facet
+            }
+            argList$bin <- paste0(input$polar_bin1, '/', input$polar_bin2)
+            argList$quantity <- input$polar_quantity
+            argText <- argToText(argList, dfName=DFNAME)
+            argText <- paste0('plotPolarDetections(', argText, ')')
             cat(argText)
         })
     }
