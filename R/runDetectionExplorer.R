@@ -383,7 +383,8 @@ runDetectionExplorer <- function(data=NULL) {
         }, ignoreNULL=FALSE)
         colListen <- reactive({
             list(input$selectUTC, input$selectEnd, input$selectSpecies,
-                 input$selectEffortStart, input$selectEffortEnd)
+                 input$selectEffortStart, input$selectEffortEnd,
+                 input$selectLat, input$selectLong)
         })
         observeEvent(colListen(), {
             utc <- input$selectUTC
@@ -391,7 +392,10 @@ runDetectionExplorer <- function(data=NULL) {
             species <- input$selectSpecies
             effStart <- input$selectEffortStart
             effEnd <- input$selectEffortEnd
-            colMap <- list(UTC=NA, end=NA, species=NA, effortStart=NA, effortEnd=NA)
+            lat <- input$selectLat
+            long <- input$selectLong
+            colMap <- list(UTC=NA, end=NA, species=NA, effortStart=NA, effortEnd=NA,
+                           Latitude=NA, Longitude=NA)
             if(is.null(utc) || length(utc) == 0 || utc == '') {
                 colMap$UTC <- NULL
             } else {
@@ -416,6 +420,16 @@ runDetectionExplorer <- function(data=NULL) {
                 colMap$effortEnd <- NULL
             } else {
                 colMap$effortEnd <- effEnd
+            }
+            if(is.null(lat) || length(lat) == 0 || lat == '') {
+                colMap$Latitude <- NULL
+            } else {
+                colMap$Latitude <- lat
+            }
+            if(is.null(long) || length(long) == 0 || long == '') {
+                colMap$Longitude <- NULL
+            } else {
+                colMap$Longitude <- long
             }
             
             newArg <- funArgs()
@@ -455,6 +469,16 @@ runDetectionExplorer <- function(data=NULL) {
                     ),
                     column(4,
                            selectizeInput('selectEffortEnd', '"effortEnd" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    )
+                ),
+                fluidRow(
+                    column(4, 
+                           selectizeInput('selectLat', '"Latitude" column', choices=origNames(),
+                                          multiple=TRUE, options = list(maxItems=1))
+                    ),
+                    column(4,
+                           selectizeInput('selectLong', '"Longitude" column', choices=origNames(),
                                           multiple=TRUE, options = list(maxItems=1))
                     )
                 )
@@ -530,6 +554,12 @@ runDetectionExplorer <- function(data=NULL) {
             }
             tryLoad$UTC <- format(tryLoad$UTC, format='%Y-%m-%d %H:%M:%S')
             tryLoad$end <- format(tryLoad$end, format='%Y-%m-%d %H:%M:%S')
+            if('effortStart' %in% names(tryLoad)) {
+                tryLoad$effortStart <- format(tryLoad$effortStart, format='%Y-%m-%d %H:%M:%S')
+            }
+            if('effortEnd' %in% names(tryLoad)) {
+                tryLoad$effortEnd <- format(tryLoad$effortEnd, format='%Y-%m-%d %H:%M:%S')
+            }
             renderTable(head(tryLoad))
         })
         output$rawData <- renderUI({
