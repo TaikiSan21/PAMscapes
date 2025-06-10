@@ -206,11 +206,12 @@ runDetectionExplorer <- function(data=NULL) {
                         choices=c('day', 'week', 'month'),
                         selected='week'
                     )),
-                    column(3, selectInput(
+                    column(3, selectizeInput(
                         'box_group',
                         label='group',
                         choices='species',
-                        selected='species'
+                        selected='species',
+                        multiple=TRUE
                     )),
                     column(3, selectInput(
                         'box_facet',
@@ -273,7 +274,7 @@ runDetectionExplorer <- function(data=NULL) {
         observeEvent(categoryCols(), {
             cats <- categoryCols()
             if(length(cats) > 0) {
-                updateSelectInput(
+                updateSelectizeInput(
                     session,
                     'box_group',
                     choices=cats,
@@ -515,6 +516,12 @@ runDetectionExplorer <- function(data=NULL) {
         output$codeSample <- renderPrint({
             argList <- funArgs()
             argText <- argToText(argList, dfName=DFNAME)
+            if(grepl('columnMap', argText)) {
+                argText <- gsub('columnMap', '\ncolumnMap', argText)
+            }
+            if(grepl('speciesCols', argText)) {
+                argText <- gsub('speciesCols', '\nspeciesCols', argText)
+            }
             argText <- paste0('loadDetectionData(', argText, ')')
             cat(argText)
         })
@@ -624,7 +631,7 @@ runDetectionExplorer <- function(data=NULL) {
             cat(argText)
         })
         output$scene_freqmap <- renderDT({
-            if(input$scene_usefreq == 'FALSE') {
+            if(input$scene_usefreq == 'FALSE' || is.character(plotData())) {
                 return(data.frame())
             }
             spVals <- unique(plotData()$species)

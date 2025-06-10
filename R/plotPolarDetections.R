@@ -88,7 +88,7 @@ plotPolarDetections <- function(x,
         # smallBin <- 'hour'
         effort <- NULL
     } else {
-        x <- binDetectionData(x, bin=smallBin, columns=c(group))
+        x <- binDetectionData(x, bin=smallBin, columns=c(group), rematchGPS = FALSE)
     }
     x <- fillEffortZeroes(x, effort=effort, resolution=smallBin, columns=group)
     switch(bigBin, 
