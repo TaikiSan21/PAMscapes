@@ -38,6 +38,10 @@ runQAQCReview <- function(data, issue=NULL, freqLims=c(30, Inf)) {
         #     issue <- readIssueLog(INPATH)
         # }
     }
+    if(INCHAR && !INDIR) {
+        data <- read.csv(data, stringsAsFactors = FALSE)
+        data$UTC <- parse_date_time(data$UTC, orders='%Y-%m-%d %H:%M:%S', tz='UTC')
+    }
     if(isQaqcLog(data)) {
         INLOG <- TRUE
     # check for single QAQC input

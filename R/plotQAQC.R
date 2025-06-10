@@ -82,7 +82,7 @@ plotQAQCTV <- function(x, title=NULL) {
         battCol2 <- 'intBatt'
     }
     x <- rename(x, 'Temperature (C)'='temp')
-    g <- plotScaledTimeseries(x, columns=c(battCol1, 'Temperature (C)', battCol2), cpal=c('darkblue', 'darkorange', 'blue'))
+    g <- plotScaledTimeseries(x, columns=c(battCol1, 'Temperature (C)', battCol2), color=c('darkblue', 'darkorange', 'blue'))
     g <- g + ylab('Battery (V)')
     if(!is.null(title)) {
         g <- g + ggtitle(title)
