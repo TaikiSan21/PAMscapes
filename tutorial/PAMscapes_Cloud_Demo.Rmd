@@ -1,0 +1,298 @@
+# PAMscapes GCloud Demo Day
+
+Hi! Note that this demo document was created for an early cloud demo, and many
+functions may now be out of date. Additionally, the paths to data present
+will not function outside of that NMFS PAM Cloud environment.
+
+## Install Stuff
+
+`PAMscapes` 0.11.3 should be available on CRAN, so start by downloading from there.
+We'll also use the `readxl` package later, and `dplyr` for messing with data.
+
+```{r}
+if(!require('PAMscapes') &&
+   packageVersion('PAMscapes') < '0.11.3') {
+    install.packages('PAMscapes')
+    library(PAMscapes)
+}
+if(!require('readxl')) {
+    install.packages('readxl')
+    library(readxl)
+}
+if(!require('dplyr')) {
+    install.packages('dplyr')
+    library(dplyr)
+}
+packageVersion('PAMscapes') # veryify you get 0.11.3 installed
+```
+## Where is data
+
+The cloud instances should have the `pam-ww-tmp` bucket already set up as
+the `X` drive, check to make sure that exists. We'll be using data in the
+`Cloud_Demo_Resources` folder. We'll also use some data from the `nefsc-1`,
+which exists under `C:/pamdata_mount`
+
+```{r}
+dir.exists('X:/Cloud_Demo_Resources')
+dir.exists('C:/pamdata_mount/nefsc-1')
+```
+
+## Soundscape Example
+
+We'll load hybrid millidecade that was processed with PyPam.
+
+```{r}
+pypamDir <- 'C:/pamdata_mount/nefsc-1/bottom_mounted/NEFSC_SBNMS/NEFSC_SBNMS_202303_SB03/NEFSC_SBNMS_202303_SB03_ST/PYPAM/NC'
+pypamFiles <- list.files(pypamDir, pattern='nc$', full.names=TRUE)
+length(pypamFiles)
+```
+
+This takes about 1s / file to load, so we'll just take a look at a few. There's a
+warning about HMD_24000 - no worries, sometimes bands at Nyquist exist but
+should generally be ignored for analysis.
+
+```{r}
+pyData <- loadSoundscapeData(pypamFiles[2:10])
+```
+
+Easiest way to explore data is with this function that will launch a Shiny app 
+to look at plots. App also creates code snippets so that if you like a plot / settings
+you can easily generate it outside of the app.
+
+```{r}
+runSoundscapeExplorer(pyData)
+```
+
+Another useful functionality is generating third octave level or broadband level 
+measurements from the HMD. This handles properly aligning / splitting HMD bands
+into the desired output band.
+
+```{r}
+tol <- createOctaveLevel(pyData, type='tol', freqRange=c(100, 24e3))
+str(tol)
+bb <- createOctaveLevel(pyData, type='bb', freqRange=c(100, 1000))
+str(bb)
+```
+
+
+## Detection Example
+
+This work is still under development, so more work will be done in the near future.
+Currently designed to work well with Makara data, some things are slightly
+fudged for the purpose of this example.
+
+```{r}
+detData <- loadDetectionData('X:/Cloud_Demo_Resources/PAMscapes/Makara_Example.csv', source='csv', 
+                           columnMap=PAMscapes:::getColMaps('makara'), extraCols='deployment')
+str(detData)
+```
+
+Lets look at what we have!
+
+```{r}
+plotAcousticScene(detData)
+```
+
+Those names aren't exactly the most informative - this is relatively raw output
+from the database, in the future we can easily/automatically join other metadata.
+For now we'll have to fudge the part by pretending some Excel files are a database.
+
+```{r}
+library(readxl)
+joinMakaraData <- function(x, org, global) {
+    glob_source <- read_excel(global, sheet='sound_sources')[
+        c('code', 'name', 'current_sound_source_code')
+    ]
+    names(glob_source) <- c('species_code', 'species', 'current_species_code')
+    if('species' %in% names(x)) {
+        x <- joinMakaraSpecies(x, glob_source)
+    }
+    if('call' %in% names(x)) {
+        glob_call <- read_excel(global, sheet='call_types')[
+            c('code', 'name')
+        ]
+    }
+
+    org_deploy <- read_excel(org, sheet='deployments')[
+        c('deployment_code', 'site_code', 'project_code', 'deployment_latitude', 'deployment_longitude',
+          'organization_code')
+    ]
+    names(org_deploy) <- c('deployment', 'site', 'project', 'depLatitude', 'depLongitude', 'organization')
+    if('deployment' %in% names(x)) {
+        x <- left_join(x, org_deploy, by='deployment')
+        if('Latitude' %in% names(x)) {
+            x$Latitude[is.na(x$Latitude)] <- x$depLatitude[is.na(x$Latitude)]
+        } else {
+            x$Latitude <- x$depLatitude
+        }
+        if('Longitude' %in% names(x)) {
+            x$Longitude[is.na(x$Longitude)] <- x$depLongitude[is.na(x$Longitude)]
+        } else {
+            x$Longitude <- x$depLongitude
+        }
+        x$depLatitude <- NULL
+        x$depLongitude <- NULL
+    }
+
+    org_ana <- read_excel(org, sheet='analyses', readxl::cell_cols('B:O'))[
+        c('deployment_code', 'analysis_sound_source_codes', 'analysis_start_datetime', 'analysis_end_datetime')
+    ]
+    names(org_ana) <- c('deployment', 'species_code', 'effortStart', 'effortEnd')
+
+
+    org_ana <- PAMscapes:::spreadEffort(org_ana, commas='species_code')
+    org_ana <- joinMakaraSpecies(org_ana, glob_source)
+    if('deployment' %in% names(x)) {
+        x <- left_join(x, org_ana, by=c('deployment', 'species'))
+    }
+    x
+}
+
+joinMakaraSpecies <- function(x, glob_source) {
+    if('species' %in% names(x)) {
+        x$species_code <- x$species
+        x$species <- NULL
+    }
+    x <- left_join(x, glob_source, by='species_code')
+    hasUpdate <- !is.na(x$current_species_code)
+    if(any(hasUpdate)) {
+        x$species_code[hasUpdate] <- x$current_species_code[hasUpdate]
+        x$species <- NULL
+        x$current_species_code <- NULL
+        x <- left_join(x, glob_source, by='species_code')
+    }
+    x$current_species_code <- NULL
+    noMatch <- is.na(x$species)
+    if(any(noMatch)) {
+        x$species[noMatch] <- x$species_code[noMatch]
+    }
+    x$species_code <- NULL
+    x
+}
+```
+
+These Excel files are basically the same data from various tables in the database,
+we can add those in the future (note this takes a bit of time to run on the server)
+
+```{r}
+orgFile <- 'X:/Cloud_Demo_Resources/PAMscapes/Makara_Organization.xls'
+globalFile <- 'X:/Cloud_Demo_Resources/PAMscapes/Makara_Global_References.xlsx'
+detData <- joinMakaraData(detData, org=orgFile, glob=globalFile)
+str(detData)
+```
+
+And now we have better names, as well as additional metadata like "who owns this data".
+
+```{r}
+plotAcousticScene(detData, by='organization')
+```
+
+Looking at just the SWFSC drifter data by location.
+
+```{r}
+detData %>% 
+    filter(organization == 'SWFSC') %>% 
+    plotAcousticScene(by='site')
+```
+And for SEFSC
+
+```{r}
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotAcousticScene(by='site')
+```
+
+One obvious question from these would be are those gaps from lack of detection or lack
+of effort. We can find out! We pulled some effort-related metadata from the database
+earlier, so we just need to collect that and the function knows how to deal with it.
+Note that we may even have different effort for different species.
+
+```{r}
+effort <- distinct(detData[c('effortStart', 'effortEnd', 'species', 'site', 'project', 'organization')])
+names(effort) <- c('start', 'end', 'species', 'site', 'project', 'organization')
+
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotAcousticScene(by='site', effort=effort)
+```
+
+We can also show this same plot as ranges of frequencies for each species instead
+of just a fixed bar (note the frequencies are made up, I'm a computer nerd not
+a whale person).
+
+```{r}
+freqMap <- data.frame(
+    type=c("Unid Pygmy/Dwarf Sperm Whale", "Blainville's Beaked Whale", "Gervais' Beaked Whale", "Goose-Beaked Whale", "Risso's Dolphin", "Unid Dolphin", "Sperm Whale"),
+    freqMin=c(80e3, 50e3, 45e3, 30e3, 20e3, 15e3, 2e3),
+    freqMax=c(120e3, 60e3, 55e3, 40e3, 30e3, 20e3, 10e3))
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotAcousticScene(by='site', effort=effort, freqMap=freqMap, freqMin=1e3)
+```
+
+There's also a boxplot for showing aggregated detections. Here we show the number of
+days per week with detections, each different point making up the boxplot is a 
+different site (click the button in top right to view larger)
+
+```{r}
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotDetectionBoxplot(group=c('site'), facet='species')
+```
+
+That version doesn't have any "zero" detections because without effort data
+we can't know if its no detections or no effort. We can add that.
+
+```{r}
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotDetectionBoxplot(group=c('site'), facet='species', effort=effort)
+```
+
+There's also an option to combine all years of data into the same "year", so now each point
+of the boxplot is a different site/year combination.
+
+```{r}
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotDetectionBoxplot(group=c('site'), facet='species', combineYears=TRUE, effort=effort)
+```
+
+And you can change the time resolution you want to look at (this one takes some
+processing time)
+
+```{r}
+detData %>% 
+    filter(organization == 'SEFSC') %>% 
+    plotDetectionBoxplot(group=c('site'), bin='hour/day', facet='species', combineYears=TRUE, effort=effort)
+
+```
+
+Its not just Makara data - we can handle data of any* format, just with a bit more
+work.
+
+```{r}
+otherDetFile <- 'X:/Cloud_Demo_Resources/PAMscapes/Other_Detections.csv'
+otherCsv <- read.csv(otherDetFile, stringsAsFactors = FALSE)
+str(otherCsv)
+```
+
+There will be a Shiny app to help interactively sort out the relevant settings
+to make this work for whatever data you have.
+
+```{r}
+otherDets <- loadDetectionData(otherDetFile,
+                  source='csv', 
+                  columnMap=list('UTC'='StartDate', 'Latitude'='LATITUDE_DDG_DEPLOYMENT',
+                                 'Longitude'='LONGITUDE_DDG_DEPLOYMENT'),
+                  detectionType='presence',
+                  presenceDuration='1day',
+                  wide=TRUE,
+                  speciesCols=c('NARW_Occur', 'Fin_Occur', 'Humpback_Occur'),
+                  detectedValues=c(1),
+                  extraCols=c('SITE_NAME', 'PROJECT_NAME', 'PROJECT_DESCRIPTION')
+)
+str(otherDets)
+plotDetectionBoxplot(otherDets, group='SITE_NAME', facet='species', combineYears=TRUE)
+```
+
