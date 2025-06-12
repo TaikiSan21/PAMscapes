@@ -1,0 +1,148 @@
+---
+title: "Soundcoop2024 Examples"
+author: "Taiki Sakai"
+date: "2024-09-25"
+output: html_document
+---
+
+# Install PAMscapes
+
+Version 0.7.0 is available on CRAN, but there is also a 0.7.1 update from yesterday available 
+on GitHub that has some more features. We'll also use the `here` package.
+
+```{r}
+install.packages('here')
+install.packages('pak')
+pak::pkg_install('TaikiSan21/PAMscapes')
+# if above doesn't work, then try this next
+# devtools::install_github('TaikiSan21/PAMscapes')
+# if neither of those work, settle for CRAN version
+# install.packages('PAMscapes')
+```
+
+```{r}
+library(here)
+library(PAMscapes)
+```
+
+The `here` package helps us deal with file paths relative to this RMarkown document. If
+this file is in the same folder as your data, then `here('data1.nc')` will give the 
+correct filepath to the file `'data1.nc'`. 
+
+# Load Some Data
+
+The function that handles all the data loading (regardless of format!) is
+`checkSoundscapeInput`. You can give this a single file or multiple files
+and it will load them up.
+
+```{r}
+# My data are in a folder NRS11 within another folder called testData
+nrs11Folder <- here('testData/NRS11')
+nrsFiles <- list.files(nrs11Folder, pattern='nc$', full.names=TRUE)
+# I'll start with just the first 3 files
+nrsData <- checkSoundscapeInput(nrsFiles[1:3])
+```
+
+If you updated to 0.7.1 from GitHub, this will automatically pull Lat/Long from the
+.nc metadata, as well as pulling out the "platform" field. If you weren't able to,
+lets add the Lat/Long so we can run some other examples
+
+```{r}
+nrsData$Longitude <- -123.45
+nrsData$Latitude <- 37.88
+```
+
+# Download Wind & Rain Data
+
+With Lat/Long added, we can match data from the Global Forecast System (GFS) weather
+model, specifically wind and precipitation rate using the `matchGFS` funciton.
+
+```{r}
+nrsData <- matchGFS(nrsData)
+```
+
+This gives us new columns `windU`, `windV`, and `precRate`, lets convert
+the directional winds to a single wind magnitude `windMag` since that is 
+more relevant (I'll add this as a default output in the future). This
+has also added columns `matchLong_mean`, `matchLat_mean`, and `matchTime_mean`
+that just tell you waht coordinates and times in the environmental data
+were matched with your data (it tries to match by closest available, these
+columns are meant for troubleshooting / verifying).
+
+```{r}
+nrsData$windMag <- sqrt(nrsData$windU^2 + nrsData$windV^2)
+```
+
+Note that if you have any other environmental data you are interested in that
+is available on an ERDDAP server, you can easily match that to your data
+with the function `matchEnvData` in the `PAMmisc` package. Lets also grab
+wave height from the WaveWatchIII wave model available on ERDDAP. The variable
+`Thgt` is the significant wave height, it will get stored in our data as
+`Thgt_mean`.
+
+```{r}
+library(PAMmisc)
+nrsData <- matchEnvData(nrsData, nc='ww3_global', var=c('Thgt'))
+```
+
+Lets also create some general categories for our wind data that we can use to explore 
+the data. We'll create categories `0-10`, `10-20`, and `20+` (arbitrarily).
+
+```{r}
+nrsData$windCategory <- cut(nrsData$windMag, breaks=c(0, 10, 20, 100), 
+                            labels=c('Low Wind', 'Medium Wind', 'High Wind'))
+```
+
+
+# Plot Exploration
+
+Okay enough of that, lets look at some plots. New as of version 0.7.0
+there's a `shiny` app that lets you easily explore some example plots
+with your data, `runSoundscapeExplorer`. So we just have to run that,
+giving it the data we want to explore.
+
+```{r}
+runSoundscapeExplorer(nrsData)
+```
+
+# AIS Data 
+
+This part will download some *very* large files and may take quite a while, so run at your own risk.
+The `downloadMarCadAIS` function will download a 250mb .zip file and 700mb for *every single day*
+in your dataset. Marine Cadastre stores their data as one file containing all geographic regions
+for a single day. So if your dataset covers many days, this download will be a sad time. Giving
+this function your data it will sort out which files to download, and store them in `outDir`.
+
+```{r}
+marcadFiles <- downloadMarCadAIS(nrsData, outDir = here('AIS'), overwrite = FALSE, unzip=TRUE)
+```
+
+These files are extremely unwieldy to work with, and you probably don't need data covering the
+entire geographic region for your project. So the `subsetMarCadAIS` funciton will take those
+full size 700mb files and create a smaller working dataset. In this case lets pretend that all
+the recorders I work with are on the west coast, so I'll create one working AIS directory that 
+contains AIS data for only the west coast data. This reduces each daily file down to ~130mb instead
+of 700mb, which is still large but much easier to handle.
+
+```{r}
+subsetMarCadAIS(inDir=here('AIS'), outDir=here('AIS_West'), name='West_', 
+                latRange=c(20,50), lonRange=c(-140,-110),
+                overwrite=FALSE, progress=TRUE)
+```
+
+Now we can match some of this AIS data to our data. We just need to define what counts as a
+"close" vessel event for our recorder, and we can get some summary information about vessels
+that pass within a certain distance of our recorders. The `distance` argument here is in
+meters, so here we'll get information about vessels passing within 10km of our recorder.
+`ais` is the folder path of our smaller "working" AIS dataset.
+
+This function adds columns:
+- `nShips` the number of vessels within `distance` at this time
+- `meanDist` the average distance (meters) to nearby ships (`NA` if `nShips` is 0)
+- `meanSOG` the average speed (knots) over ground of the nearby ships (`NA` if `nShips` is 0)
+- `closeDist` the distance (meters) to the closest nearby ship (`NA` if `nShips` is 0)
+- `closeSOG` the speed over ground (knots) of the closest nearby ship (`NA` if `nShips` is 0)
+
+```{r}
+nrsData <- addAISSummary(nrsData, ais=here('AIS_West'), distance=10e3)
+```
