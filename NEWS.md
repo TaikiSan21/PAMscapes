@@ -1,3 +1,9 @@
+# PAMscapes 0.14.1
+
+- Fixing `facet` in `plotPSD` to work for year,month,hour
+
+- Updating `runSoundscapeExplorer` to show proper dataframe names in code sample
+
 # PAMScapes 0.14.0
 
 - Adding `matchDetectionData` function for integrating detections wiht

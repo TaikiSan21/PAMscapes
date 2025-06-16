@@ -129,6 +129,16 @@ plotPSD <- function(x,
             by <- NULL
         }
     }
+    if(is.data.frame(x) &&
+       !is.null(facet) &&
+       facet %in% c('hour', 'month', 'year') &&
+       !facet %in% colnames(x)) {
+        x[[facet]] <- switch(facet,
+                          'hour' = hour(x$UTC),
+                          'month' = month(x$UTC),
+                          'year' = year(x$UTC)
+        )
+    }
     if(!is.null(facet) &&
        is.data.frame(x) &&
        !facet %in% colnames(x)) {
