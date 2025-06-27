@@ -59,7 +59,17 @@ evaluateRecordings <- function(wavFiles,
     WINDOW <- hamming(1)
     PLANFREQ <- 0
     OCTPLAN <- NULL
+    badTimes <- character(0)
     tol <- lapply(wavFiles, function(x) {
+        fileTime <- fileToTime(x)
+        if(is.na(fileTime)) {
+            badTimes <<- c(badTimes, x)
+            if(progress) {
+                ix <<- ix + 1
+                setTxtProgressBar(pb, value=ix)
+            }
+            return(NULL)
+        }
         # implement retry on failed read
         for(i in 1:maxTries) {
             readTry <- try({
@@ -148,6 +158,11 @@ evaluateRecordings <- function(wavFiles,
         }
         tolVals
     })
+    if(length(badTimes) > 0) {
+        warning('Could not parse files times for ', length(badTimes), 
+                ' out of ', length(wavFiles), ' files, these are excluded',
+                ' from analysis.')
+    }
     tol <- bind_rows(tol)
     tol <- arrange(tol, .data$UTC)
     tol$timeToNext <- 0

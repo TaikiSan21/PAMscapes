@@ -1,3 +1,8 @@
+# PAMscapes 0.14.2
+
+- `evaluateDeployment` was not working correctly for separate log and wav
+directories
+
 # PAMscapes 0.14.1
 
 - Fixing `facet` in `plotPSD` to work for year,month,hour

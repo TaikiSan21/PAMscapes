@@ -89,8 +89,8 @@ evaluateDeployment <- function(dir,
 
     # wav, log.xml, these are only file types we currently allow
     exts <- '\\.wav|\\.log\\.xml'
-    if(!dir.exists(dir)) {
-        warning('Folder ', dir, ' does not exist')
+    if(any(!dir.exists(dir))) {
+        warning('Folder ', printN(dir[!dir.exists(dir)]), ' does not exist')
         return(NULL)
     }
     if(!is.null(outDir) && !dir.exists(outDir)) {
@@ -133,7 +133,6 @@ evaluateDeployment <- function(dir,
         cat('Analyzing files in', dir, '\n---\n')
         cat('Analyzing project', name, '\n---\n')
     }
-    dirName <- basename(dir)
 
     # only going down one subfolder
     # subDirs <- list.dirs(dir, full.names=TRUE, recursive=FALSE)
