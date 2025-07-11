@@ -42,7 +42,7 @@
 #' @importFrom data.table `:=`
 #'
 createOctaveLevel <- function(x,
-                              type=c('ol', 'tol', 'broadband', 'bb'),
+                              type=c('ol', 'tol', 'broadband', 'bb', 'hmd'),
                               freqRange=NULL,
                               normalized=FALSE) {
     # do prep band work

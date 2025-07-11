@@ -6,7 +6,7 @@
 \usage{
 createOctaveLevel(
   x,
-  type = c("ol", "tol", "broadband", "bb"),
+  type = c("ol", "tol", "broadband", "bb", "hmd"),
   freqRange = NULL,
   normalized = FALSE
 )

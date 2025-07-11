@@ -30,8 +30,13 @@ binSoundscapeData <- function(x,
                               extraCols=NULL) {
     method <- match.arg(method)
     FUN <- switch(method,
-                  'median' = function(x) median(x, na.rm=TRUE),
-                  'mean' = function(x) mean(x, na.rm=TRUE)
+                  'median' = function(x) {
+                      median(x, na.rm=TRUE)
+                  },
+                  'mean' = function(x)  {
+                      # mean(x, na.rm=TRUE)
+                      10*log10(mean(10^(x/10), na.rm=TRUE))
+                  }
     )
     cols <- colnames(x)
 

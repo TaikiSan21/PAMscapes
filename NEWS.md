@@ -1,3 +1,8 @@
+# PAMscapes 0.14.3
+
+- `binSoundscapeData` with `method='mean'` was not linearizing properly
+befre calculation.
+
 # PAMscapes 0.14.2
 
 - `evaluateDeployment` was not working correctly for separate log and wav
