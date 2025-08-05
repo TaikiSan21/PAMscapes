@@ -198,8 +198,8 @@ evaluateDeployment <- function(dir,
         endWav <- which.max(wavTimes)
         endHeader <- fastReadWave(wavFiles[endWav], header=TRUE)
         endTime <- wavTimes[endWav] + endHeader$samples / endHeader$sample.rate
-        diffEnd <- as.numeric(difftime(wavTimes[endWav], endTime, units='secs'))
-        if(diffEnd > 1) {
+        diffEnd <- as.numeric(difftime(timeRange[2], endTime, units='secs'))
+        if(diffEnd < -1) {
             warning('Appears Clipping has not happened - last wav file (',
                     basename(wavFiles[endWav]), ') is ', abs(diffEnd),
                     ' seconds after expected end time', immediate. = TRUE)

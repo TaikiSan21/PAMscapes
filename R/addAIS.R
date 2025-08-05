@@ -56,10 +56,6 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
         return(x)
     }
     interpType <- match.arg(interpType)
-    # if(!all(c('Latitude', 'Longitude') %in% colnames(x))) {
-    #     interpType <- 'none'
-    #     interpTime <- 0
-    # }
     if(interpType == 'all' &&
        interpTime > 0) {
         x <- interpLocations(x, diff=interpTime, includeEnd=TRUE, interpCols=interpCols)
@@ -88,19 +84,6 @@ addAIS <- function(x, ais, interpType=c('all', 'close', 'none'), interpTime=0, i
                 }))
                 interpData <- arrange(interpData, .data$UTC)
                 oneAddAIS(interpData, oneAis)
-                # result <- lapply(byGroup, function(oneGroup) {
-                #     if(isFALSE(oneGroup$inDist[1])) {
-                #         return(oneAddAIS(x, oneGroup))
-                #     }
-                #     # interpTime <- 60
-                #     interpData <- interpLocations(x, from=min(oneGroup$UTC)-interpTime,
-                #                                   to=max(oneGroup$UTC)+interpTime,
-                #                                   diff=interpTime,
-                #                                   includeEnd=TRUE,
-                #                                   interpCols=interpCols)
-                #     oneAddAIS(interpData, oneGroup)
-                # })
-                # bind_rows(result)
             }))
 }
 

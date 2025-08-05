@@ -2,11 +2,12 @@
 
 ```{r}
 library(here)
-library(gfwr)
+# library(gfwr)
 library(PAMscapes)
 library(dplyr)
 library(sf)
 library(lubridate)
+library(rjson)
 ```
 
 ## Load Soundscape Data
@@ -14,7 +15,7 @@ library(lubridate)
 ```{r}
 nrsFolder <- here('testData/NRS11')
 nrsFiles <- list.files(nrsFolder, pattern='nc$', full.names=TRUE)
-nrs11 <- checkSoundscapeInput(nrsFiles[1:10])
+nrs11 <- loadSoundscapeData(nrsFiles)
 ```
 
 ```{r}
@@ -46,6 +47,406 @@ subsetMarCadAIS(inDir=here('AIS'), outDir=here('AIS_West'), name='West_',
 marCad <- readLocalAIS(nrs11, here('AIS_West'), distance = 50e3)
 ```
 
+## New GFWR Vessel API
+
+# Make sure to replace [TOKEN] with your API Access Token.
+curl --location --globoff 'https://gateway.api.globalfishingwatch.org//v3/4wings/report?spatial-resolution=LOW&temporal-resolution=YEARLY&group-by=FLAG&datasets[0]=public-global-fishing-effort%3Alatest&date-range=2021-01-01%2C2022-01-01&format=JSON' \
+  -H "Authorization: Bearer [TOKEN]"
+  -H 'Content-Type: application/json' \
+--data-raw '{"geojson":{"type":"Polygon","coordinates":[[[-76.11328125,-26.273714024406416],[-76.2890625,-25.48295117535531],[-76.11328125,-26.273714024406416]]]}}'
+
+```{r}
+library(httr)
+# base <- 'https://gateway.api.globalfishingwatch.org/v3/4wings/report'
+# res <- 'HIGH'
+# format <- 'JSON'
+# group <- 'MMSI'
+# temp_res <- 'HOURLY'
+# dataset <- 'public-global-presence%3Alatest'
+# interval <- 'HOUR' #or DAY, hour may be limit to 20 days (day limit 1year)
+# timeRange <- c(floor_date(min(nrs11$UTC), unit='day'),
+#                ceiling_date(max(nrs11$UTC), unit='day'))
+# timeRange <- round_date(range(nrs11$UTC), unit='1day')
+# timeRange <- format(timeRange, format='%Y-%m-%d')
+# # date range is max 366 days
+# url <- paste0(base, '?',
+#        'spatial-resolution=', res,
+#        '&temporal-resolution=', temp_res,
+#        '&group-by=', group,
+#        '&datasets[0]=', dataset,
+#        # '&filters[0]=speed%20in%20(%272-4%27%2C%274-6%27)', #%27 is ', %2C is ,
+#        '&format=', format,
+#        '&date-range=', timeRange[1], '%2C', timeRange[2])
+# url
+# # url <- paste0(url, '&filters[0]=speed in ("2-4", "4-6")')
+token <- yaml::read_yaml(here('.secrets/secrets.yml'))$gfw_token
+# header <- add_headers(Authorization = paste0('Bearer ', token), `Content-Type`='application/json')
+# bounds <- st_as_sf(distinct(nrs11[c('Longitude', 'Latitude')]),
+#                         coords=c('Longitude', 'Latitude'), crs=4326) %>%
+#     st_buffer(dist=bufferDist) %>%
+#     st_bbox() %>%
+#     st_as_sfc()
+# bounds <- bounds[[1]][[1]]
+# boundChar <- apply(bounds, 1, function(x) {
+#     paste0(x, collapse=',')
+# })
+# boundChar <- paste0('[', boundChar, ']')
+# boundChar <- paste0(boundChar, collapse=',')
+# boundChar <- paste0('{"geojson":{"type":"Polygon","coordinates":[[',
+#                     boundChar,
+#                     ']]}}')
+# # header
+# tryPost <- POST(url=url, config=header, body=boundChar)
+# 
+# gfwAis <- bind_rows(rjson::fromJSON(rawToChar(tryPost$content))$entries[[1]][[1]])
+# gfwAis <- rename(gfwAis,
+#        'UTC' = 'date',
+#        'Latitude' = 'lat',
+#        'Longitude' = 'lon',
+#        'presenceHours' = 'hours',
+#        'MMSI' = 'mmsi'
+# )
+# gfwAis$UTC <- as.POSIXct(gfwAis$UTC, format='%Y-%m-%d %H:%M', tz='UTC')
+# gfwAis
+
+getGFWAIS <- function(data, token, speed='all', buffer=50e3, returnURL=FALSE, raw=FALSE) {
+    base <- 'https://gateway.api.globalfishingwatch.org/v3/4wings/report'
+    res <- 'HIGH'
+    format <- 'JSON'
+    group <- 'MMSI'
+    temp_res <- 'HOURLY'
+    dataset <- 'public-global-presence%3Alatest'
+    interval <- 'HOUR' #or DAY, hour may be limit to 20 days (day limit 1year)
+    timeRange <- c(floor_date(min(nrs11$UTC), unit='day'),
+                   ceiling_date(max(nrs11$UTC), unit='day'))
+    timeRange <- round_date(range(nrs11$UTC), unit='1day')
+    timeRange <- format(timeRange, format='%Y-%m-%d')
+    # date range is max 366 days
+    url <- paste0(base, '?',
+                  'spatial-resolution=', res,
+                  '&temporal-resolution=', temp_res,
+                  '&group-by=', group,
+                  '&datasets[0]=', dataset,
+                  # '&filters[0]=speed%20in%20(%272-4%27%2C%274-6%27)', #%27 is ', %2C is ,
+                  '&format=', format,
+                  '&date-range=', timeRange[1], '%2C', timeRange[2])
+    speedOpts <- c('%3C2', '2-4', '4-6', '6-10', '10-15', '15-25', '%3E25')
+    if(!is.null(speed)) {
+        if(speed == 'all') {
+            speed <- speedOpts
+        }
+        speed <- speed[speed %in% speedOpts]
+        if(length(speed) > 1) {
+            return(
+                bind_rows(lapply(speed, function(s) {
+                    getGFWAIS(data, token, speed=s, buffer=buffer, returnURL = returnURL)
+                }))
+            )
+        }
+        url <- paste0(
+            url,
+            '&filters[0]=speed=%27', speed, '%27')
+    }
+    header <- add_headers(Authorization = paste0('Bearer ', token), `Content-Type`='application/json')
+    bounds <- st_as_sf(distinct(data[c('Longitude', 'Latitude')]),
+                       coords=c('Longitude', 'Latitude'), crs=4326) %>%
+        st_buffer(dist=buffer) %>%
+        st_bbox() %>%
+        st_as_sfc()
+    bounds <- bounds[[1]][[1]]
+    boundChar <- apply(bounds, 1, function(x) {
+        paste0(x, collapse=',')
+    })
+    boundChar <- paste0('[', boundChar, ']')
+    boundChar <- paste0(boundChar, collapse=',')
+    boundChar <- paste0('{"geojson":{"type":"Polygon","coordinates":[[',
+                        boundChar,
+                        ']]}}')
+    # header
+    if(isTRUE(returnURL)) {
+        return(list(url=url, body=boundChar))
+    }
+    tryPost <- POST(url=url, config=header, body=boundChar)
+    if(isTRUE(raw)) {
+        return(tryPost)
+    }
+    result <- bind_rows(rjson::fromJSON(rawToChar(tryPost$content))$entries[[1]][[1]])
+    if(is.null(result) || nrow(result) == 0) {
+        return(result)
+    }
+    result <- rename(result,
+                     'UTC' = 'date',
+                     'Latitude' = 'lat',
+                     'Longitude' = 'lon',
+                     'presenceHours' = 'hours',
+                     'MMSI' = 'mmsi'
+    )
+    result$UTC <- as.POSIXct(result$UTC, format='%Y-%m-%d %H:%M', tz='UTC')
+    if(!is.null(speed)) {
+        result$speedCategory <- switch(
+            speed,
+            '%3C2' = '<2',
+            '%3E25' = '>25',
+            speed)
+        result$speedCategory <- factor(result$speedCategory,
+                               levels=c('<2', '2-4', '4-6', '6-10', '10-15', '15-25', '>25'),
+                               ordered = TRUE)
+    }
+    result
+}
+gwfUrl <- getGFWAIS(nrs11[1:21960,], token=token, speed='4-6', buffer=50e3, returnURL=TRUE)
+testo <- getGFWAIS(nrs11[1:21960,], token=token, speed='4-6', buffer=50e3, raw=TRUE)
+# system.time(gfwAis <- getGFWAIS(nrs11[1:43920,], token=token, speed='all', buffer=20e3))
+# gfwAis <- left_join(gfwAis,
+#                     select(gfwNew, UTC, MMSI, speedCat=speed),
+#                     by=c('UTC', 'MMSI')
+# )
+```
+
+## Try for get info from MMSI
+
+'https://gateway.api.globalfishingwatch.org/v3/vessels/search
+?where=368045130
+&datasets[0]=public-global-vessel-identity:latest
+&includes[0]=MATCH_CRITERIA&includes[1]=OWNERSHIP&includes[2]=AUTHORIZATIONS' \
+  -H "Authorization: Bearer [TOKEN]"
+  
+  speed%20in%20(%272-4%27%2C%274-6%27)
+
+```{r}
+# mmsi <- unique(gfwAis$mmsi)
+# mmsi <- paste0('ssvid=%27', mmsi, '%27')
+# mmsi <- paste0(mmsi, collapse='%20OR%20')
+# url <- paste0(
+#     'https://gateway.api.globalfishingwatch.org/v3/vessels/search',
+#     # '?where=ssvid=%27367460130%27',
+#     # '%20OR%20ssvid=%27367569830%27',
+#     '?where=', mmsi,
+#     '&datasets[0]=public-global-vessel-identity:latest',
+#     '&limit=50'
+# )
+# header <- add_headers(Authorization = paste0('Bearer ', token))
+# tryGet <- GET(url, config = header)
+# mmsiData <- fromJSON(rawToChar(tryGet$content))
+# bind_rows(
+#     lapply(mmsiData$entries, function(x) {
+#         reg <- x$registryInfo
+#         if(length(reg) == 0) {
+#             return(NULL)
+#         }
+#         regCols <- c('id', 'ssvid', 'flag', 'lengthM', 'tonnageGt')
+#         reg[[1]][regCols]
+#     }
+#     )
+# )
+# if(!is.null(mmsiData$since) && length(mmsiData$since) > 0) {
+#     sinceUrl <- paste0(url, 
+#                   '&since=', mmsiData$since
+#     )
+#     trySince <- GET(sinceUrl, config=header)
+#     sinceData <- fromJSON(rawToChar(trySince$content))
+# }
+# base <-  'https://gateway.api.globalfishingwatch.org/v3/vessels/'
+# url <- paste0(base, "2d08e1b10-0c11-3964-9bc9-381cb0a1b9b4",
+#               '?dataset=public-global-vessel-identity:latest')
+# header <- add_headers(Authorization = paste0('Bearer ', token))
+# tryGet <- GET(url, config=header)
+# fromJSON(rawToChar(tryGet$content)) %>% View
+
+getVesselInfo <- function(mmsi, token) {
+    base <-  'https://gateway.api.globalfishingwatch.org/v3/vessels/search'
+    mmsiText <- unique(mmsi)
+    mmsiText <- paste0('ssvid=%27', mmsiText, '%27')
+    mmsiText <- paste0(mmsiText, collapse='%20OR%20')
+    url <- paste0(
+        base,
+        '?where=', mmsiText,
+        '&datasets[0]=public-global-vessel-identity:latest',
+        '&limit=50'
+    )
+    header <- add_headers(Authorization = paste0('Bearer ', token))
+    tryGet <- GET(url, config=header)
+    if(!tryGet$status_code == 200) {
+        warning('Response was not successful for URL ', url)
+        return(NULL)
+    }
+    rawData <- fromJSON(rawToChar(tryGet$content))
+    regCols <- c('id', 'ssvid', 'lengthM', 'tonnageGt')
+    data <- bind_rows(
+        lapply(rawData$entries, function(x) {
+            ship <- getShiptype(x)
+            reg <- x$registryInfo
+            if(length(reg) == 0) {
+                return(ship)
+            }
+            result <- reg[[1]][regCols]
+            result$shiptype <- ship$shiptype
+            result
+        }
+        )
+    )
+    data <- list(data)
+    # data <- list(rawData)
+    nTotal <- rawData$total
+    nMax <- ceiling(nTotal/50) + 1
+    ix <- 1
+    since <- rawData$since
+    while(!is.null(since)) {
+        if(ix > nMax) {
+            warning('Attempted download more times than expected')
+            break
+        }
+        ix <- ix + 1
+        sinceUrl <- paste0(
+            url,
+            '&since=', rawData$since
+        )
+        trySince <- GET(sinceUrl, config=header)
+        if(!tryGet$status_code == 200) {
+            warning('Response was not successful for URL ', sinceUrl)
+            next
+        }
+        rawSince <- fromJSON(rawToChar(trySince$content))
+        sinceData <- bind_rows(
+            lapply(rawSince$entries, function(x) {
+                ship <- getShiptype(x)
+                reg <- x$registryInfo
+                if(length(reg) == 0) {
+                    return(ship)
+                }
+                result <- reg[[1]][regCols]
+                result$shiptype <- ship$shiptype
+                result
+            }
+            )
+        )
+        data <- c(data, list(sinceData))
+        # data <- c(data, list(rawSince))
+        since <- rawSince$since
+    }
+    data <- distinct(bind_rows(data))
+    data <- fixMultiShip(data)
+    data <- rename(data, 'MMSI'='ssvid', 'vesselLength'='lengthM', 'vesselTonnage'='tonnageGt', 'vesselType'='shiptype')
+    data
+}
+
+fixMultiShip <- function(x) {
+    x <- distinct(x)
+    bind_rows(lapply(split(x, x$ssvid), function(y) {
+        if(nrow(y) == 1) {
+            return(y)
+        }
+        naRows <- is.na(y$id)
+        if(!all(naRows)) {
+            y <- y[!naRows, ]
+        }
+        if(nrow(y) == 1) {
+            return(y)
+        }
+        if(length(unique(y$shiptype)) != 1) {
+            isOther <- y$shiptype == 'OTHER'
+            if(any(isOther)) {
+                y <- y[!isOther, ]
+            } else { # if its 2 other types then IDK man
+                y$shiptype <- 'OTHER'
+            }
+        }
+        if(nrow(y) == 1) {
+            return(y)
+        }
+        # last resort just mean them up
+        y$id <- NA
+        if(!all(is.na(y$lengthM))) {
+            y$lengthM <- mean(y$lengthM, na.rm=TRUE)
+        }
+        if(!all(is.na(y$tonnageGt))) {
+            y$tonnageGt <- mean(y$tonnageGt, na.rm=TRUE)
+        }
+        y <- distinct(y)
+        if(nrow(y) == 1) {
+            return(y)
+        }
+        warning('Could not condense MMSI ', y$ssvid[1], ' to a single entry')
+        y[1,]
+    }))
+}
+
+getShiptype <- function(x) {
+    type <- lapply(x$combinedSourcesInfo, function(x) {
+        if('shiptypes' %in% names(x)) {
+            type <- lapply(x$shiptypes, function(y)  {
+                y$name
+            })
+            type <- unique(unlist(type))
+        } else {
+            type <- NULL
+        }
+        type
+    })
+    type <- unique(unlist(type))
+    id <- lapply(x$selfReportedInfo, function(x) {
+        x$ssvid
+    })
+    id <- unique(unlist(id))
+    if(length(type) > 1) {
+        # warning('more than one shiptype:', paste0(type, collapse=','))
+        type <- 'OTHER'
+    }
+    if(length(id) > 1) {
+        # warning('what why more one id:', paste0(id, collapse=','))
+        # id <- id[1]
+    }
+    list(ssvid=id, shiptype=type)
+}
+
+allVess <- getVesselInfo(unique(gfwAis$MMSI), token)
+gfwAis <- left_join(gfwAis, 
+                    select(allVess, -id),
+                    by='MMSI')
+```
+
+## What we got
+
+```{r}
+gfwAis %>% 
+    filter(distance < 30e3) %>% 
+    ggplot() +
+    geom_path(aes(x=Longitude, y=Latitude, color=MMSI), show.legend=FALSE)
+dist <- 20e3
+closeShip <- unique(gfwAis$MMSI[gfwAis$distance <= dist])
+gfwAis %>% 
+    filter(MMSI %in% closeShip) %>%
+    ggplot() +
+    geom_path(aes(x=UTC, y=distance, color=MMSI), show.legend=FALSE) +
+    geom_point(aes(x=UTC, y=distance, color=MMSI), show.legend=FALSE) +
+    coord_cartesian(ylim=c(0, dist))
+```
+
+```{r}
+aisSummary <- gfwAis %>% 
+    filter(distance <= dist) %>%
+    group_by(UTC) %>% 
+    summarise(
+        nShips = n(),
+        closeIx = which.min(unlist(distance)),
+        closeDist = distance[closeIx],
+        closeSpeed = speedCategory[closeIx],
+        closeShip = MMSI[closeIx]
+    ) %>% 
+    ungroup() %>% 
+    mutate(end = UTC + 3600)
+```
+
+## Use matchDetectionData
+
+Req UTC, end, value=name ofcol to add
+
+```{r}
+nrsVess <- matchDetectionData(nrs11, detection=aisSummary, name='nShips', value='nShips', fillNA=0)
+nrsVess <- matchDetectionData(nrsVess, detection=aisSummary, name='closeDist', value='closeDist', fillNA=NA)
+
+plotScaledTimeseries(nrsVess, columns=c('HMD_200','closeDist'), minVals=c(NA, 0))
+```
 
 ## Make GFWR Calls
 
@@ -94,28 +495,48 @@ vessAis <- get_raster(data='AIS',
 library(PAMpal)
 library(geosphere)
 addDistToGFW <- function(gfw, gps) {
-    gfw <- rename(gfw, 'UTC'='Time Range')
-    gfw <- timeJoin(gfw, distinct(gps[c('UTC', 'Latitude', 'Longitude')]))
-    gfw$distance <- distGeo(matrix(c(gfw$Lon, gfw$Lat), ncol=2),
-                            matrix(c(gfw$Longitude, gfw$Latitude), ncol=2))
+    gfw <- timeJoin(gfw, distinct(
+        select(gps, 'UTC', 'targetLat' = 'Latitude', 'targetLong'='Longitude')
+    ))
+    gfw$distance <- distGeo(matrix(c(gfw$Longitude, gfw$Latitude), ncol=2),
+                            matrix(c(gfw$targetLong, gfw$targetLat), ncol=2))
+    gfw <- bind_rows(
+        lapply(
+            split(gfw, gfw$MMSI), function(x) {
+                x <- arrange(x, 'UTC')
+                n <- nrow(x)
+                x$speed <- NA
+                if(n == 1) {
+                    return(x)
+                }
+                dist <- distGeo(matrix(c(x$Longitude[1:(n-1)], x$Latitude[1:(n-1)]), ncol=2),
+                                matrix(c(x$Longitude[2:n], x$Latitude[2:n]), ncol=2))
+                time <- as.numeric(difftime(x$UTC[2:n], x$UTC[1:(n-1)], units='secs'))
+                speed <- dist / time * 1.9438 #m/s to knots
+                x$speed[2:n] <- speed
+                x$hourDiff <- c(NA, time/3600)
+                x
+            }
+        )
+    )
     gfw
 }
-vessAis <- addDistToGFW(vessAis, nrs11)
-    
+gfwAis <- addDistToGFW(gfwAis, nrs11)
 ```
 
 ```{r}
 library(ggplot2)
 ggplot() +
-    geom_point(data=vessAis, aes(x=Longitude, y=Latitude), col='black', size=4) +
+    geom_point(data=gfwAis, aes(x=targetLong, y=targetLat), col='black', size=4) +
     geom_path(data=marCad, aes(x=Longitude, y=Latitude, group=as.character(MMSI), color=as.character(MMSI))) +
-    geom_raster(data=vessAis, aes(x=Lon, y=Lat, fill=.data[['Apparent Fishing Hours']])) +
+    geom_raster(data=gfwAis, aes(x=Longitude, y=Latitude, fill=.data[['presenceHours']])) +
     guides(color='none') +
     xlim(-124, -122.6) +
     ylim(37.4, 38.4)
 ```
 
 ```{r}
+# this takes forever
 nrs11 <- addAISSummary(nrs11, marCad, distance=20e3)
 ```
 

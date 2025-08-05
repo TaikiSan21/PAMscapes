@@ -202,7 +202,7 @@ matchDetectionData <- function(x, detection, name, value, fillNA=NA, by=NULL,
 }
 
 overlapLHS <- function(int1, int2) {
-    int1@start <= int2@start + int2@.Data & 
+    int1@start < int2@start + int2@.Data & 
         int2@start < int1@start + int1@.Data
 }
 

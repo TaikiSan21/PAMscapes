@@ -3,7 +3,7 @@
 #' @description Downloads and matches wind and precipitation data
 #'   from the Global Forecast System (GFS) weather model. Data is
 #'   downloaded from the National Center for Atmospheric Research
-#'   data server \url{https://rda.ucar.edu/datasets/ds084.1/}.
+#'   data server \url{https://rda.ucar.edu/datasets/d084001/}.
 #'   The particular GFS dataset downloaded is the closest "forecast"
 #'   dataset to the particular time (e.g. .f000 or .f003)
 #'
@@ -121,7 +121,7 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
     result
 }
 
-formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/') {
+formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/') {
     if(is.data.frame(range)) {
         if(is.null(date)) {
             date <- range$UTC[1]
