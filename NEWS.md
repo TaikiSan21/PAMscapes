@@ -1,3 +1,7 @@
+# PAMscapes 0.14.4
+
+- PMAR and WISPR wav file formats added for `evaluateDeployment`
+
 # PAMscapes 0.14.3
 
 - `binSoundscapeData` with `method='mean'` was not linearizing properly

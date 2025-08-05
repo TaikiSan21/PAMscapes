@@ -444,7 +444,7 @@ fileToTime <- function(x) {
             },
             'PMAR' = {
               # 'template_230411-221029.038.wav' example
-              date <- gsub('.*_([0-9]{6}-[0-9]{6}.[0-9]{3})$', '\\1', x)
+              date <- gsub('.*_([0-9]{6}-[0-9]{6}\\.[0-9]{3})$', '\\1', x)
               posix <- as.POSIXct(substr(date, 1, 13), tz = 'UTC', format = '%y%m%d-%H%M%S')
               if(is.na(posix)) next
               millis <- as.numeric(substr(date, 15, 17)) / 1e3
