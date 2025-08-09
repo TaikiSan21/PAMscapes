@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: Tools for Summarising and Analysing Soundscape Data
-Version: 0.14.4
+Version: 0.14.5
 Authors@R: c(
     TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
     AS = person("Anne", "Simonis", role = c("ctb")),

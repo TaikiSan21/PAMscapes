@@ -1,3 +1,7 @@
+# PAMscapes 0.14.5
+
+- Adding netcdf `calibration` option to `evaluateDeployment` & `evaluateRecordings`
+
 # PAMscapes 0.14.4
 
 - PMAR and WISPR wav file formats added for `evaluateDeployment`

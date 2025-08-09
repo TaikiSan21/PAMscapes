@@ -19,8 +19,9 @@
 #'   available range)
 #' @param calibration if not \code{NULL}, the frequency dependent calibration
 #'   to apply. Must have "frequency" and "gain" (in dB), can either be a .tf
-#'   file, a CSV file with columns for frequency and gain, or a dataframe with
-#'   columns frequency and gain
+#'   file, a CSV file with columns for frequency and gain, a dataframe with
+#'   columns frequency and gain, or a NetCDF with "frequency" dimension and
+#'   "senstivity" or "gain" variable
 #' @param sensitivity the sensitivity of the recording device in dB, this
 #'   is typically a large negative number
 #' @param progress logical flag to show a progress bar
@@ -163,6 +164,11 @@ evaluateRecordings <- function(wavFiles,
                 ' out of ', length(wavFiles), ' files, these are excluded',
                 ' from analysis.')
     }
+    if(!is.null(calibration) &&
+       PLANFREQ > max(calibration$frequency)) {
+        warning('Calibration function did not cover range of frequencies in data,',
+                ' results outside calibration range will be NA')
+    }
     tol <- bind_rows(tol)
     tol <- arrange(tol, .data$UTC)
     tol$timeToNext <- 0
@@ -189,6 +195,23 @@ readHarpTf <- function(x) {
     tf
 }
 
+readNcTf <- function(x) {
+    if(!grepl('nc$', x)) {
+        stop('Not a NetCDF calibration file')
+    }
+    nc <- nc_open(x)
+    on.exit(nc_close(nc))
+    gainVar <- c('gain', 'sensitivity') %in% names(nc$var)
+    if(!'frequency' %in% names(nc$dim) ||
+       !any(gainVar)) {
+        stop('Could not find variable "sensitivity" and dim "frequency" in .nc file')
+    }
+    gainCol <- c('gain', 'sensitivity')[gainVar][1]
+    freq <- nc$dim$frequency$vals
+    sens <- ncvar_get(nc, gainCol)
+    data.frame(frequency=freq, gain=sens)
+}
+
 checkCalibration <- function(x) {
     if(is.null(x) || is.na(x)) {
         return(NULL)
@@ -203,6 +226,10 @@ checkCalibration <- function(x) {
         }
         if(grepl('csv$', x)) {
             x <- read.csv(x, stringsAsFactors = FALSE)
+        }
+        if(grepl('nc$', x)) {
+            x <- readNcTf(x)
+            return(x)
         }
     }
     if(!is.data.frame(x)) {

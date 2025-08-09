@@ -34,8 +34,9 @@ available range)}
 
 \item{calibration}{if not \code{NULL}, the frequency dependent calibration
 to apply. Must have "frequency" and "gain" (in dB), can either be a .tf
-file, a CSV file with columns for frequency and gain, or a dataframe with
-columns frequency and gain}
+file, a CSV file with columns for frequency and gain, a dataframe with
+columns frequency and gain, or a NetCDF with "frequency" dimension and
+"senstivity" or "gain" variable}
 
 \item{sensitivity}{the sensitivity of the recording device in dB, this
 is typically a large negative number}

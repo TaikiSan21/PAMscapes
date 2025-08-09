@@ -25,8 +25,9 @@
 #'   is typically a large negative number
 #' @param calibration if not \code{NULL}, the frequency dependent calibration
 #'   to apply. Must have "frequency" and "gain" (in dB), can either be a .tf
-#'   file, a CSV file with columns for frequency and gain, or a dataframe with
-#'   columns frequency and gain
+#'   file, a CSV file with columns for frequency and gain, a dataframe with
+#'   columns frequency and gain, or a NetCDF with "frequency" dimension and
+#'   "senstivity" or "gain" variable
 #' @param timeRange if not \code{NULL}, a vector of two POSIXct times identifying
 #'   the expected start and end times of the deployment. If the actual start and
 #'   end times of of the recording files are earlier or later than these, then
@@ -205,6 +206,14 @@ evaluateDeployment <- function(dir,
                     ' seconds after expected end time', immediate. = TRUE)
             return(NULL)
         }
+    }
+    if(is.na(sensitivity) && is.null(calibration)) {
+        warning('Must provide sensitivity or frequency-dependent calibration (or both)')
+        return(NULL)
+    }
+    if(is.na(sensitivity) && !is.null(calibration)) {
+        warning('Sensitivity value not provided with calibration, assumed to be 0')
+        sensitivity <- 0
     }
     if(!is.null(calibration) &&
        is.character(calibration) &&

@@ -33,7 +33,7 @@ plotQAQCLevel <- function(x,
     x$frequency <- factor(x$frequency)
     tRange <- range(x$UTC)
     if(is.null(dbRange)) {
-        dbRange <- range(x$value)
+        dbRange <- range(x$value, na.rm=TRUE)
     }
     brks <- seq(from=floor(dbRange[1]/10)*10,
                 to=ceiling(dbRange[2]/10)*10,
