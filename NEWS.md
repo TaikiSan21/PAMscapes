@@ -2,6 +2,8 @@
 
 - Adding netcdf `calibration` option to `evaluateDeployment` & `evaluateRecordings`
 
+- Adjusting `source='makara'` names for `loadDetectionData` to most recent 
+
 # PAMscapes 0.14.4
 
 - PMAR and WISPR wav file formats added for `evaluateDeployment`

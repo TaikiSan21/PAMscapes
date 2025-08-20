@@ -208,6 +208,13 @@ readNcTf <- function(x) {
     }
     gainCol <- c('gain', 'sensitivity')[gainVar][1]
     freq <- nc$dim$frequency$vals
+    ## may need to adjust HMD kine
+    # we double round the name to avoid mismatched round-to-even behavior
+    # labels <- nc$dim$frequency$val
+    # labels[labels < 1e3] <- round(labels[labels < 1e3], 0)
+    # labels[labels >= 1e3] <- round(labels[labels >= 1e3], 0)
+    # labels <- paste0(freqType, '_', labels)
+    ##
     sens <- ncvar_get(nc, gainCol)
     data.frame(frequency=freq, gain=sens)
 }
