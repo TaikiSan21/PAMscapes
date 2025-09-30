@@ -78,8 +78,14 @@ plotQAQCTV <- function(x, title=NULL) {
         battCol1 <- 'intBatt'
         battCol2 <- NULL
     } else {
-        battCol1 <- 'extBatt'
-        battCol2 <- 'intBatt'
+        # if first is all same value then plot will borko, so check
+        if(diff(range(x[['extBatt']], na.rm=TRUE)) == 0) {
+            battCol1 <- 'intBatt'
+            battCol2 <- 'extBatt'
+        } else {
+            battCol1 <- 'extBatt'
+            battCol2 <- 'intBatt'
+        }
     }
     x <- rename(x, 'Temperature (C)'='temp')
     g <- plotScaledTimeseries(x, columns=c(battCol1, 'Temperature (C)', battCol2), color=c('darkblue', 'darkorange', 'blue'))

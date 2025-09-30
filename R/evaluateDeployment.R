@@ -89,7 +89,8 @@ evaluateDeployment <- function(dir,
     # add option that dir can be multiple if XML and wav not same main folder
 
     # wav, log.xml, these are only file types we currently allow
-    exts <- '\\.wav|\\.log\\.xml'
+    # nc, tf, csv are for possible calibration checker
+    exts <- '\\.wav|\\.log\\.xml|\\.nc|\\.tf|\\.csv'
     if(any(!dir.exists(dir))) {
         warning('Folder ', printN(dir[!dir.exists(dir)]), ' does not exist')
         return(NULL)
@@ -287,12 +288,18 @@ evaluateDeployment <- function(dir,
         }
         logQaqc <- processSoundtrapLogs(logFiles)
         wavQaqc <- timeJoin(wavQaqc,
-                            rename(logQaqc, 'UTC' = 'startUTC')[c('UTC', 'intBatt', 'extBatt', 'temp')],
+                            # rename(logQaqc, 'UTC' = 'startUTC')[c('UTC', 'intBatt', 'extBatt', 'temp')],
+                            rename(logQaqc, 'UTC' = 'fileTime')[c('UTC', 'intBatt', 'extBatt', 'temp')],
                             interpolate=FALSE)
         # logs may not match first and last wav files bc they can be chopped, correct
-        firstIn <- wavQaqc$UTC[1] >= logQaqc$startUTC & wavQaqc$UTC[1] <= logQaqc$endUTC
-        lastIn <- wavQaqc$UTC[nrow(wavQaqc)] >= logQaqc$startUTC & wavQaqc$UTC[nrow(wavQaqc)] <= logQaqc$endUTC
+        startEndDiff <- as.numeric(difftime(logQaqc$endUTC, logQaqc$startUTC, units='secs'))
+        logQaqc$startUTC <- logQaqc$fileTime
+        logQaqc$endUTC <- logQaqc$startUTC + startEndDiff
+        # firstIn <- wavQaqc$UTC[1] >= logQaqc$startUTC & wavQaqc$UTC[1] <= logQaqc$endUTC
+        firstIn <- wavQaqc$UTC[1] >= logQaqc$startUTC
         firstIn <- max(which(firstIn))
+        # lastIn <- wavQaqc$UTC[nrow(wavQaqc)] >= logQaqc$startUTC & wavQaqc$UTC[nrow(wavQaqc)] <= logQaqc$endUTC
+        lastIn <- wavQaqc$UTC[nrow(wavQaqc)] <= logQaqc$endUTC
         lastIn <- max(which(lastIn))
         wavQaqc$intBatt[1] <- logQaqc$intBatt[firstIn]
         wavQaqc$intBatt[nrow(wavQaqc)] <- logQaqc$intBatt[lastIn]
