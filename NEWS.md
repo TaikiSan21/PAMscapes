@@ -1,3 +1,7 @@
+# PAMscapes 0.14.6
+
+- Updating `matchGFS` to hopefully work more consistently and use new gdex URL
+
 # PAMscapes 0.14.5
 
 - Adding netcdf `calibration` option to `evaluateDeployment` & `evaluateRecordings`

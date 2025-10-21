@@ -57,12 +57,12 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
     minTime <- as.POSIXct('2015-01-15 00:00:00', tz='UTC')
     maxTime <- nowUTC() - 36*3600
     origCols <- colnames(x)
-    splitDf <- split(x, round_date(x$UTC, unit='3hour'))
+    x <- split(x, round_date(x$UTC, unit='3hour'))
     if(progress) {
-        pb <- txtProgressBar(min=0, max=length(splitDf), style=3)
+        pb <- txtProgressBar(min=0, max=length(x), style=3)
         ix <- 0
     }
-    splitDf <- lapply(splitDf, function(df) {
+    x <- lapply(x, function(df) {
         if(round_date(df$UTC[1], unit='3hour') < minTime ||
            round_date(df$UTC[1], unit='3hour') > maxTime) {
             warning('Date ', df$UTC[1], ' out of range of UCAR dataset')
@@ -75,27 +75,41 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
             return(df)
         }
         # base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/'
-        base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed
+        # base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed
+        base <- 'https://tds.gdex.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed again
         url <- formatURL_GFS(df, base=base)
         vars <- url$vars
         file <- fileNameManager()
-        dl <- GET(url$url, write_disk(file, overwrite = TRUE))
-        on.exit({
-          tempCache <- getTempCacheDir(create=FALSE)
-          # tempFiles <- list.files(tempCache, full.names=TRUE)
-          # unlink(tempFiles, force=TRUE)
-          unlink(tempCache, force=TRUE, recursive=TRUE)
-        })
-        if(dl$status_code != 200) {
-            warning('URL ', url$url, ' is invalid, pasting this into a browser may give more information.')
-            df$windU <- NA
-            df$windV <- NA
-            df$precRate <- NA
-            df$matchLong_mean <- NA
-            df$matchLat_mean <- NA
-            df$matchTime_mean <- NA
-            return(df)
+        
+        maxTries <- 2
+        nTry <- 1
+        while(nTry <= maxTries) {
+            dl <- try(suppressMessages(
+                GET(url$url, write_disk(file, overwrite = TRUE))
+            ))
+            on.exit({
+                tempCache <- getTempCacheDir(create=FALSE)
+                unlink(tempCache, force=TRUE, recursive=TRUE)
+            })
+            if(inherits(dl, 'try-error')) {
+                nTry <- nTry + 1
+                warning('URL ', url$url, ' failed to download with message "',
+                        dl[1], '", trying again...')
+                next
+            }
+            if(dl$status_code != 200) {
+                warning('URL ', url$url, ' is invalid, pasting this into a browser may give more information.')
+                df$windU <- NA
+                df$windV <- NA
+                df$precRate <- NA
+                df$matchLong_mean <- NA
+                df$matchLat_mean <- NA
+                df$matchTime_mean <- NA
+                return(df)
+            }
+            break
         }
+        
         df <- ncToData(df, file, var=vars, progress=FALSE, verbose=FALSE)
         vars <- paste0(vars, '_mean')
         df$windU <- df[[vars[1]]]
@@ -107,18 +121,18 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
         }
         df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
     })
-    result <- bind_rows(splitDf)
-    result$windMag <- sqrt(result$windU^2 + result$windV^2)
-    result <- rename(result,
+    x <- bind_rows(x)
+    x$windMag <- sqrt(x$windU^2 + x$windV^2)
+    x <- rename(x,
                      'matchLong' = 'matchLong_mean',
                      'matchLat' = 'matchLat_mean',
                      'matchTime' = 'matchTime_mean')
     if(!keepMatch) {
-        result$matchLong <- NULL
-        result$matchLat <- NULL
-        result$matchTime <- NULL
+        x$matchLong <- NULL
+        x$matchLat <- NULL
+        x$matchTime <- NULL
     }
-    result
+    x
 }
 
 formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/') {
@@ -136,7 +150,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
         range[[c]] <- round(range[[c]], 3)
     }
     range <- to180(range)
-
+    
     date3 <- round_date(date, unit='3hour')
     # if(length(date3) == 1) {
     #     date3 <- rep(date3, 2)
@@ -159,7 +173,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
                           'Precipitation_rate_surface_3_Hour_Average')
     vars <- c(vars, precVar)
     varPart <- paste0('var=', vars, '&', collapse='')
-
+    
     llPart <- paste0('north=', range[['Latitude']][[2]],
                      '&west=', range[['Longitude']][[1]],
                      '&east=', range[['Longitude']][[2]],
