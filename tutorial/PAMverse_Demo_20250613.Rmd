@@ -1,0 +1,327 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# PAMscapes Cloud Demo
+
+2025-06-13 (Friday the 13th!) Taiki Sakai (taiki.sakai@noaa.gov)
+
+This markdown document is a short demo of the most recent developments
+in the `PAMverse` series of packages as part of the PAM SI. It is
+intended to be fully interactive within the NMFS cloud environment using
+the PAM Windows Workstations, though the code examples translate to any
+platform. More information and links to additional tutorial materials
+can be found on the [PAMverse](https://nmfs-ost.github.io/PAMverse/)
+website.
+
+## Installation
+
+This demo requires PAMscapes v0.14.0 and PAMmisc v1.12.6, both of which
+are available on CRAN.
+
+```{r}
+install.packages('PAMmisc') # 1.12.6
+install.packages('PAMscapes') # 0.14.0
+```
+
+```{r}
+library(PAMscapes)
+```
+
+## QAQC
+
+The first step when receiving any new recording data is to check for any
+obvious problems - corrupted or missing recordings. `PAMscapes` helps
+you do this with the `evaluateDeployment` function, which generates 4
+different metrics to check for potential problems:
+
+1. Calculates TOL from the second minute of each recording file - lack of 
+   variation in these can indicate recorder problems.
+2. Calculates time between file start times - if these are not consistent
+   there may be a data gap.
+3. Calculates time between ends and starts of files - these should either 
+   be 0 (continuous) or consistent (duty cycled), or there may be a data gap.
+4. (Soundtrap only) Pulls battery and temperature data from log files - sudden
+   changes may indicate recorder problems.
+
+The basic requirements to run this are:
+* `dir` - the folder containing recording and (optionally) Soundtrap log data
+* `sensitivity` - the instrument sensitivity value (dB). This is used to properly
+scale the TOL output. Frequency-dependent calibrations can also be accepted - reach
+out to Taiki if you need to do this
+* `outDir` - a folder to store the outputs
+* `name` - (optional) a name for this deployment. If not given defaults to the
+folder name
+
+**Anticipated Q:** What if it's not a Soundtrap?
+**A**: It should work fine, but temperature/battery logs will not be created. Only
+caveat is that code needs to be able to parse times from recording names. Should
+work, but if you have particularly *clever* naming scheme for files it might not.
+Reach out if this is the case.
+
+For more specifics please see the [user guide](https://docs.google.com/document/d/1coo21rPb7WIxkFPqjt7CQKAkDu5KjdqXsZs_0PVbI9M/edit?usp=sharing)
+
+For reference, processing 3 months of 64kHz data took ~9 minutes of processing time
+
+```{r}
+# Dont run during demo - long run time
+wavDir <- 'C:/pamdata_mount/nefsc-1/bottom_mounted/NEFSC_MA-RI/NEFSC_MA-RI_202202_COX01'
+outDir <- 'C:/Users/pam_user/Downloads/'
+qaqcData <- evaluateDeployment(dir=wavDir, 
+                               sensitivity = -177.4, 
+                               outDir=outDir, 
+                               name = 'NEFSC_MA-RI_COX01')
+```
+
+This creates plot outputs in the folder and a CSV of all metrics generated. Can
+also review within the Shiny app!
+
+```{r}
+# runQAQCReview(qaqcData)
+# can also run from the CSV file
+runQAQCReview('X:/Cloud_Demo_Resources/PAMscapes/NEFSC_MA-RI_COX01_QAQCData.csv')
+```
+
+## Soundscapes
+
+Main goal of soundscape functions is to read in metrics from either PyPam NetCDF
+or MANTA CSV files and get them in the same format without users having to 
+worry about the details. Can either load a single file or folder of files easily.
+
+```{r}
+# Don't need to run for workshop
+ncDir <- 'C:/pamdata_mount/nefsc-1-detector-output/PYTHON_SOUNDSCAPE_PYPAM/Raw/NEFSC_GOM/NEFSC_GOM_202205_USTR05/NC'
+ncData <- loadSoundscapeData(ncDir)
+str(ncData)
+```
+
+New feature allows for manual review and annotation of individual daily HMD files.
+Allows user to scan through a folder of files to look for periods of interest -
+is slightly slow for interaction because of plotting a daily full resolution LTSA.
+
+```{r}
+runDailyLTSAReview(ncDir)
+```
+
+Many use cases for soundscape data are interested in large scale comparisons 
+across multiple sites and multiple years. Minute-resolution data is unnecessary
+for this and too large to work with, so `loadMultiscapeData` is a helper function
+for this sort of analysis that lets you bin to a larger timescale and also
+coarser frequency resolution to work with more manageable data.
+
+No data like this currently available on the cloud, code given for example
+purposes only.
+
+```{r}
+# Dont run - fake data paths
+loadMultiscapeData(c('path/to/folder1', 'path/to/folder2'),
+                   timeBin='1hour', 
+                   octave='tol')
+```
+
+For the demo I loaded data from our local server like this - 8 different 
+deployments of soundscape metrics, binned to hourly resolution rather than
+minute resolution.
+
+```{r}
+hmd <- readRDS('X:/Cloud_Demo_Resources/PAMscapes/HMD_wEnv.rds')
+```
+
+As always, there's an app for that.
+
+```{r}
+runSoundscapeExplorer(hmd)
+```
+
+`platform` is actually same site at different years - this is a field
+that gets read in automatically from PyPam NetCDF files.
+
+```{r}
+table(hmd$platform)
+```
+
+More useful for later comparisons to remove the year component for a site label.
+
+```{r}
+hmd$site <- gsub('_[0-9]{6}', '', hmd$platform)
+table(hmd$site)
+```
+
+Can create octave, third-octave, or specific band-level measurements from
+the full resolution HMD data. PAMscapes handles unit conversion and sums
+bands appropriately to get the desired output (HMD bands are normalized, and
+must be corrected before summing; partially aligned frequency bands for
+broadband measures are split proportionately)
+
+```{r}
+ol <- createOctaveLevel(hmd, type='ol')
+tol <- createOctaveLevel(hmd, type='tol')
+bb <- createOctaveLevel(hmd, type='broadband', freqRange=c(20, 50))
+names(ol)
+names(tol)
+names(bb)
+```
+
+## Detections
+
+Detections are complicated. Many different kinds of detections (hourly/daily
+presence vs verified individual detections vs verified events). Many different
+ways to store the data. Accounting for analysis effort is much more important.
+
+First goal is that if data is in Makara, it is easy to deal with.
+
+Mechanism for easily pulling from Makara not fully defined yet, but the
+data in the database looks like this
+
+```{r}
+makaraCsv <- read.csv('X:/Cloud_Demo_Resources/PAMscapes/Makara_Detections.csv', stringsAsFactors = FALSE)
+str(makaraCsv)
+```
+
+Complicated. 
+
+Goal of PAMscapes is to make it slightly less complicated.
+
+```{r}
+detData <- loadDetectionData(makaraCsv, source='makara')
+str(detData)
+```
+
+As always, there's an app for that! The app lets you explore the existing
+plotting options for detection data.
+
+```{r}
+runDetectionExplorer(detData)
+```
+Some notes on specific plots:
+
+`plotDetectionBoxplot` - detection data are binned, `group` argument tells the 
+code how to decide if entries in the same time bin are different. Each point making
+up a boxplot is a unique value of the `group` (e.g. if `group='species'`, there
+will be one point for each different species, if `group=c('species', 'deployment')`,
+then there will be one point for each species at each deployment).
+
+`plotPolarDetections` - `group` works same as above when detections are binned.
+If `bin1='detection'` then no binning is done and each row is treated as unique,
+can be useful to count total number of calls. Effort-based quantities do not
+make sense when counting detections.
+
+It is not required that data come from Makara to work with PAMscapes. Any
+arbitrary detection data can be read in (probably) as long as each detection
+has at minimum a start time, a duration (or end time), and a species label.
+
+```{r}
+otherCsv <- read.csv('X:/Cloud_Demo_Resources/PAMscapes/Other_Detections.csv', stringsAsFactors = FALSE)
+str(otherCsv)
+```
+
+As always, there's an app for that! The `loadDetectionData` tab assists with
+data formatting. Work your way through the warning messages until your data
+appears as a table.
+
+```{r}
+runDetectionExplorer(otherCsv)
+```
+
+Be sure to copy the code to make loading data easier in the future!
+
+## Integrations
+
+Detection and soundscape data on their own are not typically enough to tell
+the full story. The PAMverse contails tools to help integrate these data 
+together, as well as pull in other variables like environmental data. 
+However, these types of analyses are much less standardized, so they require
+a bit more work. If you have suggestions of other types of integrations you
+would like to see, please reach out and we are happy to incorporate new 
+ideas (seriously! E-mail me!).
+
+### Enviro Data
+
+`matchGFS` gets wind and rain data from a server. Requires UTC, Latitude,
+Longitude, these get auto-read from NetCDF metadata for soundscapes.
+
+```{r}
+# commented out because this download is slow
+# hmd <- matchGFS(hmd)
+```
+
+Columns for directional and total wind have been added (m/s), as well as
+precipitation rate (kg/m^2/s).
+
+```{r}
+str(hmd[tail(names(hmd), 10)])
+```
+
+```{r}
+hist(hmd$windMag)
+```
+
+For plotting purposes, categories are easier to work with than numerical
+values, so for illustration purposes we'll make some arbitrary buckets.
+
+```{r}
+hmd$windCategory <- cut(hmd$windMag, breaks=c(0, 10, 20, Inf), 
+    labels = c('Low Wind', 'Medium Wind', 'High Wind'))
+plotPSD(hmd, style="quantile", by="windCategory")
+```
+
+These new values also show up as options in the relevant plots in the explorer.
+
+```{r}
+runSoundscapeExplorer(hmd)
+```
+
+We can also get environmental data from any ERDDAP server. The difficulty with
+this is that I have no idea which datasets are of a useful quality. But if
+you have one in mind, it is extremely easy with the `matchEnvData` function
+from the `PAMmisc` package. Note that this function works with any dataframe
+that has UTC, Longitude, and Latitude columns.
+
+This example pulls data from the "jplMURSST41" dataset, specifically 
+downloading the "analysed_sst" variable. For more details on how to make
+this work for any ERDDAP dataset you find, see this [tutorial](https://taikisan21.github.io/PAMpal/NextStepsProcessing.html#adding-environmental-data)
+
+```{r}
+# dont run during demo, long run time
+detData <- matchEnvData(detData, nc='jplMURSST41', var='analysed_sst')
+```
+
+### HMD + Detections
+
+Pairing detection and soundscape data can be tricky because of the varying
+timescales. The `matchDetectionData` function will just label times in
+the HMD data that overlap with times in the detection data.
+
+`name` is what to call the new column to store these labels
+`value` is what to fill that column with for each row of detections
+`fillNA` is what to fill that column for times with no match (default `NA`) 
+`by` tells how to match groups - not all detections are relevant for 
+all times in the HMD data (different deployments at the same time)
+
+```{r}
+hmd <- matchDetectionData(hmd, 
+                          detection=detData[detData$species == 'Fin Whale', ],
+                          name='finPresence', value=TRUE, fillNA=FALSE,
+                          by='platform' == 'deployment')
+```
+
+```{r}
+plotPSD(hmd, by='finPresence')
+```
+
+Seems odd that many times without presence are louder. Detections are complicated.
+Lets take a look!
+
+```{r}
+runSoundscapeExplorer(hmd)
+```
+
+## Wrapup
+
+More information can be found on the [PAMverse](https://nmfs-ost.github.io/PAMverse/)
+website, especially on the [Resources](https://nmfs-ost.github.io/PAMverse/content/Resources.html) page.
+
+If you have any feedback, feature suggestions, or if something doesn't seem
+to be working quite right, please reach out! taiki.sakai@noaa.gov
