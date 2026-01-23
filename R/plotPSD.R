@@ -44,7 +44,7 @@
 #' plotPSD(psd[1:1000], style='density')
 #' plotPSD(psd[1:1000], style='quantile', q=.05)
 #'
-#' @importFrom graphics hist
+# #' @importFrom graphics hist
 #' @importFrom scales hue_pal squish
 #' @importFrom lubridate hour month year
 #'
