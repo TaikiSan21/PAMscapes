@@ -23,8 +23,8 @@ Depends:
     R (>= 3.5.0)
 Imports:
     dplyr,
-    rlang,
-    ggplot2 (>= 3.5.0),
+    rlang (>= 1.1.7),
+    ggplot2 (>= 4.0.1),
     lubridate,
     scales,
     tidyr,

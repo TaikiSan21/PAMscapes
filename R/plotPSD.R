@@ -316,7 +316,8 @@ plotPSD <- function(x,
     g <- g +
         scale_y_continuous(expand=c(0, 0), limits=dbRange) +
         ggtitle(title) +
-        labs(x='Frequency (Hz)', color='Quantile', y=units)
+        # labs(x='Frequency (Hz)', color='Quantile', y=units)
+        labs(x='Frequency (Hz)', y=units)
     if(is.null(freqRange)) {
         freqRange <- range(x$frequency)
         if('density' %in% style) {
