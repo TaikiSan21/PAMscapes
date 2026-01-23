@@ -6,31 +6,7 @@
 #'   can be combined and plotted as long as they have identical
 #'   frequency levels.
 #'
-#' @details \code{prepPSDData} is called by the plotting code, and
-#'   does not necessarily need to be called separately from
-#'   \code{plotPSD}. Loading PSD data can be time consuming, so
-#'   it may be useful to load the data first, then it is easier
-#'   to spend time adjusting plot settings.
-#'
-#'   The output of \code{prepPSDData} is a list with 5 elements:
-#'   \describe{
-#'      \item{frequency}{ - the frequency values of the input data}
-#'      \item{freqRange}{ - the value of the "freqRange" parameter if
-#'        it was supplied}
-#'      \item{dbVals}{ - the dB values of breakpoints used for "density"
-#'        plotting}
-#'      \item{quantileData}{ - the data used for quantile plots. These
-#'        are stored as "tidgest" objects serialized using
-#'        \link[tdigest]{as.list.tdigest}, from which quantiles can
-#'        be computed}
-#'      \item{densityData}{ - the data used fro quantile plots. These
-#'        are stored as a matrix of bin counts - each column corresponds
-#'        to the "frequency" output, each row corresponds to bins defined
-#'        using "dbVals" as boundaries}
-#'   }
-#'
-#' @param x a dataframe or list of dataframes, or file path or vector
-#'   of file paths, or the output from \code{prepPSDData}
+#' @param x a dataframe or file path or vector of file paths
 #' @param style character specifying plot style to create, either
 #'   "quantile", "density", or a vector with both
 #' @param scale scale to use for frequency axis, one of "log" or "linear"
@@ -51,15 +27,13 @@
 #'   will then show the difference between the other levels and the reference
 #' @param facet optional column to facet the plots by
 #' @param ncol number of columns to use when plotting with \code{facet}
-#' @param compression compression factor for \link[tdigest]{tdigest}, lower
-#'   values are less accurate but will compute faster. Only relevant for
-#'   \code{style='quantile'} when loading and combining multiple datasets
 #' @param title optional title for plot
+#' @param compression no longer used
 #' @param returnData if \code{TRUE} then no plot will be generated, instead the
 #'   dataframe that would normally be used to make the plot will be returned
 #' @param progress logical flag to show progress bar
 #'
-#' @return a ggplot object for \code{plotPSD}, see details for \code{prepPSDData}
+#' @return a ggplot object
 #'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #'
@@ -108,6 +82,9 @@ plotPSD <- function(x,
                 'one of either "quantile" or "density".')
         return(NULL)
     }
+    if(is.character(x)) {
+        x <- loadSoundscapeData(x)
+    }
     if(!is.null(by)) {
         if('density' %in% style) {
             warning('Plots with "by" can only show quantile, not density')
@@ -147,6 +124,10 @@ plotPSD <- function(x,
     }
     g <- ggplot()
     justOneDf <- is.data.frame(x)
+    if(isFALSE(justOneDf)) {
+        warning('plotPSD now only accepts single dataframe inputs')
+        return(NULL)
+    }
     # way faster to skip the "prep" step if we take in a df so
     # that has a special case here. Avoids the problem of sending
     # copies of large "x" to other functions
@@ -280,57 +261,57 @@ plotPSD <- function(x,
             g <- addQuantilePlot(g, x=qData, by=by, color=color)
         }
     } # end justOneDf
-    if(!is.list(x) ||
-       !all(c('frequency', 'freqRange', 'quantileData', 'densityData') %in% names(x)) &&
-       !justOneDf) {
-        x <- prepPSDData(x, freqRange=freqRange, style=style, dbInt=dbInt, by=by, progress=progress)
-    }
+    # if(!is.list(x) ||
+    #    !all(c('frequency', 'freqRange', 'quantileData', 'densityData') %in% names(x)) &&
+    #    !justOneDf) {
+    #     x <- prepPSDData(x, freqRange=freqRange, style=style, dbInt=dbInt, by=by, progress=progress)
+    # }
     
-    if('density' %in% style &&
-       !justOneDf) {
-        x$densityData <- formatDensityData(x$densityData,
-                                           frequency = x$frequency,
-                                           freqRange = x$freqRange,
-                                           dbVals=x$dbVals,
-                                           scale=scale)
-        if(isTRUE(returnData)) {
-            return(x$densityData)
-        }
-        g <- g +
-            geom_rect(data=x$densityData,
-                      aes(xmin=.data$freqLow,
-                          xmax=.data$frequency,
-                          ymin=.data$dbLow,
-                          ymax=.data$dbHigh,
-                          fill=.data$count)) +
-            labs(fill='Density')
-        if(!is.null(densityRange) &&
-           length(densityRange) != 2) {
-            warning('"densityRange" must be 2 values')
-            densityRange <- NULL
-        }
-        if(is.null(densityRange)) {
-            g <- g +
-                scale_fill_gradientn(colors=cmap, na.value = 'transparent')
-        } else {
-            g <- g +
-                scale_fill_gradientn(colors=cmap, na.value='transparent',
-                                     limits=densityRange,
-                                     oob=squish)
-        }
-    }
-    if('quantile' %in% style &&
-       !justOneDf) {
-        x$quantileData <- formatQuantileData(x$quantileData,
-                                             frequency = x$frequency,
-                                             q=q,
-                                             freqRange=x$freqRange,
-                                             scale=scale)
-        if(isTRUE(returnData)) {
-            return(x$quantileData)
-        }
-        g <- addQuantilePlot(g, x=x$quantileData, by=by, color=color)
-    }
+    # if('density' %in% style &&
+    #    !justOneDf) {
+    #     x$densityData <- formatDensityData(x$densityData,
+    #                                        frequency = x$frequency,
+    #                                        freqRange = x$freqRange,
+    #                                        dbVals=x$dbVals,
+    #                                        scale=scale)
+    #     if(isTRUE(returnData)) {
+    #         return(x$densityData)
+    #     }
+    #     g <- g +
+    #         geom_rect(data=x$densityData,
+    #                   aes(xmin=.data$freqLow,
+    #                       xmax=.data$frequency,
+    #                       ymin=.data$dbLow,
+    #                       ymax=.data$dbHigh,
+    #                       fill=.data$count)) +
+    #         labs(fill='Density')
+    #     if(!is.null(densityRange) &&
+    #        length(densityRange) != 2) {
+    #         warning('"densityRange" must be 2 values')
+    #         densityRange <- NULL
+    #     }
+    #     if(is.null(densityRange)) {
+    #         g <- g +
+    #             scale_fill_gradientn(colors=cmap, na.value = 'transparent')
+    #     } else {
+    #         g <- g +
+    #             scale_fill_gradientn(colors=cmap, na.value='transparent',
+    #                                  limits=densityRange,
+    #                                  oob=squish)
+    #     }
+    # }
+    # if('quantile' %in% style &&
+    #    !justOneDf) {
+    #     x$quantileData <- formatQuantileData(x$quantileData,
+    #                                          frequency = x$frequency,
+    #                                          q=q,
+    #                                          freqRange=x$freqRange,
+    #                                          scale=scale)
+    #     if(isTRUE(returnData)) {
+    #         return(x$quantileData)
+    #     }
+    #     g <- addQuantilePlot(g, x=x$quantileData, by=by, color=color)
+    # }
     
     g <- g +
         scale_y_continuous(expand=c(0, 0), limits=dbRange) +
@@ -361,170 +342,175 @@ plotPSD <- function(x,
     g
 }
 
-#' @importFrom tdigest tdigest td_merge as_tdigest
-#' @importFrom purrr reduce
+# #' @importFrom tdigest tdigest td_merge as_tdigest
+# #' @importFrom purrr reduce
 #' @rdname plotPSD
 #' @export
-#'
+
 prepPSDData <- function(x, freqRange=NULL, style=c('density', 'quantile'),
                         by=NULL, dbInt=1, compression=10e3, progress=TRUE) {
-    # if input is already prepped data
-    if(is.list(x) &&
-       all(c('frequency', 'freqRange', 'quantileData', 'densityData') %in% names(x))) {
-        return(x)
-    }
-    # jank to handle multiple file inputs, dataframe case
-    justDf <- FALSE
-    if(is.data.frame(x)) {
-        justDf <- TRUE
-        progress <- FALSE
-    }
-    if(is.list(x) && length(x) == 1) {
-        progress <- FALSE
-    }
-    dbVals <- seq(from=0, to=200, by=dbInt)
-    densityData <- NULL
-    quantileData <- NULL
-    if(progress) {
-        cat('Prepping PSD data...\n')
-        pb <- txtProgressBar(min=0, max=length(x), style=3)
-    }
-    # need a way to deal with problem that midway through files
-    # the "by" column disappears and our grouping is janked
-    resetBy <- FALSE
-    nSeq <- ifelse(justDf, 1, length(x))
-    for(f in seq_len(nSeq)) {
-        if(justDf) {
-            data <- x
-        } else {
-            data <- loadSoundscapeData(x[[f]])
-        }
-        if(isLong(colnames(data))) {
-            data <- toWide(data)
-        }
-        if(!is.null(by) &&
-           !by %in% colnames(data)) {
-            warning('"by" column not present in data index ', f,
-                    ', "by" grouping will be removed.')
-            by <- NULL
-            resetBy <- TRUE
-        }
-        if(!is.null(by)) {
-            byVals <- data[[by]]
-        }
-        freqCols <- whichFreqCols(colnames(data))
-        freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
-        # data <- data[c(1, freqCols)]
-        data <- data[freqCols]
-        
-        if(!is.null(freqRange)) {
-            goodFreqs <- freqs >= freqRange[1] & freqs <= freqRange[2]
-            goodIx <- which(goodFreqs)
-            data <- data[c(goodIx)]
-            freqCols <- whichFreqCols(colnames(data))
-            # freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)))
-            freqs <- colsToFreqs(colnames(data))
-        }
-        # checking compatibility of all file freq vals
-        if(f == 1) {
-            firstFreq <- freqs
-        }
-        # check for mismatching frequency levels - cant combine
-        isDiff <- isFreqDiff(firstFreq, freqs, f)
-        if(isDiff) {
-            if(progress) {
-                setTxtProgressBar(pb, value=f)
-            }
-            next
-        }
-        if(!is.null(by)) {
-            data <- split(data, byVals)
-        }
-        if('density' %in% style) {
-            # hist count adding per
-            # return counts @ frequency per each dbBin, then sum counts over all files
-            thisDensity <- prepDensityData(data, dbVals)
-            if(f == 1) {
-                densityData <- thisDensity
-            } else {
-                densityData <- densityData + thisDensity
-            }
-        }
-        if('quantile' %in% style) {
-            #tdigest quantile adding per
-            # return tdigest @ frequency for each, then td_merge them into one
-            # then quantile of the merged tds
-            thisQuantile <- prepQuantileData(data, by=!is.null(by), compression=compression)
-            if(f == 1) {
-                quantileData <- thisQuantile
-                next
-            }
-            # output will be list(by=list(tdigest(freq)))
-            if(!is.null(by)) {
-                for(b in names(thisQuantile)) {
-                    # if new level its baseline
-                    if(!b %in% names(quantileData)) {
-                        quantileData[[b]] <- thisQuantile[[b]]
-                        next
-                    }
-                    # otherwise smash
-                    for(qFreq in seq_along(quantileData[[b]])) {
-                        td_merge(
-                            thisQuantile[[b]][[qFreq]],
-                            quantileData[[b]][[qFreq]]
-                        )
-                    }
-                }
-            } else { # no "by"
-                # need to reset qd from list(by(freq)) to list(freq)
-                if(isTRUE(resetBy)) {
-                    resetBy <- FALSE
-                    for(b in seq_along(quantileData)) {
-                        if(b == 1) {
-                            next
-                        }
-                        # merge all into [[1]]
-                        for(qFreq in seq_along(quantileData[[1]])) {
-                            td_merge(
-                                quantileData[[b]][[qFreq]],
-                                quantileData[[1]][[qFreq]]
-                            )
-                        }
-                    }
-                    quantileData <- quantileData[[1]]
-                }
-                
-                for(qFreq in seq_along(quantileData)) {
-                    td_merge(
-                        thisQuantile[[qFreq]],
-                        quantileData[[qFreq]]
-                    )
-                }
-            }
-        }
-        # just forcing these bc PSD can be large
-        rm(data)
-        gc()
-        if(progress) {
-            setTxtProgressBar(pb, value=f)
-        }
-    }
-    if('quantile' %in% style) {
-        # have to turn from pointer to list before saving
-        for(q in seq_along(quantileData)) {
-            if(is.null(by)) {
-                quantileData[[q]] <- as.list(quantileData[[q]])
-            } else {
-                for(b in seq_along(quantileData[[q]])) {
-                    quantileData[[q]][[b]] <- as.list(quantileData[[q]][[b]])
-                }
-            }
-        }
-    }
-    
-    list(frequency=firstFreq, freqRange=freqRange, dbVals=dbVals,
-         quantileData=quantileData, densityData=densityData)
+    .Deprecated('loadSoundscapeData',
+                msg=paste0('Processing a list of inputs is no longer supported, load all data ',
+                           'into a single dataframe with loadSoundscapeData instead.')
+    )
 }
+#     # if input is already prepped data
+#     if(is.list(x) &&
+#        all(c('frequency', 'freqRange', 'quantileData', 'densityData') %in% names(x))) {
+#         return(x)
+#     }
+#     # jank to handle multiple file inputs, dataframe case
+#     justDf <- FALSE
+#     if(is.data.frame(x)) {
+#         justDf <- TRUE
+#         progress <- FALSE
+#     }
+#     if(is.list(x) && length(x) == 1) {
+#         progress <- FALSE
+#     }
+#     dbVals <- seq(from=0, to=200, by=dbInt)
+#     densityData <- NULL
+#     quantileData <- NULL
+#     if(progress) {
+#         cat('Prepping PSD data...\n')
+#         pb <- txtProgressBar(min=0, max=length(x), style=3)
+#     }
+#     # need a way to deal with problem that midway through files
+#     # the "by" column disappears and our grouping is janked
+#     resetBy <- FALSE
+#     nSeq <- ifelse(justDf, 1, length(x))
+#     for(f in seq_len(nSeq)) {
+#         if(justDf) {
+#             data <- x
+#         } else {
+#             data <- loadSoundscapeData(x[[f]])
+#         }
+#         if(isLong(colnames(data))) {
+#             data <- toWide(data)
+#         }
+#         if(!is.null(by) &&
+#            !by %in% colnames(data)) {
+#             warning('"by" column not present in data index ', f,
+#                     ', "by" grouping will be removed.')
+#             by <- NULL
+#             resetBy <- TRUE
+#         }
+#         if(!is.null(by)) {
+#             byVals <- data[[by]]
+#         }
+#         freqCols <- whichFreqCols(colnames(data))
+#         freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)[freqCols]))
+#         # data <- data[c(1, freqCols)]
+#         data <- data[freqCols]
+#         
+#         if(!is.null(freqRange)) {
+#             goodFreqs <- freqs >= freqRange[1] & freqs <= freqRange[2]
+#             goodIx <- which(goodFreqs)
+#             data <- data[c(goodIx)]
+#             freqCols <- whichFreqCols(colnames(data))
+#             # freqs <- as.numeric(gsub('[A-z]+_', '', colnames(data)))
+#             freqs <- colsToFreqs(colnames(data))
+#         }
+#         # checking compatibility of all file freq vals
+#         if(f == 1) {
+#             firstFreq <- freqs
+#         }
+#         # check for mismatching frequency levels - cant combine
+#         isDiff <- isFreqDiff(firstFreq, freqs, f)
+#         if(isDiff) {
+#             if(progress) {
+#                 setTxtProgressBar(pb, value=f)
+#             }
+#             next
+#         }
+#         if(!is.null(by)) {
+#             data <- split(data, byVals)
+#         }
+#         if('density' %in% style) {
+#             # hist count adding per
+#             # return counts @ frequency per each dbBin, then sum counts over all files
+#             thisDensity <- prepDensityData(data, dbVals)
+#             if(f == 1) {
+#                 densityData <- thisDensity
+#             } else {
+#                 densityData <- densityData + thisDensity
+#             }
+#         }
+#         if('quantile' %in% style) {
+#             #tdigest quantile adding per
+#             # return tdigest @ frequency for each, then td_merge them into one
+#             # then quantile of the merged tds
+#             thisQuantile <- prepQuantileData(data, by=!is.null(by), compression=compression)
+#             if(f == 1) {
+#                 quantileData <- thisQuantile
+#                 next
+#             }
+#             # output will be list(by=list(tdigest(freq)))
+#             if(!is.null(by)) {
+#                 for(b in names(thisQuantile)) {
+#                     # if new level its baseline
+#                     if(!b %in% names(quantileData)) {
+#                         quantileData[[b]] <- thisQuantile[[b]]
+#                         next
+#                     }
+#                     # otherwise smash
+#                     for(qFreq in seq_along(quantileData[[b]])) {
+#                         td_merge(
+#                             thisQuantile[[b]][[qFreq]],
+#                             quantileData[[b]][[qFreq]]
+#                         )
+#                     }
+#                 }
+#             } else { # no "by"
+#                 # need to reset qd from list(by(freq)) to list(freq)
+#                 if(isTRUE(resetBy)) {
+#                     resetBy <- FALSE
+#                     for(b in seq_along(quantileData)) {
+#                         if(b == 1) {
+#                             next
+#                         }
+#                         # merge all into [[1]]
+#                         for(qFreq in seq_along(quantileData[[1]])) {
+#                             td_merge(
+#                                 quantileData[[b]][[qFreq]],
+#                                 quantileData[[1]][[qFreq]]
+#                             )
+#                         }
+#                     }
+#                     quantileData <- quantileData[[1]]
+#                 }
+#                 
+#                 for(qFreq in seq_along(quantileData)) {
+#                     td_merge(
+#                         thisQuantile[[qFreq]],
+#                         quantileData[[qFreq]]
+#                     )
+#                 }
+#             }
+#         }
+#         # just forcing these bc PSD can be large
+#         rm(data)
+#         gc()
+#         if(progress) {
+#             setTxtProgressBar(pb, value=f)
+#         }
+#     }
+#     if('quantile' %in% style) {
+#         # have to turn from pointer to list before saving
+#         for(q in seq_along(quantileData)) {
+#             if(is.null(by)) {
+#                 quantileData[[q]] <- as.list(quantileData[[q]])
+#             } else {
+#                 for(b in seq_along(quantileData[[q]])) {
+#                     quantileData[[q]][[b]] <- as.list(quantileData[[q]][[b]])
+#                 }
+#             }
+#         }
+#     }
+#     
+#     list(frequency=firstFreq, freqRange=freqRange, dbVals=dbVals,
+#          quantileData=quantileData, densityData=densityData)
+# }
 
 formatDensityData <- function(x, frequency=NULL, freqRange=NULL, dbVals=NULL, scale) {
     if(is.list(x)) {
@@ -576,55 +562,55 @@ formatDensityData <- function(x, frequency=NULL, freqRange=NULL, dbVals=NULL, sc
     densityData
 }
 
-formatQuantileData <- function(x, q, frequency=NULL, freqRange=NULL, scale) {
-    # this is input format from prepQuantileData
-    if(is.list(x) &&
-       all(c('frequency', 'freqRange', 'quantileData') %in% names(x))) {
-        if(is.null(frequency)) {
-            frequency <- x$frequency
-        }
-        if(is.null(freqRange)) {
-            freqRange <- x$freqRange
-        }
-        x <- x$quantileData
-    }
-    # case when by
-    if(!inherits(x[[1]], 'tdigest_list')) {
-        return(
-            bind_rows(
-                lapply(x,
-                       function(b) {
-                           formatQuantileData(b, q=q, frequency=frequency, freqRange=freqRange, scale=scale)
-                       }
-                ), .id='by'
-            )
-        )
-    }
-    q <- checkQuantile(q)
-    # change back to tdigest from list we made earlier
-    for(i in seq_along(x)) {
-        x[[i]] <- as_tdigest(x[[i]])
-    }
-    quantiles <- sapply(x, function(x) {
-        quantile(x, q)
-    })
-    
-    quantileData <- data.frame(
-        frequency = frequency,
-        qlow = quantiles[1, ],
-        qmed = quantiles[2, ],
-        qhigh = quantiles[3, ])
-    if(!is.null(freqRange)) {
-        quantileData <- quantileData[
-            quantileData$frequency >= freqRange[1] &
-                quantileData$frequency <= freqRange[2], ]
-    }
-    if(scale == 'log' && any(quantileData$frequency == 0)) {
-        warning('Cannot plot "0" frequency on log scale, these are removed.', call.=FALSE)
-        quantileData <- quantileData[quantileData$frequency > 0, ]
-    }
-    quantileData
-}
+# formatQuantileData <- function(x, q, frequency=NULL, freqRange=NULL, scale) {
+#     # this is input format from prepQuantileData
+#     if(is.list(x) &&
+#        all(c('frequency', 'freqRange', 'quantileData') %in% names(x))) {
+#         if(is.null(frequency)) {
+#             frequency <- x$frequency
+#         }
+#         if(is.null(freqRange)) {
+#             freqRange <- x$freqRange
+#         }
+#         x <- x$quantileData
+#     }
+#     # case when by
+#     if(!inherits(x[[1]], 'tdigest_list')) {
+#         return(
+#             bind_rows(
+#                 lapply(x,
+#                        function(b) {
+#                            formatQuantileData(b, q=q, frequency=frequency, freqRange=freqRange, scale=scale)
+#                        }
+#                 ), .id='by'
+#             )
+#         )
+#     }
+#     q <- checkQuantile(q)
+#     # change back to tdigest from list we made earlier
+#     for(i in seq_along(x)) {
+#         x[[i]] <- as_tdigest(x[[i]])
+#     }
+#     quantiles <- sapply(x, function(x) {
+#         quantile(x, q)
+#     })
+#     
+#     quantileData <- data.frame(
+#         frequency = frequency,
+#         qlow = quantiles[1, ],
+#         qmed = quantiles[2, ],
+#         qhigh = quantiles[3, ])
+#     if(!is.null(freqRange)) {
+#         quantileData <- quantileData[
+#             quantileData$frequency >= freqRange[1] &
+#                 quantileData$frequency <= freqRange[2], ]
+#     }
+#     if(scale == 'log' && any(quantileData$frequency == 0)) {
+#         warning('Cannot plot "0" frequency on log scale, these are removed.', call.=FALSE)
+#         quantileData <- quantileData[quantileData$frequency > 0, ]
+#     }
+#     quantileData
+# }
 # input here is only frequency columns
 prepDensityData <- function(x, dbVals) {
     nOOB <- 0
@@ -648,18 +634,18 @@ prepDensityData <- function(x, dbVals) {
     counts
 }
 
-prepQuantileData <- function(x, by=FALSE, compression=10e3) {
-    # if splitting "by" this will come in as
-    # result of split(x, by) instead of DF x
-    if(isTRUE(by)) {
-        return(
-            lapply(x, function(b) {
-                lapply(b, tdigest, compression=compression)
-            })
-        )
-    }
-    lapply(x, tdigest, compression=compression)
-}
+# prepQuantileData <- function(x, by=FALSE, compression=10e3) {
+#     # if splitting "by" this will come in as
+#     # result of split(x, by) instead of DF x
+#     if(isTRUE(by)) {
+#         return(
+#             lapply(x, function(b) {
+#                 lapply(b, tdigest, compression=compression)
+#             })
+#         )
+#     }
+#     lapply(x, tdigest, compression=compression)
+# }
 
 isFreqDiff <- function(x, y, ix=1) {
     if(ix == 1) {

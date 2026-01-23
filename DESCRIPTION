@@ -1,6 +1,6 @@
 Package: PAMscapes
 Title: Tools for Summarising and Analysing Soundscape Data
-Version: 0.14.6
+Version: 0.15.0
 Authors@R: c(
     TS = person("Taiki", "Sakai", email = "taiki.sakai@noaa.gov", role = c("aut", "cre")),
     AS = person("Anne", "Simonis", role = c("ctb")),
@@ -34,7 +34,6 @@ Imports:
     sf,
     PAMmisc (>= 1.12.4),
     ncdf4,
-    tdigest,
     purrr,
     shiny,
     future.apply,

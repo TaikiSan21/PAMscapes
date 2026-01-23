@@ -1,3 +1,12 @@
+# PAMscapes 0.15.0
+
+- Removing `tdigest` dependency before pending archival of that package
+
+- `prepPSDData` functionality removed, and `plotPSD` now only accepts single dataframe
+inputs rather than lists of dataframes like previously. This was previously developed
+and necessary for full-scale 1Hz PSD files, so should no longer be needed with the
+move to HMD resolution data. 
+
 # PAMscapes 0.14.6
 
 - Updating `matchGFS` to hopefully work more consistently and use new gdex URL

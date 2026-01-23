@@ -37,8 +37,7 @@ prepPSDData(
 )
 }
 \arguments{
-\item{x}{a dataframe or list of dataframes, or file path or vector
-of file paths, or the output from \code{prepPSDData}}
+\item{x}{a dataframe or file path or vector of file paths}
 
 \item{style}{character specifying plot style to create, either
 "quantile", "density", or a vector with both}
@@ -81,12 +80,10 @@ dataframe that would normally be used to make the plot will be returned}
 
 \item{progress}{logical flag to show progress bar}
 
-\item{compression}{compression factor for \link[tdigest]{tdigest}, lower
-values are less accurate but will compute faster. Only relevant for
-\code{style='quantile'} when loading and combining multiple datasets}
+\item{compression}{no longer used}
 }
 \value{
-a ggplot object for \code{plotPSD}, see details for \code{prepPSDData}
+a ggplot object
 }
 \description{
 Plots the distribution of summarised sound levels
@@ -94,30 +91,6 @@ across frequency, either as lines of quantile levels or a
 heatmap showing the full distribution. Multiple PSD sources
 can be combined and plotted as long as they have identical
 frequency levels.
-}
-\details{
-\code{prepPSDData} is called by the plotting code, and
-does not necessarily need to be called separately from
-\code{plotPSD}. Loading PSD data can be time consuming, so
-it may be useful to load the data first, then it is easier
-to spend time adjusting plot settings.
-
-The output of \code{prepPSDData} is a list with 5 elements:
-\describe{
-\item{frequency}{ - the frequency values of the input data}
-\item{freqRange}{ - the value of the "freqRange" parameter if
-it was supplied}
-\item{dbVals}{ - the dB values of breakpoints used for "density"
-plotting}
-\item{quantileData}{ - the data used for quantile plots. These
-are stored as "tidgest" objects serialized using
-\link[tdigest]{as.list.tdigest}, from which quantiles can
-be computed}
-\item{densityData}{ - the data used fro quantile plots. These
-are stored as a matrix of bin counts - each column corresponds
-to the "frequency" output, each row corresponds to bins defined
-using "dbVals" as boundaries}
-}
 }
 \examples{
 
