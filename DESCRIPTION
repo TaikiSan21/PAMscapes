@@ -12,7 +12,7 @@ Description: A variety of tools relevant to the analysis
     data from Marine Cadastre <https://hub.marinecadastre.gov>,
     connecting AIS data to GPS coordinates, plotting summaries of various soundscape
     measurements, and downloading relevant environmental variables (wind, swell height) from the
-    National Center for Atmospheric Research data server <https://rda.ucar.edu/datasets/ds084.1/>.
+    National Center for Atmospheric Research data server <https://gdex.ucar.edu/datasets/d084001/>.
     Most tools were developed to work well with output from 'Triton' software, but can be adapted
     to work with any similar measurements.
 License: GNU General Public License

@@ -52,7 +52,7 @@ Figure 2: Example of Acoustic Scene visualization  produced from acoustic detec
 
 5.  Crowd-Sourced Soundscape Bibliography
 
-Research on soundscapes is advancing rapidly, and we realized there was a need to create a crowd-sourced bibliography to assist other researchers keep up with advances in the field. To this end, we created an open source Soundscape bibliography on Zotero ([https://www.zotero.org/groups/58164/soundscape](https://www.zotero.org/groups/58164/soundscape)) with additional information provided on Bioacoustics Stack Exchange ([https://bioacoustics.stackexchange.com/questions/1375/is-there-a-central-repository-for-soundscape-literature](https://bioacoustics.stackexchange.com/questions/1375/is-there-a-central-repository-for-soundscape-literature))
+Research on soundscapes is advancing rapidly, and we realized there was a need to create a crowd-sourced bibliography to assist other researchers keep up with advances in the field. To this end, we created an open source Soundscape bibliography on Zotero ([https://www.zotero.org/groups/58164/soundscape](https://www.zotero.org/groups/58164/soundscape)) with additional information provided on Bioacoustics Stack Exchange 
 
 ## **Conclusions**
 
