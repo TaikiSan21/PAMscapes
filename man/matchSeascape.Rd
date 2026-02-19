@@ -27,7 +27,7 @@ Data Access Program) server at
 \url{https://cwcgom.aoml.noaa.gov/erddap/index.html}. More
 information on theclasses can be found on the help page for
 the seascapeR package
-\url{https://marinebon.github.io/seascapeR/index.html}.
+\url{https://marinebon.org/seascapeR/index.html}.
 }
 \details{
 This function is just a wrapper around \link[PAMmisc]{matchEnvData}

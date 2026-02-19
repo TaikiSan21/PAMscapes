@@ -6,7 +6,7 @@
 #'   \url{https://cwcgom.aoml.noaa.gov/erddap/index.html}. More
 #'   information on theclasses can be found on the help page for
 #'   the seascapeR package
-#'   \url{https://marinebon.github.io/seascapeR/index.html}.
+#'   \url{https://marinebon.org/seascapeR/index.html}.
 #'
 #' @param x a dataframe with columns \code{UTC}, \code{Latitude} and
 #'   \code{Longitude} to add environmental data to

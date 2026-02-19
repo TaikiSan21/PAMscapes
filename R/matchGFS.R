@@ -3,7 +3,7 @@
 #' @description Downloads and matches wind and precipitation data
 #'   from the Global Forecast System (GFS) weather model. Data is
 #'   downloaded from the National Center for Atmospheric Research
-#'   data server \url{https://rda.ucar.edu/datasets/d084001/}.
+#'   data server \url{https://gdex.ucar.edu/datasets/d084001/}.
 #'   The particular GFS dataset downloaded is the closest "forecast"
 #'   dataset to the particular time (e.g. .f000 or .f003)
 #'
@@ -80,7 +80,7 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
         url <- formatURL_GFS(df, base=base)
         vars <- url$vars
         file <- fileNameManager()
-        
+
         maxTries <- 2
         nTry <- 1
         while(nTry <= maxTries) {
@@ -109,7 +109,7 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
             }
             break
         }
-        
+
         df <- ncToData(df, file, var=vars, progress=FALSE, verbose=FALSE)
         vars <- paste0(vars, '_mean')
         df$windU <- df[[vars[1]]]
@@ -150,7 +150,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
         range[[c]] <- round(range[[c]], 3)
     }
     range <- to180(range)
-    
+
     date3 <- round_date(date, unit='3hour')
     # if(length(date3) == 1) {
     #     date3 <- rep(date3, 2)
@@ -173,7 +173,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
                           'Precipitation_rate_surface_3_Hour_Average')
     vars <- c(vars, precVar)
     varPart <- paste0('var=', vars, '&', collapse='')
-    
+
     llPart <- paste0('north=', range[['Latitude']][[2]],
                      '&west=', range[['Longitude']][[1]],
                      '&east=', range[['Longitude']][[2]],
