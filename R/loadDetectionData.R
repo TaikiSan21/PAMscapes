@@ -153,7 +153,10 @@ loadDetectionData <- function(x,
         if(is.character(x)) {
             result$deployment <- detFileToCode(x)
         }
-        extraCols <- c(extraCols, 'call', 'deployment')
+        makExtras <- c('call', 'deployment', 'site', 'project')
+        tryNames <- renameToMap(names(result), columnMap)
+        makExtras <- makExtras[makExtras %in% tryNames]
+        extraCols <- c(extraCols, makExtras)
         if(is.null(detectedValues)) {
             detectedValues <- 'DETECTED'
         }
@@ -271,6 +274,12 @@ loadDetectionData <- function(x,
         extraCols <- c(extraCols, 'detectedFlag')
         # result$detectedFlag <- NULL
     }
+    extraNotIn <- !extraCols %in% names(result)
+    if(any(extraNotIn)) {
+        warning('"extraCols" ', printN(extraCols[extraNotIn]),
+                ' are not in data')
+        extraCols <- extraCols[!extraNotIn]
+    }
     result <- select(result, all_of(unique(c(reqCols, extraCols))))
     result
 }
@@ -281,6 +290,7 @@ getColMaps <- function(which=NULL) {
                         'end' = 'detection_end_datetime',
                         'species' = 'detection_sound_source_code',
                         'species' = 'sound_source_code',
+                        'species' = 'soundsource_id',
                         'call' = 'detection_call_type_code',
                         'call' = 'call_type_code',
                         'deployment' = 'deployment_code',
@@ -289,7 +299,9 @@ getColMaps <- function(which=NULL) {
                         'Latitude' = 'detection_latitude',
                         'Longitude' = 'detection_longitude',
                         'effortStart' = 'analysis_start_datetime',
-                        'effortEnd' = 'analysis_end_datetime'
+                        'effortEnd' = 'analysis_end_datetime',
+                        'site' = 'site_code',
+                        'project' = 'project_code'
         ),
         'gen' = list('UTC' = 'StartDate',
                      'project' = 'PROJECT_DESCRIPTION',

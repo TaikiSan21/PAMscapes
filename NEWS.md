@@ -1,3 +1,7 @@
+# PAMscapes 0.15.1
+
+- Updating `loadDetectionData` for better Makara interaction
+
 # PAMscapes 0.15.0
 
 - Removing `tdigest` dependency before pending archival of that package
