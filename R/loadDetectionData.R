@@ -151,7 +151,10 @@ loadDetectionData <- function(x,
             return(NULL)
         }
         if(is.character(x)) {
-            result$deployment <- detFileToCode(x)
+            tryCode <- detFileToCode(x)
+            if(!is.na(tryCode)) {
+                result$deployment <- tryCode
+            }
         }
         makExtras <- c('call', 'deployment', 'site', 'project')
         tryNames <- renameToMap(names(result), columnMap)
@@ -202,26 +205,26 @@ loadDetectionData <- function(x,
     }
     if('effortStart' %in% names(result)) {
         result$effortStart <- parse_date_time(result$effortStart,
-                                      orders=dateFormat,
-                                      truncated = 3,
-                                      tz=tz,
-                                      quiet=TRUE,
-                                      exact=TRUE)
+                                              orders=dateFormat,
+                                              truncated = 3,
+                                              tz=tz,
+                                              quiet=TRUE,
+                                              exact=TRUE)
     }
     if('effortEnd' %in% names(result)) {
         result$effortEnd <- parse_date_time(result$effortEnd,
-                                      orders=dateFormat,
-                                      truncated = 3,
-                                      tz=tz,
-                                      quiet=TRUE,
-                                      exact=TRUE)
+                                            orders=dateFormat,
+                                            truncated = 3,
+                                            tz=tz,
+                                            quiet=TRUE,
+                                            exact=TRUE)
     }
     if('duration' %in% names(result) &&
        !'end' %in% names(result)) {
         result$end <- result$UTC + result$duration
         extraCols <- c(extraCols, 'duration')
     }
-
+    
     detectionType <- match.arg(detectionType)
     switch(detectionType,
            'auto' = {
@@ -373,7 +376,7 @@ renameToMap <- function(names, map) {
     #     names(map) <- rev(names(map))
     #     return(renameToMap(names, map))
     # }
-
+    
     for(i in which(lowNames %in% lowOld)) {
         names[i] <- map[['new']][lowOld == lowNames[i]]
     }
@@ -390,7 +393,7 @@ detFileToCode <- function(x, analysis=FALSE) {
         code <- gsub(pattern, '\\1', x)
     }
     if(code == x) {
-        warning('Could not properly parse file name ', x)
+        # warning('Could not properly parse file name ', x)
         return(NA)
     }
     code
