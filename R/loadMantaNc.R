@@ -222,6 +222,7 @@ ncTimeToPosix <- function(vals, units) {
 ymd_hms_fast <- function(x) {
     ords <- c('%Y-%m-%d %H:%M:%S',
               '%Y-%m-%dT%H:%M:%SZ',
+              '%Y-%m-%dT%H:%M:%S%z',
               '%Y/%m/%d %H:%M:%S',
               '%Y-%m-%dT%H:%M:%S')
     parse_date_time(x, orders=ords, truncated=3, exact=TRUE)

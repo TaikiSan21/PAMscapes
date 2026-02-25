@@ -1,3 +1,7 @@
+# PAMscapes 0.15.2
+
+- Adding UTC offset capability to `loadSoundscapeData` nc reading
+
 # PAMscapes 0.15.1
 
 - Updating `loadDetectionData` for better Makara interaction
