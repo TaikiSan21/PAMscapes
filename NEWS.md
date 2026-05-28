@@ -1,3 +1,7 @@
+# PAMscapes 0.15.3
+
+- Adding `quantileBorder` optiont to `plotPSD`
+
 # PAMscapes 0.15.2
 
 - Adding UTC offset capability to `loadSoundscapeData` nc reading

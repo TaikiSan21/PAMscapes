@@ -12,6 +12,8 @@
 #' @param scale scale to use for frequency axis, one of "log" or "linear"
 #' @param q quantile to plot
 #' @param color color for quantile
+#' @param quantileBorder logical flag to show a line border at quantile
+#'   boundary instead of just shading
 #' @param freqRange range of frequencies to plot
 #' @param dbRange range of dB values to plot
 #' @param dbInt bin interval size for density plot
@@ -55,6 +57,7 @@ plotPSD <- function(x,
                     scale=c('log', 'linear'),
                     q=.5, 
                     color='black',
+                    quantileBorder=TRUE,
                     freqRange=NULL,
                     dbRange=NULL,
                     dbInt=1,
@@ -258,7 +261,7 @@ plotPSD <- function(x,
                          quantileData=qData)
                 )
             }
-            g <- addQuantilePlot(g, x=qData, by=by, color=color)
+            g <- addQuantilePlot(g, x=qData, by=by, color=color, border=quantileBorder)
         }
     } # end justOneDf
     # if(!is.list(x) ||
@@ -686,7 +689,7 @@ checkQuantile <- function(q) {
     q
 }
 
-addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
+addQuantilePlot <- function(g=NULL, x, by=NULL, color='black', border=TRUE) {
     if(is.null(g)) {
         g <- ggplot()
     }
@@ -732,6 +735,16 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
             geom_ribbon(
                 data=x,
                 aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh), fill=color, alpha=.1)
+        if(isTRUE(border)) {
+            g <- g +
+                geom_line(
+                    data=x,
+                    aes(x=.data$frequency, y=.data$qlow), color=color, lwd=0.5) +
+                geom_line(
+                    data=x,
+                    aes(x=.data$frequency, y=.data$qhigh), color=color, lwd=0.5)
+        }
+            
     } else {
         g <- g +
             geom_line(
@@ -743,6 +756,15 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black') {
             scale_color_manual(values=color, name=paste0(by, ' (nObs)')) +
             scale_fill_manual(values=color) +
             guides(fill='none')
+        if(isTRUE(border)) {
+            g <- g +
+                geom_line(
+                    data=x,
+                    aes(x=.data$frequency, y=.data$qlow, color=.data$by), lwd=0.5) +
+                geom_line(
+                    data=x,
+                    aes(x=.data$frequency, y=.data$qhigh, color=.data$by), lwd=0.5)
+        }
     }
     g
 }

@@ -11,6 +11,7 @@ plotPSD(
   scale = c("log", "linear"),
   q = 0.5,
   color = "black",
+  quantileBorder = TRUE,
   freqRange = NULL,
   dbRange = NULL,
   dbInt = 1,
@@ -47,6 +48,9 @@ prepPSDData(
 \item{q}{quantile to plot}
 
 \item{color}{color for quantile}
+
+\item{quantileBorder}{logical flag to show a line border at quantile
+boundary instead of just shading}
 
 \item{freqRange}{range of frequencies to plot}
 
