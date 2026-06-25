@@ -11,6 +11,8 @@
 #'   (octave level) or "tol" (third-octave level). 
 #' @param dbRange range of dB (y-axis) values to plot
 #' @param freqMin minimum frequency (Hz) to show on plot
+#' @param channel if \code{NULL}, all channels will be plotted as a
+#'   faceted plot, if not then data will be filtered to this channel
 #' 
 #' @return a ggplot object
 #' 
@@ -22,6 +24,7 @@ plotQAQCLevel <- function(x,
                         level=c('ol', 'tol'), 
                         dbRange=NULL,
                         freqMin=NULL,
+                        channel=NULL,
                         title=NULL) {
     x <- toLong(x)
     if(!is.null(freqMin)) {
@@ -38,10 +41,19 @@ plotQAQCLevel <- function(x,
     brks <- seq(from=floor(dbRange[1]/10)*10,
                 to=ceiling(dbRange[2]/10)*10,
                 by=10)
+    if(!is.null(channel) &&
+       'channel' %in% names(x)) {
+        x <- x[x$channel %in% channel, ]
+    }
     g <- ggplot(x, aes(x=.data$UTC, y=.data$value, color=.data$frequency)) +
         geom_line(linewidth=0.5) +
         scale_x_datetime(limits=tRange) +
         scale_y_continuous(limits=dbRange, breaks=brks)
+    if('channel' %in% names(x) &&
+       length(unique(x$channel)) > 1) {
+        g <- g +
+            facet_wrap(~.data$channel, ncol=1)
+    }
     if(!is.null(title)) {
         g <- g + ggtitle(title)
     }
@@ -52,7 +64,7 @@ plotQAQCLevel <- function(x,
 #' @export
 #' 
 plotQAQCGap <- function(x, title=NULL) {
-    x <- x[c('UTC', 'file', 'diffBetweenLength', 'timeToNext')]
+    x <- distinct(x[c('UTC', 'file', 'diffBetweenLength', 'timeToNext')])
     names(x)[3:4] <- c('Wav End to Next File (s)',
                        'Time Between File Start (s)')
     x <- pivot_longer(x, cols=c('Wav End to Next File (s)',
@@ -87,6 +99,7 @@ plotQAQCTV <- function(x, title=NULL) {
             battCol2 <- 'intBatt'
         }
     }
+    x <- distinct(select(x, any_of(c('UTC', 'temp', battCol1, battCol2))))
     x <- rename(x, 'Temperature (C)'='temp')
     g <- plotScaledTimeseries(x, columns=c(battCol1, 'Temperature (C)', battCol2), color=c('darkblue', 'darkorange', 'blue'))
     g <- g + ylab('Battery (V)')

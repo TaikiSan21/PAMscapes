@@ -11,6 +11,7 @@ plotQAQCLevel(
   level = c("ol", "tol"),
   dbRange = NULL,
   freqMin = NULL,
+  channel = NULL,
   title = NULL
 )
 
@@ -28,6 +29,9 @@ plotQAQCTV(x, title = NULL)
 \item{dbRange}{range of dB (y-axis) values to plot}
 
 \item{freqMin}{minimum frequency (Hz) to show on plot}
+
+\item{channel}{if \code{NULL}, all channels will be plotted as a
+faceted plot, if not then data will be filtered to this channel}
 
 \item{title}{optional title to add to plot}
 }

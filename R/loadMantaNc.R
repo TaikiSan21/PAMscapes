@@ -31,7 +31,7 @@
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom sf st_coordinates st_as_sf
 #'
-loadMantaNc <- function(x, keepQuals=c(1), keepEffort=TRUE) {
+loadMantaNc <- function(x, keepQuals=c(1, 2), keepEffort=TRUE) {
     if(!file.exists(x)) {
         message('File ', x, ' does not exist.')
         return(NULL)

@@ -13,7 +13,7 @@ loadSoundscapeData(
   binCount = FALSE,
   octave = c("original", "tol", "ol"),
   label = NULL,
-  keepQuals = c(1),
+  keepQuals = c(1, 2),
   keepEffort = TRUE,
   dropNonHmd = TRUE,
   tz = "UTC",

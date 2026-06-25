@@ -4,7 +4,7 @@
 \alias{loadMantaNc}
 \title{Load MANTA NetCDF File}
 \usage{
-loadMantaNc(x, keepQuals = c(1), keepEffort = TRUE)
+loadMantaNc(x, keepQuals = c(1, 2), keepEffort = TRUE)
 }
 \arguments{
 \item{x}{path to .nc file}

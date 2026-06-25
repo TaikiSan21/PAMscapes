@@ -2,10 +2,10 @@
 ^\.Rproj\.user$
 ^devel
 ^testData
-^AIS/
-^AIS_West/
+^AIS
+^AIS_West
 ^AISTest
 .RData
 .github
-^tutorial/
+^tutorial
 ^.secrets
