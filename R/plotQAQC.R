@@ -33,6 +33,7 @@ plotQAQCLevel <- function(x,
     level <- match.arg(level)
     plotLevels <- getOctaveLevels(level, freqRange=range(x$frequency))
     x <- x[x$frequency %in% plotLevels$freqs, ]
+    x <- x[!is.na(x$value), ]
     x$frequency <- factor(x$frequency)
     tRange <- range(x$UTC)
     if(is.null(dbRange)) {
