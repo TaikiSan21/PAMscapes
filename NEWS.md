@@ -1,3 +1,7 @@
+# PAMscapes 0.15.4
+
+- `matchGFS` broken again, changing to netcdf3 output format
+
 # PAMscapes 0.15.3
 
 - Adding `quantileBorder` optiont to `plotPSD`

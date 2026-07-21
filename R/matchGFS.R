@@ -179,7 +179,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
                      '&east=', range[['Longitude']][[2]],
                      '&south=', range[['Latitude']][[1]],
                      '&horizStride=1&')
-    endPart <- '&&&accept=netcdf4-classic'
+    endPart <- '&&&accept=netcdf3'
     timePart <- paste0('time_start=',format(date3[1], '%Y-%m-%dT%H:%M:%SZ'),
                        '&time_end=', format(date3[1], '%Y-%m-%dT%H:%M:%SZ'))
     url <- paste0(base,
