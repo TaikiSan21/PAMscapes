@@ -4,7 +4,7 @@
 \alias{matchGFS}
 \title{Match GFS Environmental Data}
 \usage{
-matchGFS(x, progress = TRUE, keepMatch = TRUE)
+matchGFS(x, progress = TRUE, keepMatch = TRUE, opendap = FALSE)
 }
 \arguments{
 \item{x}{a dataframe with columns \code{UTC}, \code{Latitude} and
@@ -16,6 +16,8 @@ matchGFS(x, progress = TRUE, keepMatch = TRUE)
 and "matchTime" columns with the output. These are only used
 to verify which coordinates within the NetCDF were matched
 to your data.}
+
+\item{opendap}{logical flag to use OPeNDAP protocol instead of NCSS URL download}
 }
 \value{
 a dataframe with wind (m/s) and precipitation rate (kg/m^2/s)

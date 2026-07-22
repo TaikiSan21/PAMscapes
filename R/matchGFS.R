@@ -14,6 +14,7 @@
 #'   and "matchTime" columns with the output. These are only used
 #'   to verify which coordinates within the NetCDF were matched
 #'   to your data.
+#' @param opendap logical flag to use OPeNDAP protocol instead of NCSS URL download
 #'
 #' @return a dataframe with wind (m/s) and precipitation rate (kg/m^2/s)
 #'   columns added:
@@ -48,7 +49,7 @@
 #'
 #' @export
 #'
-matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
+matchGFS <- function(x, progress=TRUE, keepMatch=TRUE, opendap=FALSE) {
     needCols <- c('UTC', 'Latitude', 'Longitude')
     if(!all(needCols %in% colnames(x))) {
         stop('"x" must have columns "UTC", "Longitude", and "Latitude"')
@@ -77,10 +78,23 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
         # base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/ds084.1/'
         # base <- 'https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed
         base <- 'https://tds.gdex.ucar.edu/thredds/ncss/grid/files/g/d084001/' # url seems to have changed again
-        url <- formatURL_GFS(df, base=base)
+        url <- formatURL_GFS(df, base=base, opendap=opendap)
         vars <- url$vars
+        if(isTRUE(opendap)) {
+            df <- ncToData(df, nc=url$url, var=vars, progress=FALSE, verbose=FALSE)
+            vars <- paste0(vars, '_mean')
+            df$windU <- df[[vars[1]]]
+            df$windV <- df[[vars[2]]]
+            df$precRate <- df[[vars[3]]]
+            if(progress) {
+                ix <<- ix + 1
+                setTxtProgressBar(pb, value=ix)
+            }
+            df <- df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
+            return(df)
+        }
         file <- fileNameManager()
-
+        
         maxTries <- 2
         nTry <- 1
         while(nTry <= maxTries) {
@@ -109,7 +123,7 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
             }
             break
         }
-
+        
         df <- ncToData(df, file, var=vars, progress=FALSE, verbose=FALSE)
         vars <- paste0(vars, '_mean')
         df$windU <- df[[vars[1]]]
@@ -124,9 +138,9 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
     x <- bind_rows(x)
     x$windMag <- sqrt(x$windU^2 + x$windV^2)
     x <- rename(x,
-                     'matchLong' = 'matchLong_mean',
-                     'matchLat' = 'matchLat_mean',
-                     'matchTime' = 'matchTime_mean')
+                'matchLong' = 'matchLong_mean',
+                'matchLat' = 'matchLat_mean',
+                'matchTime' = 'matchTime_mean')
     if(!keepMatch) {
         x$matchLong <- NULL
         x$matchLat <- NULL
@@ -135,7 +149,7 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE) {
     x
 }
 
-formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/thredds/ncss/grid/files/g/d084001/') {
+formatURL_GFS <- function(range, date=NULL, base='https://tds.gdex.ucar.edu/thredds/ncss/grid/files/g/d084001/', opendap=FALSE) {
     if(is.data.frame(range)) {
         if(is.null(date)) {
             date <- range$UTC[1]
@@ -150,7 +164,10 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
         range[[c]] <- round(range[[c]], 3)
     }
     range <- to180(range)
-
+    if(isTRUE(opendap)) {
+        base <- gsub('ncss/grid', 'dodsC', base)
+    }
+    
     date3 <- round_date(date, unit='3hour')
     # if(length(date3) == 1) {
     #     date3 <- rep(date3, 2)
@@ -173,7 +190,7 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
                           'Precipitation_rate_surface_3_Hour_Average')
     vars <- c(vars, precVar)
     varPart <- paste0('var=', vars, '&', collapse='')
-
+    
     llPart <- paste0('north=', range[['Latitude']][[2]],
                      '&west=', range[['Longitude']][[1]],
                      '&east=', range[['Longitude']][[2]],
@@ -182,11 +199,15 @@ formatURL_GFS <- function(range, date=NULL, base='https://thredds.rda.ucar.edu/t
     endPart <- '&&&accept=netcdf3'
     timePart <- paste0('time_start=',format(date3[1], '%Y-%m-%dT%H:%M:%SZ'),
                        '&time_end=', format(date3[1], '%Y-%m-%dT%H:%M:%SZ'))
-    url <- paste0(base,
-                  datePart,
-                  varPart,
-                  llPart,
-                  timePart,
-                  endPart)
+    if(isTRUE(opendap)) {
+        url <- paste0(base, gsub('\\?$', '', datePart))
+    } else {
+        url <- paste0(base,
+                      datePart,
+                      varPart,
+                      llPart,
+                      timePart,
+                      endPart)
+    }
     list(url=url, vars=vars)
 }

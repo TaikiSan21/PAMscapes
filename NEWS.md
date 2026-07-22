@@ -1,3 +1,8 @@
+# PAMscapes 0.15.5
+
+- Adding `opendap` option to `matchGFS` to try and use OPeNDAP protocol for
+data access to see if that is any more reliable
+
 # PAMscapes 0.15.4
 
 - `matchGFS` broken again, changing to netcdf3 output format
