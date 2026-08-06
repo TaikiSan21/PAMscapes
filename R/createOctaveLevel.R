@@ -100,6 +100,7 @@ createOctaveLevel <- function(x,
 
 getOctaveLevels <- function(type=c('ol', 'tol', 'hmd', 'psd', 'broadband', 'bb'), freqRange=NULL) {
     # limits n+1, labels n, freqs n
+    type <- tolower(type)
     type <- match.arg(type)
     if(type %in% c('broadband', 'bb')) {
         if(is.null(freqRange)) {

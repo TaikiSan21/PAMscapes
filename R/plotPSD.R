@@ -11,9 +11,17 @@
 #'   "quantile", "density", or a vector with both
 #' @param scale scale to use for frequency axis, one of "log" or "linear"
 #' @param q quantile to plot
-#' @param color color for quantile
+#' @param color color for quantile. Can be a named vector with names corresponding
+#'   to values in \code{by}
+#' @param lwd line width for median line in quantile plot
 #' @param quantileBorder logical flag to show a line border at quantile
 #'   boundary instead of just shading
+#' @param borderLwd line width for border lines if \code{quantileBorder=TRUE}
+#' @param alpha alpha level for the ribbon shading when plotting a quantile
+#' @param linetype line type to use for lines, multiple values can be provided
+#'   for different levels if \code{by} is not NULL. See \link[ggplot2]{scale_linetype}
+#'   for accepted values. Specific ordering can be assigned by using a named
+#'   vector where the name corresponds to the value in \code{by}
 #' @param freqRange range of frequencies to plot
 #' @param dbRange range of dB values to plot
 #' @param dbInt bin interval size for density plot
@@ -27,6 +35,8 @@
 #' @param referenceLevel only used together with \code{by}. A value of the
 #'   \code{by} column to use as a reference for all other levels. The plot
 #'   will then show the difference between the other levels and the reference
+#' @param showNObs logical flag to show number of observations in plot legend
+#'   when using \code{by}
 #' @param facet optional column to facet the plots by
 #' @param ncol number of columns to use when plotting with \code{facet}
 #' @param title optional title for plot
@@ -57,7 +67,11 @@ plotPSD <- function(x,
                     scale=c('log', 'linear'),
                     q=.5, 
                     color='black',
+                    lwd=1,
                     quantileBorder=TRUE,
+                    borderLwd=0.5,
+                    alpha=0.1,
+                    linetype=1,
                     freqRange=NULL,
                     dbRange=NULL,
                     dbInt=1,
@@ -66,6 +80,7 @@ plotPSD <- function(x,
                     cmap=viridis_pal()(25),
                     by=NULL,
                     referenceLevel=NULL,
+                    showNObs=TRUE,
                     facet=NULL,
                     ncol=NULL,
                     title=NULL,
@@ -261,7 +276,8 @@ plotPSD <- function(x,
                          quantileData=qData)
                 )
             }
-            g <- addQuantilePlot(g, x=qData, by=by, color=color, border=quantileBorder)
+            g <- addQuantilePlot(g, x=qData, by=by, color=color, border=quantileBorder, lwd=lwd, borderLwd=borderLwd,
+                                 linetype=linetype, showNObs=showNObs, alpha=alpha)
         }
     } # end justOneDf
     # if(!is.list(x) ||
@@ -689,7 +705,16 @@ checkQuantile <- function(q) {
     q
 }
 
-addQuantilePlot <- function(g=NULL, x, by=NULL, color='black', border=TRUE) {
+addQuantilePlot <- function(g=NULL, 
+                            x, 
+                            by=NULL, 
+                            color='black', 
+                            alpha=0.1,
+                            lwd=1,
+                            linetype=1,
+                            border=TRUE,
+                            borderLwd=0.5,
+                            showNObs=TRUE) {
     if(is.null(g)) {
         g <- ggplot()
     }
@@ -713,7 +738,20 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black', border=TRUE) {
             nLevs <- left_join(data.frame(by=levels(x$by)),
                                nLevs,
                                by='by')
-            levels(x$by) <- paste0(nLevs$by, ' (', nLevs$nBy, ')')
+            if(isTRUE(showNObs)) {
+                nLevs$label <- paste0(nLevs$by, ' (', nLevs$nBy, ')')
+            } else {
+                nLevs$label <- nLevs$by
+            }
+            levels(x$by) <- nLevs$label
+            levDict <- nLevs$label
+            names(levDict) <- nLevs$by
+            if(!is.null(names(linetype))) {
+                names(linetype) <- levDict[names(linetype)]
+            }
+            if(!is.null(names(color))) {
+                names(color) <- levDict[names(color)]
+            }
         }
     }
     nBy <- ifelse(is.null(by), 0, length(unique(x$by)))
@@ -727,44 +765,53 @@ addQuantilePlot <- function(g=NULL, x, by=NULL, color='black', border=TRUE) {
     if(is.function(color)) {
         color <- color(nBy)
     }
+    if(length(linetype) == 1) {
+        linetype <- rep(linetype, nBy)
+    }
+    if(length(linetype) != nBy) {
+        warning('Must specify a linetype for every level of "by"')
+    }
     if(is.null(by)) {
         g <- g +
             geom_line(
                 data=x,
-                aes(x=.data$frequency, y=.data$qmed), color=color, lwd=1) +
+                aes(x=.data$frequency, y=.data$qmed), color=color, lwd=lwd, linetype=linetype) +
             geom_ribbon(
                 data=x,
-                aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh), fill=color, alpha=.1)
+                aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh), fill=color, alpha=alpha)
         if(isTRUE(border)) {
             g <- g +
                 geom_line(
                     data=x,
-                    aes(x=.data$frequency, y=.data$qlow), color=color, lwd=0.5) +
+                    aes(x=.data$frequency, y=.data$qlow), color=color, lwd=borderLwd, linetype=linetype) +
                 geom_line(
                     data=x,
-                    aes(x=.data$frequency, y=.data$qhigh), color=color, lwd=0.5)
+                    aes(x=.data$frequency, y=.data$qhigh), color=color, lwd=borderLwd, linetype=linetype)
         }
             
     } else {
+        scaleName <- ifelse(isTRUE(showNObs), paste0(by, ' (nObs)'), by)
         g <- g +
             geom_line(
                 data=x,
-                aes(x=.data$frequency, y=.data$qmed, color=.data$by), lwd=1) +
+                aes(x=.data$frequency, y=.data$qmed, color=.data$by, linetype=.data$by), lwd=lwd) +
             geom_ribbon(
                 data=x,
-                aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh, fill=.data$by), alpha=.1) +
-            scale_color_manual(values=color, name=paste0(by, ' (nObs)')) +
+                aes(x=.data$frequency, ymin=.data$qlow, ymax=.data$qhigh, fill=.data$by), alpha=alpha) +
+            scale_color_manual(values=color, name=scaleName) +
             scale_fill_manual(values=color) +
-            guides(fill='none')
+            guides(fill='none', linetype='none')
         if(isTRUE(border)) {
             g <- g +
                 geom_line(
                     data=x,
-                    aes(x=.data$frequency, y=.data$qlow, color=.data$by), lwd=0.5) +
+                    aes(x=.data$frequency, y=.data$qlow, color=.data$by, linetype=.data$by), lwd=borderLwd) +
                 geom_line(
                     data=x,
-                    aes(x=.data$frequency, y=.data$qhigh, color=.data$by), lwd=0.5)
+                    aes(x=.data$frequency, y=.data$qhigh, color=.data$by, linetype=.data$by), lwd=borderLwd)
         }
+        g <- g +
+            scale_linetype_manual(values=linetype)
     }
     g
 }

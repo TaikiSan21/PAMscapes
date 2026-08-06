@@ -137,7 +137,7 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                 vals$dq <- newDq$dq
                 vals$dqTime <- newDq$time
                 vals$dqFreq <- newDq$freq
-                vals$dqBasePlot <- prepQualityPlot(newDq)
+                vals$dqPlotBase <- prepQualityPlot(newDq)
             }
         })
         # File bttons ####
@@ -313,9 +313,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                 write.csv(out, file, row.names=FALSE)
             }
         )
-        }
-    runApp(shinyApp(ui=ui, server=server))
     }
+    runApp(shinyApp(ui=ui, server=server))
+}
 
 markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, freqs) {
     if(is.null(freqRange) &&
@@ -363,18 +363,24 @@ markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, fre
     if(nTime == 1) {
         timeRange <- rep(timeRange, maxLen)
     }
-    lowFreq <- freqs[-length(freqs)]
-    highFreq <- freqs[-1]
-    lowTime <- times[-length(times)]
-    highTime <- times[-1]
+    type <- checkFreqType(freqs)                        
+    levs <- getOctaveLevels(type=type, freqRange=range(freqs))
+    lowFreq <- levs$limits[-length(levs$limits)]
+    highFreq <- levs$limits[-1]
+    # lowTime <- times[-length(times)]
+    lowTime <- times
+    # highTime <- times[-1]
+    highTime <- times + median(as.numeric(diff(times, units='secs')))
     for(i in seq_len(maxLen)) {
-        if(is.null(freqRange[[i]])) {
+        if(is.null(freqRange[[i]]) ||
+           all(is.na(freqRange[[i]]))) {
             freqIx <- 1:nrow(dq)
         } else {
             freqIx <- highFreq > freqRange[[i]][1] &
                 lowFreq < freqRange[[i]][2]
         }
-        if(is.null(timeRange[[i]])) {
+        if(is.null(timeRange[[i]]) ||
+           all(is.na(timeRange[[i]]))) {
             timeIx <- 1:ncol(dq)
         } else {
             timeIx <- highTime > timeRange[[i]][1] &

@@ -11,7 +11,11 @@ plotPSD(
   scale = c("log", "linear"),
   q = 0.5,
   color = "black",
+  lwd = 1,
   quantileBorder = TRUE,
+  borderLwd = 0.5,
+  alpha = 0.1,
+  linetype = 1,
   freqRange = NULL,
   dbRange = NULL,
   dbInt = 1,
@@ -20,6 +24,7 @@ plotPSD(
   cmap = viridis_pal()(25),
   by = NULL,
   referenceLevel = NULL,
+  showNObs = TRUE,
   facet = NULL,
   ncol = NULL,
   title = NULL,
@@ -47,10 +52,22 @@ prepPSDData(
 
 \item{q}{quantile to plot}
 
-\item{color}{color for quantile}
+\item{color}{color for quantile. Can be a named vector with names corresponding
+to values in \code{by}}
+
+\item{lwd}{line width for median line in quantile plot}
 
 \item{quantileBorder}{logical flag to show a line border at quantile
 boundary instead of just shading}
+
+\item{borderLwd}{line width for border lines if \code{quantileBorder=TRUE}}
+
+\item{alpha}{alpha level for the ribbon shading when plotting a quantile}
+
+\item{linetype}{line type to use for lines, multiple values can be provided
+for different levels if \code{by} is not NULL. See \link[ggplot2]{scale_linetype}
+for accepted values. Specific ordering can be assigned by using a named
+vector where the name corresponds to the value in \code{by}}
 
 \item{freqRange}{range of frequencies to plot}
 
@@ -72,6 +89,9 @@ will be created automatically if not present.}
 \item{referenceLevel}{only used together with \code{by}. A value of the
 \code{by} column to use as a reference for all other levels. The plot
 will then show the difference between the other levels and the reference}
+
+\item{showNObs}{logical flag to show number of observations in plot legend
+when using \code{by}}
 
 \item{facet}{optional column to facet the plots by}
 

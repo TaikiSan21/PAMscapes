@@ -1,3 +1,10 @@
+# PAMscapse 0.16.0
+
+- Adding options `linetype`, `lwd`, `borderLwd`, `showNObs`, `alpha` to `plotPSD`
+
+- Allowing `color` and `linetype` options of `plotPSD` to be named vectors
+for easier assigning of specific values to specific levels
+
 # PAMscapes 0.15.5
 
 - Adding `opendap` option to `matchGFS` to try and use OPeNDAP protocol for
