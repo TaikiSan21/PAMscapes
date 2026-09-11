@@ -322,6 +322,12 @@ markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, fre
        is.null(timeRange)) {
         return(dq)
     }
+    if(is.data.frame(freqRange)) {
+        annoList <- dfToAnnoList(freqRange)
+        freqRange <- annoList$freqRange
+        timeRange <- annoList$timeRange
+        value <- annoList$quality
+    }
     if(!inherits(freqRange, c('NULL', 'list', 'numeric'))) {
         stop('freqRange must be NULL, a list of numeric ranges, or a numeric vector')
     }
@@ -370,7 +376,8 @@ markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, fre
     # lowTime <- times[-length(times)]
     lowTime <- times
     # highTime <- times[-1]
-    highTime <- times + median(as.numeric(diff(times, units='secs')))
+    highTime <- c(times[-1],
+                  times[length(times)] + median(as.numeric(diff(times, units='secs'))))
     for(i in seq_len(maxLen)) {
         if(is.null(freqRange[[i]]) ||
            all(is.na(freqRange[[i]]))) {
@@ -389,6 +396,25 @@ markDQMatrix <- function(dq, freqRange=NULL, timeRange=NULL, value=2, times, fre
         dq[freqIx, timeIx] <- value[i]
     }
     dq
+}
+
+dfToAnnoList <- function(x) {
+    hasTime <- all(c('start', 'end') %in% names(x))
+    hasFreq <- all(c('freqMin', 'freqMax') %in% names(x))
+    timeRange <- freqRange <- vector('list', length=nrow(x))
+    for(i in seq_len(nrow(x))) {
+        if(hasTime) {
+            timeRange[[i]] <- c(x$start[i], x$end[i])
+        }
+        if(hasFreq) {
+            freqRange[[i]] <- c(x$freqMin[i], x$freqMax[i])
+        }
+        # quality[[i]] <- x$quality[i]
+    }
+    list('freqRange' = freqRange,
+         'timeRange' = timeRange,
+         'quality' = x$quality
+    )
 }
 
 compressDQData <- function(dqLong, doFreq=TRUE) {

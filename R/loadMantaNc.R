@@ -79,9 +79,11 @@ loadMantaNc <- function(x, keepQuals=c(1, 2), keepEffort=TRUE) {
                       '2 (Not evaluated/Unknown)',
                       '3 (Compromised/Questionable)', 
                       '4 (Unusable/Bad)')
-        dqDrop <- qTypes[!qTypes %in% keepQuals]
+        names(dqLevels) <- 1:4
+        dqDrop <- as.character(qTypes[!qTypes %in% keepQuals])
+        dqDrop[dqDrop %in% names(dqLevels)] <- dqLevels[dqDrop[dqDrop %in% names(dqLevels)]]
         if(length(dqDrop) > 0) {
-            message('Data quality flag(s) ', paste0(dqLevels[dqDrop], collapse=', '),
+            message('Data quality flag(s) ', paste0(dqDrop, collapse=', '),
                     ' found in data, corresponding levels marked as NA.')
         }
         dropIx <- matrix(!quality %in% keepQuals, nrow=nrow(quality))

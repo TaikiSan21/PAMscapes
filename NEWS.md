@@ -1,3 +1,8 @@
+# PAMscapes 0.17.0
+
+- Adding new `addDataQuality` function for updating data quality matrices in
+soundscape NetCDF files
+
 # PAMscapse 0.16.0
 
 - Adding options `linetype`, `lwd`, `borderLwd`, `showNObs`, `alpha` to `plotPSD`
