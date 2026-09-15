@@ -140,6 +140,16 @@ addDataQuality <- function(x,
     times <- ncTimeToPosix(nc$dim$time)
     freqs <- nc$dim$frequency$vals
     type <- checkFreqType(freqs)
+    makaraCols <- c(
+        'deployment_code',
+        'recording_interval_start_datetime',
+        'recording_interval_end_datetime',
+        'recording_interval_min_frequency_khz',
+        'recording_interval_max_frequency_khz',
+        'recording_interval_quality_type_code')
+    if(all(makaraCols %in% names(annotation))) {
+        platformColumn <- 'deployment_code'
+    }
     dqAnno <- formatDQAnnotation(x=annotation)
     # dqAnno <- formatDQAnnotation(x=annotation,
     #                              freqRange=freqRange,

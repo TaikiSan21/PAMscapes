@@ -90,12 +90,13 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE, opendap=FALSE) {
                 ix <<- ix + 1
                 setTxtProgressBar(pb, value=ix)
             }
-            df <- df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
+            # df <- df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
+            df <- select(df, any_of(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean')))
             return(df)
         }
         file <- fileNameManager()
         
-        maxTries <- 2
+        maxTries <- 3
         nTry <- 1
         while(nTry <= maxTries) {
             dl <- try(suppressMessages(
@@ -123,7 +124,17 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE, opendap=FALSE) {
             }
             break
         }
-        
+        if(inherits(dl, 'try-error')) {
+            warning('URL ', url$url, ' failed all download attempts with message ',
+                    dl[1])
+            df$windU <- NA
+            df$windV <- NA
+            df$precRate <- NA
+            df$matchLong_mean <- NA
+            df$matchLat_mean <- NA
+            df$matchTime_mean <- NA
+            return(df)
+        }
         df <- ncToData(df, file, var=vars, progress=FALSE, verbose=FALSE)
         vars <- paste0(vars, '_mean')
         df$windU <- df[[vars[1]]]
@@ -133,7 +144,8 @@ matchGFS <- function(x, progress=TRUE, keepMatch=TRUE, opendap=FALSE) {
             ix <<- ix + 1
             setTxtProgressBar(pb, value=ix)
         }
-        df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
+        # df[unique(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean'))]
+        select(df, any_of(c(origCols, 'windU', 'windV', 'precRate', 'matchLong_mean', 'matchLat_mean', 'matchTime_mean')))
     })
     x <- bind_rows(x)
     x$windMag <- sqrt(x$windU^2 + x$windV^2)

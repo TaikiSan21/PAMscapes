@@ -458,6 +458,7 @@ compressDQData <- function(dqLong, doFreq=TRUE) {
 loadQuality <- function(nc) {
     if(is.character(nc)) {
         nc <- nc_open(nc)
+        on.exit(nc_close(nc))
     }
     if(!inherits(nc, 'ncdf4')) {
         warning('Not a NetCDF')
