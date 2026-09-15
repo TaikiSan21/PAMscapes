@@ -1,0 +1,219 @@
+# Intro
+
+This is a short guide on how to use the new data quality matrix adding/upating
+features of `PAMscapes`. This mostly consists of the new `addDataQuality` function
+and the existing `runDailyLTSAReview` function. This requires `PAMscapes` version
+0.17.0 or later, which can be installed from GitHub.
+
+This file and the files used for the examples can be found on NOAA Google Cloud
+Storage at "pam-ww-tmp/Taiki_Sakai/DQ"
+
+```{r}
+if(packageVersion('PAMscapes') < '0.17.0') {
+    devtools::install_github('TaikiSan21/PAMscapes')
+}
+```
+
+`addDataQuality` is a new tool that allows you to provide time-frequency annotations
+to a set of NetCDF files to update the data quality matrix. If the NetCDF files
+do not yet have a data quality matrix, it will create a new one. Annotations can
+either come directly from the Makara "recording_intervals" table, or can be provided
+as a dataframe with columns `start`, `end`, `freqMin`, `freqMax` and `quality` where
+the time values must be in POSIXct format (or YYYY-MM-DD HH:MM:SS for conversion) and
+in UTC time zone, and frequencies are in Hz. There can also be an optional column
+used to match certain annotations using the "platform" global attribute of a NetCDF
+file - this can be useful to be able to store annotations for multiple deployments
+in a single file, even if deployments overlap in time. 
+
+Annotations can also be created and saved using the `runDailyLTSAReview` Shiny app
+tool, then passed in to `addDataQuality`. This tool allows user to page through
+NetCDF files and draw boxes indicating areas of interest.
+
+Start by loading some data that do not have updated quality data.
+
+```{r}
+library(PAMscapes)
+ncFiles <- c('nc/NEFSC_GOM_202309_USTR01_20231028.nc', 
+                  'nc/NEFSC_GOM_202309_USTR01_20231029.nc',
+                  'nc/NEFSC_GOM_202309_USTR01_20231030.nc')
+dataOriginal <- loadSoundscapeData(ncFiles)
+```
+
+From the LTSA plot we can see that there is a sudden change in the
+data before 10-29 12:00 that seems like an instrument problem.
+
+```{r}
+plotLTSA(dataOriginal)
+```
+## Function Parameters
+
+`addDataQuality` has the following parameters:
+
+* `x` - a NetCDF, vector of files, or folder containing files. If a folder, then
+all .nc files directly within that folder will be used (subfolders will not be searched)
+* `annotation` - a dataframe listing time-frequency bounds. Time bounds must be
+in POSIXct format (or YYYY-MM-DD HH:MM:SS characters) in UTC timezone in columns
+`start` and `end`. Frequency bounds must be in Hz in columns `freqMin` and `freqMax`.
+Numeric quality code should be in column `quality`. 
+* `platformColumn` - NetCDF files should contain a "platform" global attribute,
+this can be used to specify that certain rows of `annotation` only apply to certain
+files in `x`. This value specifies the name of the column in `annotation` should 
+be used (e.g. `platformColumn="deployment_code"` means `annotation$deployment_code` 
+contains values that will match the "platform" global attribute)
+* `updateUnknown` - The numeric quality code to update "Unknown (2)" quality codes
+in the data quality matrix with. Most commonly set to `1`, or can be `FALSE` if you
+do not want to change the `2` values
+* `preview` - If this is set to `TRUE`, then no changes will be made to the files.
+Instead only plots will be made so that you can verify that changes look appropriate
+before making edits to the files. If `FALSE` then the files in `x` will be edited.
+* `plot` - If `TRUE` then plots of the data quality matrix will be created for
+all files after annotations have been applied. If `plot="new"` then plots will
+only be created for files that contained an annotation, this can be better when
+applying few annotations to a large number of files.
+* `reset` - If `TRUE`, then all values of the data quality matrix will be 
+reset to `2` before applying any annotations. This is primarily used in cases
+where an incorrect annotation was previously applied
+
+## Makara Annotation
+
+Makara has a "recording_intervals" table that exists for the purpose of marking out
+time-frequency ranges as either "COMPROMISED" or "UNUSABLE". Here's an example of some
+output from this table.
+
+```{r}
+library(dplyr)
+makaraIntervals <- read.csv('makara_intervals.csv', stringsAsFactors = FALSE) %>% 
+    select(deployment_code,
+           recording_interval_start_datetime,
+           recording_interval_end_datetime,
+           recording_interval_min_frequency_khz,
+           recording_interval_max_frequency_khz,
+           recording_interval_quality_type_code)
+str(makaraIntervals)
+```
+
+`addDataQuality` is designed to work easily with this Makara output. It 
+knows what the Makara column names mean, and that the frequency values are in
+kHz instead of Hz. It also knows that the "deployment_code" column should be used
+to match to the "platform" global attribute. 
+
+In this case the deployment_code "NEFSC_GOM_202309_USTR01" as an annotation marking
+the louder section we observed above as "UNUSABLE (4)", and the remaining data are set
+to "GOOD (1)"
+
+```{r}
+qs <- addDataQuality(ncFiles, 
+                     annotation = makaraIntervals, 
+                     preview=TRUE,
+                     updateUnknown = 1,
+                     plot=TRUE)
+```
+
+## Dataframe Annotation
+
+Annotations do not have to come from Makara, users can specify their own by
+following some basic formatting. Columns `start` and `end` in the dataframe
+should specify the time bounds, and must either be already in POSIXct format
+or a character in YYYY-MM-DD HH:MM:SS, and timezone must be UTC. Columns
+`freqMin` and `freqMax` should specify the frequency bounds, and are in units 
+of Hz. Column `quality` should specify the quality code to assign.
+
+If both frequencies are NA, all frequencies between times will be marked.
+If both times are NA, all times between frequencies will be marked.
+
+Here we can see that the "3" annotation has been applied to all frequencies
+and the "4" annotation has been applied to all times, while the "2"
+annotation has been applied to the time-frequency box.
+
+```{r}
+annoDf <- data.frame(
+    start=c('2023-10-29 05:00:00', NA, '2023-10-30 05:00:00'),
+    end = c('2023-10-30 01:00:00', NA, '2023-10-30 11:00:00'),
+    freqMin = c(NA, 100, 1000),
+    freqMax = c(NA, 500, 3000),
+    quality=c(3, 4, 2)
+)
+addDataQuality(ncFiles, 
+               annotation = annoDf, 
+               preview=TRUE,
+               updateUnknown = 1, 
+               plot=TRUE)
+```
+
+Additionally, a separate column can be used to mark which rows should match
+the "platform" global attribute. For this data, the "platform" is 
+"NEFSC_GOM_202309_USTR01", so we can create a `deployment` column in the
+annotation, and then add `platformColumn = "deployment"` to `addDataQuality`
+so that only the first two annotations are applied to this data, and the
+annotation for "SITE_B" is not.
+
+```{r}
+annoDf$deployment <- c('NEFSC_GOM_202309_USTR01', 'NEFSC_GOM_202309_USTR01', 'SITE_B')
+addDataQuality(ncFiles, 
+               annotation = annoDf,
+               platformColumn = 'deployment',
+               preview=TRUE,
+               updateUnknown = 1, 
+               plot=TRUE)
+```
+
+## Shiny App Annotation
+
+The `runDailyLTSAReview` function opens up a Shiny app that lets you browse
+through individual files and draw boxes around areas of interest, assigning
+them a quality code. These can be saved by hitting the "Download Annotations"
+button in the "Annotations" tab of the app.
+
+```{r}
+runDailyLTSAReview(ncFiles, plotQuality=TRUE)
+```
+
+The file from the app got saved as "DailyAnnotations.csv", and can be read 
+directly into `addDataQuality`. Here we use the option `plot="new"` to only
+show the quality matrix plot for the files that had annotations (only one day)
+instead of all three files.
+
+```{r}
+appAnno <- read.csv('DailyAnnotations_Example.csv')
+addDataQuality(ncFiles,
+               annotation = appAnno,
+               preview=TRUE,
+               updateUnknown = 1,
+               plot='new'
+)
+```
+
+## Applying Annotations
+
+All examples so far have used `preview=TRUE` so that changes were not applied to
+the data, so lets apply the annotations from Makara - these should mark the loud 
+sections of the soundscape data as "4 (Unusable)". When these data get read in
+with `loadSoundscapeData`, any data points marked with quality flag of 3 or 4 
+get set to NA values.
+
+Plotting the LTSA of the updated data shows that region as gray (NA). The PSD
+of the original data is completely dominated by the problematic region, and
+the PSD of the updated data is much better.
+
+The code at the bottom of this chunk shows how to reset the quality matrix data
+in the files with `annotation=NULL`, `reset=TRUE`, and `preview=FALSE` so that
+the examples in this document can be run again without the annotations applied.
+
+```{r}
+addDataQuality(ncFiles, 
+               annotation=makaraIntervals,
+               updateUnknown=1,
+               preview=FALSE
+)
+dataUpdated <- loadSoundscapeData(ncFiles)
+plotLTSA(dataOriginal, title='Original')
+plotLTSA(dataUpdated, title='DQ Added, 4s Dropped by PAMscapes')
+plotPSD(dataOriginal, title='Original')
+plotPSD(dataUpdated, title='DQ Added, 4s Dropped by PAMscapes')
+# reset files so examples can be run again
+addDataQuality(ncFiles, 
+               annotation=NULL,
+               reset=TRUE,
+               preview=FALSE
+)
+```
