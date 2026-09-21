@@ -1,3 +1,7 @@
+# PAMscapes 0.17.1
+
+- Adjustment to how `binDetectionData` handles binning
+
 # PAMscapes 0.17.0
 
 - Adding new `addDataQuality` function for updating data quality matrices in

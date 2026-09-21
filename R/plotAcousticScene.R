@@ -108,6 +108,13 @@ plotAcousticScene <- function(x,
        all(c('effortStart', 'effortEnd') %in% names(x))) {
         effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', by, typeCol))))
     }
+    if(!is.null(effort) &&
+       all(c('analysis_start_datetime', 'analysis_end_datetime') %in% names(effort))) {
+        effort <- rename(effort,
+                         'effortStart' = 'analysis_start_datetime',
+                         'effortEnd' = 'analysis_end_datetime'
+        )
+    }
     x <- binDetectionData(x, bin=bin, columns=c(typeCol, by), rematchGPS=FALSE)
     if(isTRUE(combineYears)) {
         yearDiff <- year(x$end) - year(x$UTC)
@@ -115,7 +122,7 @@ plotAcousticScene <- function(x,
         year(x$end) <- 2020 + yearDiff
         start229 <- is229(x$UTC)
         end229 <- is229(x$end)
-
+        
         x$UTC[start229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
         x$end[end229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
         diffs <- as.numeric(difftime(x$end, x$UTC, units='secs'))
@@ -134,7 +141,7 @@ plotAcousticScene <- function(x,
         year(x$UTC) <- year(x$UTC) - 1
         year(x$end) <- year(x$end) - 1
     }
-
+    
     # expand effort from ALLVALUES to multirows
     # join y values to effort
     scale <- switch(match.arg(scale),
@@ -172,7 +179,7 @@ plotAcousticScene <- function(x,
         d$difftime <- TRUE
         d$difftime[2:nrow(d)] <- d$UTC[2:nrow(d)] != d$end[1:(nrow(d)-1)]
         d$group <- cumsum(d$difftime)
-
+        
         d <- ungroup(
             summarise(
                 group_by(d, across(c('group', typeCol, by, 'freqMin', 'freqMax'))),
@@ -224,7 +231,7 @@ plotAcousticScene <- function(x,
                       fill=NA,
                       alpha=alpha)
     }
-
+    
     if(isFALSE(add)) {
         if(scale == 'log10') {
             g <- myLog10Scale(g, range=c(freqMin, freqMax), dim='y')

@@ -68,12 +68,25 @@ binDetectionData <- function(x,
     
     thisPeriod <- unitToPeriod(bin)
     x <- select(x, any_of(c('UTC', 'end', 'detectionType', columns)))
+    if(!'end' %in% names(x)) {
+        x$end <- NA
+    }
+    dur <- as.numeric(difftime(x$end, x$UTC, units='secs'))
     x$UTC <- floor_date(x$UTC, unit=bin)
 
     rowsIn <- nrow(x)
+    presIn <- sum(x$detectionType == 'presence')
+    detIn <- sum(x$detectionType == 'detection')
+    # if existing bin is >= new bin
+    # e.g. day -> day or day -> hour
     if('end' %in% colnames(x) &&
        any(!is.na(x$end))) {
         naEnd <- is.na(x$end)
+        # this is adjustment to make 0500 day only count as a single 0000 day
+        isLess <- dur[!naEnd] < as.numeric(thisPeriod)
+        bigPresFix <- !isLess & x$detectionType[!naEnd] == 'presence'
+        x$end[!naEnd][bigPresFix] <- x$UTC[!naEnd][bigPresFix] + dur[!naEnd][bigPresFix]
+        # end adjustment
         floorEnd <- floor_date(x$end[!naEnd], unit=bin)
         sameFloor <- floorEnd == x$end[!naEnd]
         floorEnd[sameFloor] <- floorEnd[sameFloor] - .01
@@ -84,6 +97,9 @@ binDetectionData <- function(x,
         dateSeq[!naEnd] <- newSeqs
         nDates <- sapply(dateSeq, length)
         checkMislead <- (nDates > 1) & (x$detectionType == 'presence')
+        checkSpreadDetection <- (nDates > 1) &
+            (dur < as.numeric(thisPeriod)) &
+            x$detectionType == 'detection'
         dupeSeq <- unlist(lapply(seq_along(nDates), function(x) {
             rep(x, each=nDates[x])
         }))
@@ -91,9 +107,14 @@ binDetectionData <- function(x,
         x$UTC <- as.POSIXct(unlist(dateSeq), origin='1970-01-01 00:00:00', tz='UTC')
         x$end <- NULL
         if(any(checkMislead)) {
-            warning(sum(checkMislead), ' out of ', rowsIn,
+            warning(sum(checkMislead), ' out of ', presIn,
                     ' input rows of type "presence" were spread across multiple output rows,',
                     ' results may be misleading.')
+        }
+        if(any(checkSpreadDetection)) {
+            warning(sum(checkSpreadDetection), ' out of ', detIn,
+                    ' input rows of type "detection" had shorter duration than output bin',
+                    ' but resulted in multiple output rows')
         }
     }
     x$end <- x$UTC + thisPeriod
