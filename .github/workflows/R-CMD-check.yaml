@@ -45,7 +45,10 @@ jobs:
         run: |
           echo "_R_CHECK_DONTTEST_EXAMPLES_=TRUE" >> $GITHUB_ENV
           echo "_R_CHECK_THINGS_IN_OTHER_DIRS_=TRUE" >> $GITHUB_ENV
-
+      - name: Install Omp macOS
+        if: runner.os == 'macOS'
+        run: brew install libomp
+        
       - name: Install XQuarts macOS
         if: runner.os == 'macOS'
         run: brew install xquartz --cask
