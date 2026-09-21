@@ -39,7 +39,7 @@
 #' str(bb)
 #'
 #' @importFrom dplyr group_by summarise ungroup rename mutate
-#' @importFrom data.table `:=`
+#' @importFrom data.table :=
 #'
 createOctaveLevel <- function(x,
                               type=c('ol', 'tol', 'broadband', 'bb', 'hmd'),
@@ -262,3 +262,5 @@ planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
     outs <- outs[sapply(outs, function(x) !is.null(x))]
     outs
 }
+
+# .datatable.aware = TRUE

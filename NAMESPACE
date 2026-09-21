@@ -40,168 +40,202 @@ export(runQAQCReview)
 export(runSoundscapeExplorer)
 export(subsetMarCadAIS)
 import(ggplot2)
-importFrom(DT,DTOutput)
-importFrom(DT,renderDT)
-importFrom(PAMmisc,erddapToEdinfo)
-importFrom(PAMmisc,fastReadWave)
-importFrom(PAMmisc,matchEnvData)
-importFrom(PAMmisc,ncToData)
-importFrom(PAMmisc,processSoundtrapLogs)
-importFrom(PAMmisc,pwelch)
-importFrom(data.table,.N)
-importFrom(data.table,.SD)
-importFrom(data.table,`:=`)
-importFrom(data.table,fread)
-importFrom(data.table,fwrite)
-importFrom(data.table,rbindlist)
-importFrom(data.table,setDF)
-importFrom(data.table,setDT)
-importFrom(data.table,setkeyv)
-importFrom(dplyr,across)
-importFrom(dplyr,all_of)
-importFrom(dplyr,any_of)
-importFrom(dplyr,arrange)
-importFrom(dplyr,bind_rows)
-importFrom(dplyr,distinct)
-importFrom(dplyr,filter)
-importFrom(dplyr,group_by)
-importFrom(dplyr,join_by)
-importFrom(dplyr,left_join)
-importFrom(dplyr,mutate)
-importFrom(dplyr,n)
-importFrom(dplyr,rename)
-importFrom(dplyr,select)
-importFrom(dplyr,summarise)
-importFrom(dplyr,ungroup)
+importFrom(DT,
+  DTOutput,
+  renderDT
+)
+importFrom(PAMmisc,
+  erddapToEdinfo,
+  fastReadWave,
+  matchEnvData,
+  ncToData,
+  processSoundtrapLogs,
+  pwelch
+)
+importFrom(data.table,
+  ":=",
+  .N,
+  .SD,
+  fread,
+  fwrite,
+  rbindlist,
+  setDF,
+  setDT,
+  setkeyv
+)
+importFrom(dplyr,
+  across,
+  all_of,
+  any_of,
+  arrange,
+  bind_rows,
+  distinct,
+  filter,
+  group_by,
+  join_by,
+  left_join,
+  mutate,
+  n,
+  rename,
+  select,
+  summarise,
+  ungroup
+)
 importFrom(future.apply,future_lapply)
 importFrom(geosphere,distGeo)
-importFrom(grDevices,dev.off)
-importFrom(grDevices,gray.colors)
-importFrom(grDevices,png)
-importFrom(graphics,axis)
-importFrom(graphics,image)
-importFrom(graphics,legend)
-importFrom(graphics,par)
-importFrom(graphics,text)
-importFrom(httr,GET)
-importFrom(httr,http_error)
-importFrom(httr,progress)
-importFrom(httr,write_disk)
-importFrom(lubridate,`year<-`)
-importFrom(lubridate,ceiling_date)
-importFrom(lubridate,day)
-importFrom(lubridate,floor_date)
-importFrom(lubridate,force_tz)
-importFrom(lubridate,hour)
-importFrom(lubridate,int_end)
-importFrom(lubridate,int_overlaps)
-importFrom(lubridate,int_start)
-importFrom(lubridate,interval)
-importFrom(lubridate,is.interval)
-importFrom(lubridate,is.period)
-importFrom(lubridate,isoweek)
-importFrom(lubridate,minute)
-importFrom(lubridate,month)
-importFrom(lubridate,parse_date_time)
-importFrom(lubridate,period)
-importFrom(lubridate,period_to_seconds)
-importFrom(lubridate,round_date)
-importFrom(lubridate,seconds_to_period)
-importFrom(lubridate,union)
-importFrom(lubridate,with_tz)
-importFrom(lubridate,yday)
-importFrom(lubridate,year)
-importFrom(lubridate,ymd_hms)
-importFrom(ncdf4,nc_close)
-importFrom(ncdf4,nc_open)
-importFrom(ncdf4,ncatt_get)
-importFrom(ncdf4,ncatt_put)
-importFrom(ncdf4,ncvar_add)
-importFrom(ncdf4,ncvar_def)
-importFrom(ncdf4,ncvar_get)
-importFrom(ncdf4,ncvar_put)
+importFrom(grDevices,
+  dev.off,
+  gray.colors,
+  png
+)
+importFrom(graphics,
+  axis,
+  image,
+  legend,
+  par,
+  text
+)
+importFrom(httr,
+  GET,
+  http_error,
+  progress,
+  write_disk
+)
+importFrom(lubridate,
+  `year<-`,
+  ceiling_date,
+  day,
+  floor_date,
+  force_tz,
+  hour,
+  int_end,
+  int_overlaps,
+  int_start,
+  interval,
+  is.interval,
+  is.period,
+  isoweek,
+  minute,
+  month,
+  parse_date_time,
+  period,
+  period_to_seconds,
+  round_date,
+  seconds_to_period,
+  union,
+  with_tz,
+  yday,
+  year,
+  ymd_hms
+)
+importFrom(ncdf4,
+  nc_close,
+  nc_open,
+  ncatt_get,
+  ncatt_put,
+  ncvar_add,
+  ncvar_def,
+  ncvar_get,
+  ncvar_put
+)
 importFrom(purrr,reduce)
 importFrom(rlang,.data)
-importFrom(scales,hue_pal)
-importFrom(scales,label_log)
-importFrom(scales,scientific_format)
-importFrom(scales,squish)
-importFrom(scales,viridis_pal)
-importFrom(sf,st_as_sf)
-importFrom(sf,st_as_sfc)
-importFrom(sf,st_bbox)
-importFrom(sf,st_buffer)
-importFrom(sf,st_coordinates)
-importFrom(shiny,HTML)
-importFrom(shiny,actionButton)
-importFrom(shiny,addResourcePath)
-importFrom(shiny,brushOpts)
-importFrom(shiny,brushedPoints)
-importFrom(shiny,checkboxGroupInput)
-importFrom(shiny,column)
-importFrom(shiny,downloadButton)
-importFrom(shiny,downloadHandler)
-importFrom(shiny,em)
-importFrom(shiny,fileInput)
-importFrom(shiny,fluidPage)
-importFrom(shiny,fluidRow)
-importFrom(shiny,h4)
-importFrom(shiny,icon)
-importFrom(shiny,invalidateLater)
-importFrom(shiny,isolate)
-importFrom(shiny,navbarMenu)
-importFrom(shiny,navbarPage)
-importFrom(shiny,observe)
-importFrom(shiny,observeEvent)
-importFrom(shiny,plotOutput)
-importFrom(shiny,reactive)
-importFrom(shiny,reactiveVal)
-importFrom(shiny,reactiveValues)
-importFrom(shiny,removeResourcePath)
-importFrom(shiny,renderPlot)
-importFrom(shiny,renderPrint)
-importFrom(shiny,renderTable)
-importFrom(shiny,renderText)
-importFrom(shiny,renderUI)
-importFrom(shiny,runApp)
-importFrom(shiny,selectInput)
-importFrom(shiny,selectizeInput)
-importFrom(shiny,shinyApp)
-importFrom(shiny,showNotification)
-importFrom(shiny,sliderInput)
-importFrom(shiny,stopApp)
-importFrom(shiny,tabPanel)
-importFrom(shiny,tabsetPanel)
-importFrom(shiny,tags)
-importFrom(shiny,textAreaInput)
-importFrom(shiny,textInput)
-importFrom(shiny,textOutput)
-importFrom(shiny,uiOutput)
-importFrom(shiny,updateCheckboxGroupInput)
-importFrom(shiny,updateNavbarPage)
-importFrom(shiny,updateSelectInput)
-importFrom(shiny,updateSelectizeInput)
-importFrom(shiny,updateSliderInput)
-importFrom(shiny,verbatimTextOutput)
-importFrom(signal,hamming)
-importFrom(signal,hanning)
-importFrom(signal,interp1)
-importFrom(stats,approx)
-importFrom(stats,median)
-importFrom(stats,quantile)
-importFrom(stats,sd)
-importFrom(tidyr,pivot_longer)
-importFrom(tidyr,pivot_longer_spec)
-importFrom(tidyr,pivot_wider)
-importFrom(tools,R_user_dir)
-importFrom(tools,file_path_sans_ext)
+importFrom(scales,
+  hue_pal,
+  label_log,
+  scientific_format,
+  squish,
+  viridis_pal
+)
+importFrom(sf,
+  st_as_sf,
+  st_as_sfc,
+  st_bbox,
+  st_buffer,
+  st_coordinates
+)
+importFrom(shiny,
+  HTML,
+  actionButton,
+  addResourcePath,
+  brushOpts,
+  brushedPoints,
+  checkboxGroupInput,
+  column,
+  downloadButton,
+  downloadHandler,
+  em,
+  fileInput,
+  fluidPage,
+  fluidRow,
+  h4,
+  icon,
+  invalidateLater,
+  isolate,
+  navbarMenu,
+  navbarPage,
+  observe,
+  observeEvent,
+  plotOutput,
+  reactive,
+  reactiveVal,
+  reactiveValues,
+  removeResourcePath,
+  renderPlot,
+  renderPrint,
+  renderTable,
+  renderText,
+  renderUI,
+  runApp,
+  selectInput,
+  selectizeInput,
+  shinyApp,
+  showNotification,
+  sliderInput,
+  stopApp,
+  tabPanel,
+  tabsetPanel,
+  tags,
+  textAreaInput,
+  textInput,
+  textOutput,
+  uiOutput,
+  updateCheckboxGroupInput,
+  updateNavbarPage,
+  updateSelectInput,
+  updateSelectizeInput,
+  updateSliderInput,
+  verbatimTextOutput
+)
+importFrom(signal,
+  hamming,
+  hanning,
+  interp1
+)
+importFrom(stats,
+  approx,
+  median,
+  quantile,
+  sd
+)
+importFrom(tidyr,
+  pivot_longer,
+  pivot_longer_spec,
+  pivot_wider
+)
+importFrom(tools,
+  R_user_dir,
+  file_path_sans_ext
+)
 importFrom(tuneR,readWave)
-importFrom(utils,globalVariables)
-importFrom(utils,head)
-importFrom(utils,read.csv)
-importFrom(utils,read.fwf)
-importFrom(utils,setTxtProgressBar)
-importFrom(utils,str)
-importFrom(utils,tail)
-importFrom(utils,txtProgressBar)
-importFrom(utils,write.csv)
+importFrom(utils,
+  globalVariables,
+  head,
+  read.csv,
+  read.fwf,
+  setTxtProgressBar,
+  str,
+  tail,
+  txtProgressBar,
+  write.csv
+)
