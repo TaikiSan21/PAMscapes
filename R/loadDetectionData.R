@@ -63,7 +63,7 @@
 #' @export
 #'
 #' @importFrom tidyr pivot_longer
-#' @importFrom lubridate parse_date_time
+#' @importFrom lubridate parse_date_time ymd
 #' @importFrom utils read.csv
 #'
 loadDetectionData <- function(x,
@@ -156,6 +156,14 @@ loadDetectionData <- function(x,
                 result$deployment <- tryCode
             }
         }
+        # daily summarised data
+        if(any(columnMap %in% names(result)) &&
+           !any(c('UTC', 'detection_start_datetime') %in% names(result)) &&
+           'date' %in% names(result)) {
+            result$UTC <- as.POSIXct(ymd(result$date))
+            result$end <- result$UTC + 86400
+        }
+                
         makExtras <- c('call', 'deployment', 'site', 'project')
         tryNames <- renameToMap(names(result), columnMap)
         makExtras <- makExtras[makExtras %in% tryNames]
@@ -301,6 +309,8 @@ getColMaps <- function(which=NULL) {
                         'detectedFlag' = 'detection_result_code',
                         'Latitude' = 'detection_latitude',
                         'Longitude' = 'detection_longitude',
+                        'Latitude' = 'deployment_latitude',
+                        'Longitude' = 'deployment_longitude',
                         'effortStart' = 'analysis_start_datetime',
                         'effortEnd' = 'analysis_end_datetime',
                         'site' = 'site_code',

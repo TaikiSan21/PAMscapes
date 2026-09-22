@@ -22,7 +22,9 @@ be supplied to define the range}
 \item{freqRange}{a vector of the minimum and maximum center frequencies (Hz) desired
 for the output. If \code{NULL}, full available range of frequencies will be used.
 If output \code{type} is broadband, this is used to define the lower and upper
-bounds of the desired output broadband level}
+bounds of the desired output broadband level, either as a single vector or list
+of vectors to create multiple broadband levels (e.g. \code{list(c(minFreq1, maxFreq2), 
+c(minFreq2, maxFreq2))}}
 
 \item{normalized}{logical flag to return values normalized by the bandwidth of
 each octave level band (per Hz)}
@@ -51,6 +53,8 @@ ol <- createOctaveLevel(tol, type='ol')
 str(ol)
 bb <- createOctaveLevel(psd, type='bb', freqRange=c(20, 150))
 str(bb)
+bb2 <- createOctaveLevel(psd, type='bb', freqRange=list(c(20, 150), c(200, 250)))
+str(bb2)
 
 }
 \author{

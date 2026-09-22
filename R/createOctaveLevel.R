@@ -18,7 +18,9 @@
 #' @param freqRange a vector of the minimum and maximum center frequencies (Hz) desired
 #'   for the output. If \code{NULL}, full available range of frequencies will be used.
 #'   If output \code{type} is broadband, this is used to define the lower and upper
-#'   bounds of the desired output broadband level
+#'   bounds of the desired output broadband level, either as a single vector or list
+#'   of vectors to create multiple broadband levels (e.g. \code{list(c(minFreq1, maxFreq2), 
+#'   c(minFreq2, maxFreq2))}
 #' @param normalized logical flag to return values normalized by the bandwidth of
 #'   each octave level band (per Hz)
 #'
@@ -37,6 +39,8 @@
 #' str(ol)
 #' bb <- createOctaveLevel(psd, type='bb', freqRange=c(20, 150))
 #' str(bb)
+#' bb2 <- createOctaveLevel(psd, type='bb', freqRange=list(c(20, 150), c(200, 250)))
+#' str(bb2)
 #'
 #' @importFrom dplyr group_by summarise ungroup rename mutate
 #' @importFrom data.table :=
@@ -196,6 +200,13 @@ getHmdLevels <- function(freqRange=NULL, allowPartial=TRUE) {
 }
 
 planBandSum <- function(inBand, outBand, inRange=NULL, outRange=NULL) {
+    if(tolower(outBand) %in% c('bb', 'broadband') && is.list(outRange)) {
+        result <- lapply(outRange, function(x) {
+            planBandSum(inBand, outBand, inRange, x)
+        })
+        result <- unlist(result, recursive=FALSE)
+        return(result)
+    }
     inLevels <- getOctaveLevels(tolower(inBand), freqRange=inRange)
     outLevels <- getOctaveLevels(tolower(outBand), freqRange=outRange)
     outs <- vector('list', length=length(outLevels$labels))

@@ -126,6 +126,7 @@ importFrom(lubridate,
   with_tz,
   yday,
   year,
+  ymd,
   ymd_hms
 )
 importFrom(ncdf4,
