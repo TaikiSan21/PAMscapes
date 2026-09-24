@@ -1,0 +1,229 @@
+# Intro
+
+Demo using PAMscapes v 0.17.1 currently only on GitHub, available on CRAN
+shortly after this demo (2026-09-24)
+
+```{r}
+devtools::install_github('TaikiSan21/PAMscapes')
+```
+
+The files for this demo are available on the NMFS cloud at:
+pam-ww-tmp/Taiki_Sakai/PAMSI_202609_Demo
+
+```{r}
+library(bigrquery)
+library(dplyr)
+library(dbplyr)
+library(PAMscapes)
+library(lubridate)
+```
+
+# Detections from Makara (BigQuery)
+
+Now that Makara is up and running, lets see how we can access our data! We'll
+use `dbplyr` to connect to the database and download some data, more examples
+of how this works can be found here:
+
+https://dbplyr.tidyverse.org/articles/dbplyr.html
+
+This uses `bigrquery` to interface with BigQuery, it should authenticate using
+your NOAA e-mail. Cloud workstations default to using the workstation service
+account for credentials, so when working on the cloud we first need to remove
+these and re-authorize using our NOAA e-mail. I believe users need to request
+to be added to the BigQuery approval list (https://makara-462670382708.us-east4.run.app/contact)
+
+```{r}
+# this first line is cloud only to avoid using workstation credentials
+gargle::cred_funs_add(credentials_gce = NULL) 
+bq_auth()
+```
+
+Connect to the database - you should see a "Connections" tab in RStudio
+that lets you see the various tables
+
+```{r}
+con <- DBI::dbConnect(
+    bigrquery::bigquery(),
+    project='ggn-nmfs-pacm-dev-1',
+    dataset='makara'
+)
+```
+
+The tables starting with "v_" or "view_" are pre-joined tables that have already
+connected the metadata pieces from other tables, most users will only interact
+with these tables. If you need something not present in these views, either reach
+out to Jeff or myself, or you can join data from the other tables on your own.
+The "v_daily_detections" table has data summarised as daily presence, but there
+is also a "v_detections" table with the original resolution data
+
+```{r}
+view_daily_detections <- tbl(con, 'v_detections_daily')
+colnames(view_daily_detections)
+```
+
+# Makara and PAMscapes
+
+`dbplyr` lets you interact with the tables as if they were a dataframe using
+the normal `dplyr` functions, but it does not actually download the data as
+a dataframe that you can use until you call `collect()`
+
+```{r}
+daily <- view_daily_detections %>% 
+    filter(sound_source_code %in% c('RIWH', 'BLWH', 'SEWH', 'FIWH', 'HUWH'),
+           year(date) >= 2014,
+           analysis_organization_code == 'NEFSC',
+    ) %>% 
+    collect()
+str(daily)
+```
+
+`loadDetectionData` is designed to work seamlessly with the Makara view tables
+so we can load this raw data in directly
+
+```{r}
+dailyDets <- loadDetectionData(daily)
+str(dailyDets)
+```
+
+From here the various summary plots are easy to make
+
+```{r}
+plotAcousticScene(dailyDets)
+```
+
+```{r}
+plotDetectionBoxplot(dailyDets, 
+                     group=c('species', 'deployment'),
+                     facet='species',
+                     bin='day/week',
+                     combineYears=TRUE)
+```
+
+Disconnect from the database once we are done downloading data
+
+```{r}
+DBI::dbDisconnect(con)
+```
+
+# Environmental Data Integration
+
+By default `PAMscapes` only loads positive detection data (it is easier for plotting
+functions to assume all rows are positive detections), but we can tell it to load
+other values with the `detectedValues` parameter, so we'll also load the "NOT_DETECTED"
+times from the daily presence dataset. For this example we'll just use 2023 data
+for a faster example.
+
+```{r}
+dets2023 <- loadDetectionData(daily, 
+                              detectedValues = c('DETECTED', 'NOT_DETECTED')) %>% 
+    filter(year(UTC) == 2023)
+table(dets2023$detectedFlag)
+```
+
+The `matchEnvData` from `PAMmisc` lets use pull down environmental data from ERDDAP
+servers. Here we load "analysed_sst" data from ERDDAP dataset "jplMURSST41", but this will work for
+any ERDDAP dataset by supplying the dataset ID as `nc` and the desired variables
+as `var` (or leave `var` out and all variables will be added.
+
+`buffer` is used to create an average of the variable in a space-time window
+in order of Longitude, Latitude, Time (secs). We use this to average the SST over
+a day to match our daily presence resolution (`86400/2` before and after).
+
+Data download takes time (~8 minutes), so skipping running code and just loading
+
+```{r}
+library(PAMmisc)
+# dets2023 <- matchEnvData(dets2023, 
+#                          nc = 'jplMURSST41', 
+#                          var='analysed_sst', 
+#                          buffer=c(0,0, 86400/2))
+dets2023 <- readRDS('dets2023_sst.rds')
+```
+
+Keeping the "NOT_DETECTED" values lets us see if there might be a relationship
+between present/absence times of animals and the daily average SST
+
+```{r}
+ggplot(dets2023) +
+    geom_density(aes(x=analysed_sst_mean, col=detectedFlag)) +
+    facet_wrap(~species)
+```
+
+# Soundscapes and Detections
+
+Load soundscape data - commented out and reading in previously loaded data
+to save time. HMD results are originally in 1-minute resolution, so we'll
+set `timeBin='1day'` to convert them to daily median values to match
+our daily presence time resolution
+
+```{r}
+ncDir <- 'Z:/DETECTOR_OUTPUT/PYTHON_SOUNDSCAPE_PYPAM/Raw/NEFSC_GOM/NEFSC_GOM_202309_USTR09/NC/'
+# hmd <- loadSoundscapeData(ncDir, timeBin='1day')
+hmd <- readRDS('GOM_202309_USTR09_DailyHMD.rds')
+str(hmd)
+```
+
+Call indices are a common way to try and use soundscape metrics to try and 
+find whales. The basic idea is to compare the ratio of a target level and a
+background level, and if this value is greater than 1 then there may be an
+animal calling.
+
+We can use `createOctaveLevel` with `type='bb'` to create broadband sound level
+measurements of these levels, and then create the index by taking their ratio.
+By default, `createOctaveLevel` creates measures that add up the energy in the
+designated frequency ranges, so we need to set `normalized=TRUE` so that each
+output level is normalized by its frequency bandwidth (otherwise the larger
+noise ranges would be much larger values just by virtue of summing more data
+points).
+
+```{r}
+bb <- createOctaveLevel(hmd, 
+                        type='bb', 
+                        freqRange=list(c(20,21), 
+                                       c(12,34),
+                                       c(42,43),
+                                       c(36, 50)
+                        ),
+                        normalized=TRUE)
+
+bb$finIndex <- bb$`BB_20-21` / bb$`BB_12-34`
+bb$blueIndex <- bb$`BB_42-43` / bb$`BB_36-50`
+plot(bb$finIndex, type='l')
+lines(bb$blueIndex, col='blue')
+```
+
+Next we can use `matchDetectionData` to add the daily presence data from Makara
+to these broadband levels. We add each species separately as a new column to
+the broadband level. The soundscape data has a column "platform" that contains
+the same deployment code stored in the "deployment" column of our detection data,
+so we can set `by=c('platform' = 'deployment')` to let the code know that only
+detections with deployment matching the platform value should be used (alternatively
+you could filter `dailyDets` to only include data from that deployment first).
+
+```{r}
+bb <- matchDetectionData(bb, 
+                         filter(dailyDets,  species == 'FIWH'),
+                         name='finPresence',
+                         by=c('platform' = 'deployment'),
+                         value=TRUE,
+                         fillNA=FALSE)
+bb <- matchDetectionData(bb, 
+                         filter(dailyDets, species == 'BLWH'),
+                         name = 'bluePresence', 
+                         by=c('platform' = 'deployment'),
+                         value=TRUE,
+                         fillNA=FALSE)
+table(bb$finPresence)
+table(bb$bluePresence)
+```
+
+Compare index to confirmed presence.
+
+```{r}
+ggplot(bb) +
+    geom_density(aes(x=finIndex, col=finPresence)) +
+    geom_vline(xintercept=1)
+ggplot(bb) +
+    geom_density(aes(x=blueIndex, col=bluePresence)) +
+    geom_vline(xintercept=1)
+```
