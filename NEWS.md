@@ -2,7 +2,7 @@
 
 - Adjustment to how `binDetectionData` handles binning
 
-- Adding frequency slider to `runDailyLTSAReview`
+- Adding frequency slider and stop page to `runDailyLTSAReview`
 
 - `createOctaveLevel` allows for multiple band specifications with `type='bb'`
 

@@ -20,7 +20,7 @@
 #'   If output \code{type} is broadband, this is used to define the lower and upper
 #'   bounds of the desired output broadband level, either as a single vector or list
 #'   of vectors to create multiple broadband levels (e.g. \code{list(c(minFreq1, maxFreq2), 
-#'   c(minFreq2,maxFreq2))}
+#'   c(minFreq2, maxFreq2))}
 #' @param normalized logical flag to return values normalized by the bandwidth of
 #'   each octave level band (per Hz)
 #'

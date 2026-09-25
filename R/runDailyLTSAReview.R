@@ -76,6 +76,13 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
             DTOutput('annoTable'),
             actionButton('removeAnno', label='Remove Annotation'),
             downloadButton('downloadAnno', label='Download Annotations')
+        ),
+        # Stop Page ####
+        tabPanel(
+            'Save and Exit',
+            h4('Download any annotations before hitting "Stop App"'),
+            downloadButton('downloadAnno2', label='Download Annotations'),
+            actionButton('stopApp', label='Stop App', style='font-weight:bold;')
         )
     )
     server <- function(input, output, session) {
@@ -110,6 +117,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
         )
         skipPlot <- reactiveVal(1)
         skipDq <- reactiveVal(1)
+        observeEvent(input$stopApp, {
+            stopApp()
+        })
         # Header ####
         output$plotHead <- renderUI({
             tags$h4(paste0('LTSA of file: "', basename(vals$file), '"'),
@@ -118,14 +128,14 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
         plotColors <- c('1'='darkgreen', '2'='steelblue', '3'='yellow', '4'='red')
         observeEvent(vals$data, {
             timeRange <- range(vals$data$UTC)
-            freqRange <- range(vals$ltsaData$frequency)
-            # print(timeRange)
             updateSliderInput(inputId='timeSlider',
                               min=timeRange[1],
                               max=timeRange[2],
                               value=timeRange,
                               timeFormat= '%m-%d %H:%M',
                               timezone='UTC')
+            
+            freqRange <- range(vals$ltsaData$frequency)
             updateSliderInput(inputId='freqSlider',
                               min=freqRange[1],
                               max=freqRange[2],
@@ -171,7 +181,7 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
         output$ltsaPlot <- renderPlot({
             if(isolate(skipPlot() == 1)) {
                 skipPlot(0)
-                invalidateLater(1, session)
+                invalidateLater(100, session)
                 return()
             }
             plotData <- vals$ltsaData
@@ -314,6 +324,17 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
             vals$annots <- vals$annots[-dropIx]
         })
         output$downloadAnno <- downloadHandler(
+            filename = function() {
+                'DailyAnnotations.csv'
+            },
+            content = function(file) {
+                out <- bind_rows(vals$annots)
+                out$start <- psxTo8601(out$start)
+                out$end <- psxTo8601(out$end)
+                write.csv(out, file, row.names=FALSE)
+            }
+        )
+        output$downloadAnno2 <- downloadHandler(
             filename = function() {
                 'DailyAnnotations.csv'
             },
