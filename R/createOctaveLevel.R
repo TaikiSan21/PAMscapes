@@ -20,7 +20,7 @@
 #'   If output \code{type} is broadband, this is used to define the lower and upper
 #'   bounds of the desired output broadband level, either as a single vector or list
 #'   of vectors to create multiple broadband levels (e.g. \code{list(c(minFreq1, maxFreq2), 
-#'   c(minFreq2, maxFreq2))}
+#'   c(minFreq2,maxFreq2))}
 #' @param normalized logical flag to return values normalized by the bandwidth of
 #'   each octave level band (per Hz)
 #'
@@ -170,9 +170,9 @@ getPsdLevels <- function(freqRange=NULL) {
 }
 
 getHmdLevels <- function(freqRange=NULL, allowPartial=TRUE) {
-    n <- 1639:5000 # tail limit is 1e6
-    lowCenter <- 0:434
-    lowLims <- c(0, 0:434 + 0.5)
+    n <- 1638:5000 # tail limit is 1e6
+    lowCenter <- 0:433
+    lowLims <- c(0, 0:433 + 0.5)
     highCenter <- c(10 * 10 ^ ((2*(n-1)+1) / (2*1000)))
     highLims <- c(highCenter*10^(1/2000))
     freqLims <- c(lowLims, highLims)

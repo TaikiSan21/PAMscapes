@@ -51,6 +51,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
             sliderInput('timeSlider', label='Time Range', 
                         min=0, max=1, value=c(0, 1),
                         width='100%'),
+            sliderInput('freqSlider', label='Frequency Range',
+                        min=0, max=1, value=c(0, 1),
+                        width='100%'),
             fluidRow(
                 column(2, actionButton('addButton', label='Add Annotation')),
                 column(2, selectizeInput('dqValue', label='Quality Flag',
@@ -115,6 +118,7 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
         plotColors <- c('1'='darkgreen', '2'='steelblue', '3'='yellow', '4'='red')
         observeEvent(vals$data, {
             timeRange <- range(vals$data$UTC)
+            freqRange <- range(vals$ltsaData$frequency)
             # print(timeRange)
             updateSliderInput(inputId='timeSlider',
                               min=timeRange[1],
@@ -122,6 +126,10 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                               value=timeRange,
                               timeFormat= '%m-%d %H:%M',
                               timezone='UTC')
+            updateSliderInput(inputId='freqSlider',
+                              min=freqRange[1],
+                              max=freqRange[2],
+                              value=freqRange)
         })
         # Change File ####
         observeEvent(input$fileSelect, {
@@ -172,6 +180,9 @@ runDailyLTSAReview <- function(file, plotQuality=FALSE) {
                                    .data$UTC >= input$timeSlider[1],
                                    .data$UTC <= input$timeSlider[2])
             }
+            plotData <- filter(plotData,
+                               .data$frequency >= input$freqSlider[1],
+                               .data$frequency <= input$freqSlider[2])
             # tic('Plot LTSA')
             g <- ggplot(plotData) +
                 geom_rect(aes(xmin=.data$UTC,

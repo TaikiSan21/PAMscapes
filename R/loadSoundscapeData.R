@@ -233,11 +233,11 @@ loadSoundscapeData <- function(x,
             }
         }
     }
-    if(!is.null(timeBin)) {
-        x <- binSoundscapeData(x, bin=timeBin, method=binFunction, binCount=binCount)
-    }
     if(octave != 'original') {
         x <- createOctaveLevel(x, type=octave)
+    }
+    if(!is.null(timeBin)) {
+        x <- binSoundscapeData(x, bin=timeBin, method=binFunction, binCount=binCount)
     }
     if(!is.null(label)) {
         x$label <- label

@@ -2,6 +2,10 @@
 
 - Adjustment to how `binDetectionData` handles binning
 
+- Adding frequency slider to `runDailyLTSAReview`
+
+- `createOctaveLevel` allows for multiple band specifications with `type='bb'`
+
 # PAMscapes 0.17.0
 
 - Adding new `addDataQuality` function for updating data quality matrices in
