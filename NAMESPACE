@@ -222,7 +222,8 @@ importFrom(stats,
 importFrom(tidyr,
   pivot_longer,
   pivot_longer_spec,
-  pivot_wider
+  pivot_wider,
+  unnest
 )
 importFrom(tools,
   R_user_dir,

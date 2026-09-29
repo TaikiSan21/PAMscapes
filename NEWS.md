@@ -1,3 +1,8 @@
+# PAMscapes 0.17.2
+
+- General improvements for effort formatting to speed up any effort-based
+plots and data processing
+
 # PAMscapes 0.17.1
 
 - Adjustment to how `binDetectionData` handles binning

@@ -9,7 +9,8 @@ binDetectionData(
   bin,
   columns = c("species"),
   rematchGPS = TRUE,
-  gpsGroup = NULL
+  gpsGroup = NULL,
+  warnSpread = TRUE
 )
 }
 \arguments{
@@ -18,7 +19,8 @@ binDetectionData(
 \item{bin}{the amount time to bin by, must be a character of the form
 \code{"#unit"} or \code{"unit"} e.g. "2hour" or "day"}
 
-\item{columns}{names of the columns in \code{x} that define which rows
+\item{columns}{names of the columns in \code{x} to keep with the output,
+these define which rows
 should still be considered distinct even if their times are in the same
 bin. For example, two calls from the same species in one hour should result
 in one row of hourly presence, but two calls from different species in one
@@ -32,6 +34,10 @@ the outputs is the center of each output time bin.}
 \item{gpsGroup}{the name of the column in \code{x} that denotes different
 GPS groupings within the data, usually something like "site" or
 "deployment." Not needed if all data are from the same location.}
+
+\item{warnSpread}{logical flag to issue a warning about spreading
+"presence" type detections across multiple output rows (e.g. one
+row of daily presence turning into 24 rows of hourly presence)}
 }
 \value{
 a dataframe where each row represents detection presence of

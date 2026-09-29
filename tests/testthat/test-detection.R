@@ -14,7 +14,7 @@ test_that('Test effort formatting', {
           expect_equal(as.character(allEff$end), c('2019-01-04', '2020-01-01'))
           expect_warning(siteEff <- formatEffort(effort, columns='site', combineYears=TRUE),
                          '1 effort entries removed')
-          expect_identical(allEff, siteEff[-3])
+          expect_identical(allEff, siteEff[-4])
           effort <- 
               data.frame(
                   effortStart=c('2023-01-04', '2024-02-29','2020-02-29', '2023-04-01'),

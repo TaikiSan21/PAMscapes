@@ -6,7 +6,8 @@
 #' @param x dataframe of detection data
 #' @param bin the amount time to bin by, must be a character of the form
 #'   \code{"#unit"} or \code{"unit"} e.g. "2hour" or "day"
-#' @param columns names of the columns in \code{x} that define which rows
+#' @param columns names of the columns in \code{x} to keep with the output,
+#'   these define which rows
 #'   should still be considered distinct even if their times are in the same
 #'   bin. For example, two calls from the same species in one hour should result
 #'   in one row of hourly presence, but two calls from different species in one 
@@ -18,6 +19,9 @@
 #' @param gpsGroup the name of the column in \code{x} that denotes different
 #'   GPS groupings within the data, usually something like "site" or
 #'   "deployment." Not needed if all data are from the same location.
+#' @param warnSpread logical flag to issue a warning about spreading
+#'   "presence" type detections across multiple output rows (e.g. one
+#'   row of daily presence turning into 24 rows of hourly presence)
 #'   
 #' @return a dataframe where each row represents detection presence of
 #'   one time unit
@@ -44,7 +48,10 @@ binDetectionData <- function(x,
                              bin,
                              columns=c('species'), 
                              rematchGPS=TRUE,
-                             gpsGroup=NULL) {
+                             gpsGroup=NULL,
+                             warnSpread=TRUE) {
+    makaraCols <- c('deployment', 'site', 'project', 'effortStart', 'effortEnd', 'detectedFlag')
+    columns <- unique(c(columns, makaraCols))
     columns <- columns[columns %in% colnames(x)]
     if(length(columns) == 0) {
         warning('None of the columns ', 
@@ -55,12 +62,13 @@ binDetectionData <- function(x,
     if(!all(c('Latitude', 'Longitude') %in% colnames(x))) {
         rematchGPS <- FALSE
     }
+    extraCols <- 
     if(isTRUE(rematchGPS)) {
         gpsCols <- c('UTC', 'Latitude', 'Longitude')
         # need extra columns for grouping later e.g. by deployment
         if(!is.null(gpsGroup) && 
            !gpsGroup %in% columns) {
-            warning('"gpsGroup" must also be included in "columns"')
+            # warning('"gpsGroup" must also be included in "columns"')
             columns <- c(columns, gpsGroup)
         }
         gps <- distinct(x[c(gpsCols, gpsGroup)])
@@ -90,10 +98,15 @@ binDetectionData <- function(x,
         floorEnd <- floor_date(x$end[!naEnd], unit=bin)
         sameFloor <- floorEnd == x$end[!naEnd]
         floorEnd[sameFloor] <- floorEnd[sameFloor] - .01
-        dateSeq <- as.list(x$UTC)
+        dateSeq <- as.list(as.numeric(x$UTC))
+        seqBin <- binForSeq(bin)
+        # newSeqs <- mapply(function(x, y) {
+        #     seq(from=x, to=y, by=seqBin)
+        # }, x$UTC[!naEnd], floorEnd, SIMPLIFY =FALSE)
+        numPer <- as.numeric(thisPeriod)
         newSeqs <- mapply(function(x, y) {
-            seq(from=x, to=y, by=binForSeq(bin))
-        }, x$UTC[!naEnd], floorEnd, SIMPLIFY =FALSE)
+            seq(from=x, to=y, by=numPer)
+        }, as.numeric(x$UTC[!naEnd]), as.numeric(floorEnd), SIMPLIFY =FALSE)
         dateSeq[!naEnd] <- newSeqs
         nDates <- sapply(dateSeq, length)
         checkMislead <- (nDates > 1) & (x$detectionType == 'presence')
@@ -106,7 +119,7 @@ binDetectionData <- function(x,
         x <- x[dupeSeq, ]
         x$UTC <- as.POSIXct(unlist(dateSeq), origin='1970-01-01 00:00:00', tz='UTC')
         x$end <- NULL
-        if(any(checkMislead)) {
+        if(any(checkMislead) && isTRUE(warnSpread)) {
             warning(sum(checkMislead), ' out of ', presIn,
                     ' input rows of type "presence" were spread across multiple output rows,',
                     ' results may be misleading.')
@@ -145,6 +158,11 @@ binDetectionData <- function(x,
                         return(s)
                     }
                     thisGps <- distinct(thisGps)
+                    if(nrow(thisGps) == 1) {
+                        s$Longitude <- thisGps$Longitude
+                        s$Latitude <- thisGps$Latitude
+                        return(s)
+                    }
                     if(length(unique(thisGps$UTC)) < nrow(thisGps)) {
                         # browser()
                     }

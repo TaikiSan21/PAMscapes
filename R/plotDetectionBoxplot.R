@@ -97,15 +97,21 @@ plotDetectionBoxplot <- function(x,
         }
         effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
     }
+    timeRange <- c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE))
+    timeRange[1] <- floor_date(timeRange[1], unit=bigBin)
+    timeRange[2] <- ceiling_date(timeRange[2], unit=bigBin)
+    # effort <- formatEffort(effort, 
+    #                        range=timeRange, 
+    #                        resolution=bigBin,
+    #                        combineYears = combineYears, 
+    #                        columns=c(facet))
     # e.g. bin to days (of day/week)
     x <- binDetectionData(x, bin=smallBin, columns=group, rematchGPS=FALSE)
     x <- fillEffortZeroes(x, effort=effort, resolution=smallBin, columns=group)
     x$SMALLBIN <- x$UTC
     # e.g. binto weeks (of day/week)
     x <- binDetectionData(x, bin=bigBin, columns=c(group, 'SMALLBIN', 'effortDetection'))
-    
-    timeRange <- c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE))
-    
+
     for(g in facet) {
         if(is.character(x[[g]]) || is.factor(x[[g]])) {
             next
@@ -275,7 +281,7 @@ plotDetectionBoxplot <- function(x,
             }
             effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
         }
-        effort <- formatEffort(effort, range=timeRange, 
+        effort <- formatEffort(effort, range=timeRange,
                                resolution=bigBin, combineYears = combineYears, columns=c(facet))
         if(isTRUE(combineYears)) {
             effort$start <- factor(FUN(effort$start), levels=levs)
