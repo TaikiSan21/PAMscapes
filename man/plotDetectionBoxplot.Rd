@@ -6,15 +6,18 @@
 \usage{
 plotDetectionBoxplot(
   x,
-  group = "species",
+  group = c("species", "deployment"),
   facet = NULL,
   color = hue_pal(),
   bin = "day/week",
+  detectedValue = NULL,
   combineYears = FALSE,
   effort = NULL,
+  matchEffort = TRUE,
   dropZeroes = FALSE,
   title = NULL,
-  returnData = FALSE
+  returnData = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -38,6 +41,11 @@ format "time1/time2" where "time1" will be the y-axis of the plot and
 "time2" will be the x-axis of the plot. Times are one of "hour", "day",
 "week", or "month" (e.g. \code{"day/week"}).}
 
+\item{detectedValue}{values in the "detectedFlag" column of \code{x}
+that should be considered positive detections, ignored if that column
+is not in your data. If \code{NULL} then all rows are assumed to be
+positive detections}
+
 \item{combineYears}{logical flag to combine all observations to display
 as a single "year"}
 
@@ -47,6 +55,13 @@ then times with zero detections will not be properly accounted for.
 Alternatively, if columns "effortStart" and "effortEnd" are present in
 \code{x}, then these values will be used for start and end of effort}
 
+\item{matchEffort}{if \code{TRUE}, only rows of \code{effort} that match
+\code{group} and \code{facet} levels of \code{x} will be included. If
+\code{FALSE}, all rows of \code{effort} will be assumed to be relevant.
+Typically this should only be \code{FALSE} if there are times of effort
+where there are no detections in \code{x} (and thus no \code{group} or
+\code{facet} level to match to for that instance)}
+
 \item{dropZeroes}{logical flag to remove boxplots where all observations
 are zero (these would normally appear as a flat line at zero)}
 
@@ -54,6 +69,8 @@ are zero (these would normally appear as a flat line at zero)}
 
 \item{returnData}{if \code{TRUE} then no plot will be generated, instead the
 dataframe that would normally be used to make the plot will be returned}
+
+\item{verbose}{logical flag to print messages}
 }
 \value{
 a ggplot object

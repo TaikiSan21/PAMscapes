@@ -11,6 +11,10 @@
 #'   circular axis. If "bin1" is "detection", then each row is treated as a distinct
 #'   instantaneous detection, otherwise calls are binned using 
 #'   \link{binDetectionData}.
+#' @param detectedValue values in the "detectedFlag" column of \code{x}
+#'   that should be considered positive detections, ignored if that column
+#'   is not in your data. If \code{NULL} then all rows are assumed to be
+#'   positive detections
 #' @param quantity character indicating what type of quantity to plot. "count"
 #'   plots total detections, "mean" plots average detections across \code{group}s,
 #'   "effort" plots amount of total effort, "percentTotal" plots number of detections
@@ -26,7 +30,16 @@
 #'   provided then times with zero detections will not be properly accounted for. 
 #'   Alternatively, if columns "effortStart" and "effortEnd" are present in
 #'   \code{x}, then these values will be used for start and end of effort
+#' @param matchEffort if \code{TRUE}, only rows of \code{effort} that match
+#'   \code{group} and \code{facet} levels of \code{x} will be included. If 
+#'   \code{FALSE}, all rows of \code{effort} will be assumed to be relevant.
+#'   Typically this should only be \code{FALSE} if there are times of effort
+#'   where there are no detections in \code{x} (and thus no \code{group} or
+#'   \code{facet} level to match to for that instance)
 #' @param title optional title for plot
+#' @param returnData if \code{TRUE} then no plot will be generated, instead the
+#'   dataframe that would normally be used to make the plot will be returned
+#' @param verbose logical flag to print messages
 #' 
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #' 
@@ -38,11 +51,15 @@
 #' 
 plotPolarDetections <- function(x, 
                                bin=c('days/month'), 
+                               detectedValue=NULL,
                                quantity=c('count', 'mean', 'effort', 'percentEffort', 'percentTotal'),
-                               group='species',
+                               group=c('species', 'deployment'),
                                facet=NULL, 
                                effort=NULL, 
-                               title=NULL) {
+                               matchEffort=TRUE,
+                               title=NULL,
+                               returnData=FALSE,
+                               verbose=TRUE) {
     binSplit <- strsplit(bin, '/')[[1]]
     if(length(binSplit) != 2) {
         stop('"bin" must be of of format "bin1/bin2"')
@@ -67,16 +84,13 @@ plotPolarDetections <- function(x,
            }
     )
     group <- unique(c(group, facet))
-    if(is.null(effort) &&
-       all(c('effortStart', 'effortEnd') %in% names(x))) {
-        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', group))))
+    missCol <- group[!group %in% names(x)]
+    if(any(missCol)) {
+        warning('Column(s) ', paste0(missCol, collapse=', '), ' are not in "x"')
+        group <- group[!missCol]
     }
-    for(col in group) {
-        if(!col %in% names(effort)) {
-            next
-        }
-        effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
-    }
+    effort <- checkEffort(x, effort=effort, columns=group, matchedOnly=matchEffort)
+    x <- checkPositiveDetections(x, column='detectedFlag', value=detectedValue, verbose=verbose)
     
     if(smallBin == 'detection') {
         # each row is a unique call, but spread if they span multiple
@@ -130,6 +144,9 @@ plotPolarDetections <- function(x,
             group_by(plotData, across(all_of(facet))),
             pctDetections = .data$nDetections / sum(.data$nDetections)
         )
+    }
+    if(isTRUE(returnData)) {
+        return(plotData)
     }
     switch(quantity,
            'count' = {

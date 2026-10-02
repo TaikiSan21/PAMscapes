@@ -10,16 +10,20 @@ plotAcousticScene(
   typeCol = "species",
   title = NULL,
   bin = "1day",
+  detectedValue = NULL,
+  facet = NULL,
   by = NULL,
   combineYears = FALSE,
   effort = NULL,
+  matchEffort = TRUE,
   scale = c("log", "linear"),
   freqMin = NULL,
   freqMax = NULL,
   fill = TRUE,
   alpha = 1,
   returnData = FALSE,
-  add = FALSE
+  add = FALSE,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -39,7 +43,15 @@ column in \code{freqMap}}
 \item{bin}{time bin to use for plotting time axis. Each detection will
 be displayed as covering this amount of time}
 
-\item{by}{if not \code{NULL}, column name to facet plot by (e.g. site)}
+\item{detectedValue}{values in the "detectedFlag" column of \code{x}
+that should be considered positive detections, ignored if that column
+is not in your data. If \code{NULL} then all rows are assumed to be
+positive detections}
+
+\item{facet}{if not \code{NULL}, column name to facet plot by (e.g. site)}
+
+\item{by}{(deprecated, see \code{facet}) if not \code{NULL},
+column name to facet plot by (e.g. site)}
 
 \item{combineYears}{logical flag to combine all observations to display
 as a single "year". The year will be set to 2019, and detections falling
@@ -49,6 +61,13 @@ on leap days (February 29th) will be removed}
 be formatted with \link{formatEffort}. Alternatively, if columns
 "effortStart" and "effortEnd" are present in \code{x}, then these will
 be used.}
+
+\item{matchEffort}{if \code{TRUE}, only rows of \code{effort} that match
+\code{facet} and \code{typeCol} levels of \code{x} will be included. If
+\code{FALSE}, all rows of \code{effort} will be assumed to be relevant.
+Typically this should only be \code{FALSE} if there are times of effort
+where there are no detections in \code{x} (and thus no \code{facet} or
+\code{typeCol} level to match to for that instance)}
 
 \item{scale}{one of \code{log} or \code{linear}, the frequency scale for
 the plot}
@@ -68,6 +87,8 @@ dataframe that would normally be used to make the plot will be returned}
 
 \item{add}{logical flag if \code{FALSE} plots normally if \code{TRUE}
 then the output can be (maybe) added to an existing ggplot object}
+
+\item{verbose}{logical flag to print messages}
 }
 \value{
 a ggplot object

@@ -34,6 +34,10 @@
 #'   format "time1/time2" where "time1" will be the y-axis of the plot and
 #'   "time2" will be the x-axis of the plot. Times are one of "hour", "day", 
 #'   "week", or "month" (e.g. \code{"day/week"}). 
+#' @param detectedValue values in the "detectedFlag" column of \code{x}
+#'   that should be considered positive detections, ignored if that column
+#'   is not in your data. If \code{NULL} then all rows are assumed to be
+#'   positive detections
 #' @param combineYears logical flag to combine all observations to display
 #'   as a single "year"
 #' @param effort if not \code{NULL}, a dataframe describing on effort times
@@ -41,11 +45,18 @@
 #'   then times with zero detections will not be properly accounted for. 
 #'   Alternatively, if columns "effortStart" and "effortEnd" are present in
 #'   \code{x}, then these values will be used for start and end of effort
+#' @param matchEffort if \code{TRUE}, only rows of \code{effort} that match
+#'   \code{group} and \code{facet} levels of \code{x} will be included. If 
+#'   \code{FALSE}, all rows of \code{effort} will be assumed to be relevant.
+#'   Typically this should only be \code{FALSE} if there are times of effort
+#'   where there are no detections in \code{x} (and thus no \code{group} or
+#'   \code{facet} level to match to for that instance)
 #' @param dropZeroes logical flag to remove boxplots where all observations
 #'   are zero (these would normally appear as a flat line at zero)
 #' @param title optional title for the plot
 #' @param returnData if \code{TRUE} then no plot will be generated, instead the
 #'   dataframe that would normally be used to make the plot will be returned
+#' @param verbose logical flag to print messages
 #'   
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
 #' 
@@ -57,15 +68,18 @@
 #' @importFrom lubridate month isoweek yday
 #' 
 plotDetectionBoxplot <- function(x, 
-                                 group='species', 
+                                 group=c('species', 'deployment'),
                                  facet=NULL,
                                  color=hue_pal(),
                                  bin='day/week', 
+                                 detectedValue=NULL,
                                  combineYears=FALSE, 
                                  effort=NULL,
+                                 matchEffort=TRUE,
                                  dropZeroes=FALSE, 
                                  title=NULL,
-                                 returnData=FALSE) {
+                                 returnData=FALSE,
+                                 verbose=TRUE) {
     binChoice <- c('hour', 'day', 'week', 'month')
     binSplit <- strsplit(bin, '/')[[1]]
     if(length(binSplit) != 2) {
@@ -78,33 +92,20 @@ plotDetectionBoxplot <- function(x,
     if(unitToPeriod(bigBin) <= unitToPeriod(smallBin)) {
         stop('"bin" numerator must be smaller than denominator e.g. "day/week" not "week/day"')
     }
-    if(!is.null(facet) &&
-       !facet %in% group) {
-        # warning('"facet" must be included in "group"')
-        group <- c(group, facet)
-    }
+    
+    group <- unique(c(group, facet))
+    
     missCol <- group[!group %in% names(x)]
     if(any(missCol)) {
-        stop('Column(s) ', paste0(missCol, collapse=', '), ' are not in "x"')
-    }
-    if(is.null(effort) &&
-       all(c('effortStart', 'effortEnd') %in% names(x))) {
-        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', group))))
-    }
-    for(col in group) {
-        if(!col %in% names(effort)) {
-            next
-        }
-        effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
+        warning('Column(s) ', paste0(missCol, collapse=', '), ' are not in "x"')
+        group <- group[!missCol]
     }
     timeRange <- c(min(x$UTC, na.rm=TRUE), max(x$end, na.rm=TRUE))
     timeRange[1] <- floor_date(timeRange[1], unit=bigBin)
     timeRange[2] <- ceiling_date(timeRange[2], unit=bigBin)
-    # effort <- formatEffort(effort, 
-    #                        range=timeRange, 
-    #                        resolution=bigBin,
-    #                        combineYears = combineYears, 
-    #                        columns=c(facet))
+    effort <- checkEffort(x, effort=effort, columns=c(group), matchedOnly=matchEffort)
+    x <- checkPositiveDetections(x, column='detectedFlag', value=detectedValue, verbose=verbose)
+
     # e.g. bin to days (of day/week)
     x <- binDetectionData(x, bin=smallBin, columns=group, rematchGPS=FALSE)
     x <- fillEffortZeroes(x, effort=effort, resolution=smallBin, columns=group)
@@ -275,12 +276,6 @@ plotDetectionBoxplot <- function(x,
             scale_x_datetime(date_labels = '%b-%Y', name='Date')
     }
     if(!is.null(effort)) {
-        for(col in c(facet)) {
-            if(!col %in% names(effort)) {
-                next
-            }
-            effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
-        }
         effort <- formatEffort(effort, range=timeRange,
                                resolution=bigBin, combineYears = combineYears, columns=c(facet))
         if(isTRUE(combineYears)) {

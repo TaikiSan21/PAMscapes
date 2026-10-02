@@ -66,10 +66,15 @@ of detection it is.}
 \item{speciesCols}{only used if \code{wide=TRUE}, the names of the columns
 containing the different types of detections}
 
-\item{detectedValues}{only used if \code{wide=TRUE}, the values in each
-\code{speciesCols} column that indicate a positive detection. e.g. if
+\item{detectedValues}{only used if \code{wide=TRUE} or if column "detectedFlag"
+exists (\code{source='makara'} will have this), the values in each
+\code{speciesCols} or "detectedFlag" column that indicate a positive detection.
+Most commonly only positive detections should be loaded, e.g. if
 "0" represents no detection and "1" represents a detection, then this
-should be "1". Note that all values will be converted to characters,
+should be "1". If negative detections are also read in, make sure to
+use the \code{detectedValue} parameter of any plotting functions used to
+indiciate which values are positive detections.
+Note that all values will be converted to characters,
 so the string \code{"1"} must be used instead of the numeric \code{1}}
 
 \item{extraCols}{(optional) any additional columns to keep with the output}

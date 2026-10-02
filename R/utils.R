@@ -372,3 +372,33 @@ printN <- function(x, n=6, collapse=', ') {
     }
     paste0(paste(x, collapse=collapse))
 }
+
+checkPositiveDetections <- function(x, column='detectedFlag', value=NULL, verbose=TRUE) {
+    if(!column %in% names(x)) {
+        return(x)
+    }
+    detTypes <- unique(x[[column]])
+    if(is.null(value) &&
+       all(detTypes %in% c('DETECTED', 'NOT_DETECTED', 'POSSIBLY_DETECTED'))) {
+        value <- 'DETECTED'
+    }
+    if(is.null(value)) {
+        return(x)
+    }
+    isDet <- x[[column]] %in% value
+    if(all(isDet)) {
+        return(x)
+    }
+    if(!any(isDet)) {
+        warning('No values in data matched positive detection value(s) ',
+                printN(value), ' adjust detectedValue parameter appropriately')
+        return(NULL)
+    }
+    if(verbose) {
+        cat('\nDetection data subset to ', column, '=', printN(value, collapse=','),
+            '\n  Removed ', sum(!isDet), ' rows of type(s) ', printN(detTypes[!detTypes %in% value]),
+            '\n  (Out of ', length(isDet), ' total)', sep='')
+    }
+    x <- x[isDet, ]
+    x
+}

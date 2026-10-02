@@ -27,25 +27,11 @@
 #' @importFrom lubridate is.interval int_overlaps int_start int_end day month
 #' @importFrom tidyr unnest
 #' @importFrom data.table rbindlist
+#' @importFrom purrr reduce
 #'
 formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, combineYears=FALSE) {
     if(is.null(effort)) {
         return(NULL)
-    }
-    makaraAnaCols <- c('analysis_start_datetime',
-                       'analysis_end_datetime',
-                       'deployment_code',
-                       'sound_source_codes')
-    if(all(makaraAnaCols %in% names(effort))) {
-        effort <- effort |>
-            mutate(sound_source_codes = split(.data$sound_source_codes, ',')) |>
-            unnest(.data$sound_source_codes) |> 
-            mutate(sound_source_codes = gsub(' ', '', .data$sound_source_codes)) |>
-            rename('effortStart' = 'analysis_start_datetime',
-                   'effortEnd' = 'analysis_end_datetime',
-                   'species' = 'sound_source_codes',
-                   'deployment' = 'deployment') |>
-            distinct()
     }
     if(!is.null(columns)) {
         columns <- columns[columns %in% names(effort)]
@@ -59,22 +45,17 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
     if('effortEnd' %in% names(effort)) {
         effort <- rename(effort, 'end'='effortEnd')
     }
+    
     if(!all(c('start', 'end') %in% names(effort))) {
         warning('Effort must have columns "start" and "end"')
         return(NULL)
     }
+    
     if(!inherits(effort$start, 'POSIXct')) {
         effort$start <- parseToUTC(effort$start)
     }
     if(!inherits(effort$end, 'POSIXct')) {
         effort$end <- parseToUTC(effort$end)
-    }
-    startNA <- is.na(effort$start)
-    endNA <- is.na(effort$end)
-    if(sum(startNA | endNA) > 0) {
-        warning(sum(startNA | endNA), ' effort entries had', 
-                ' NA start or end values, they are removed.')
-        effort <- effort[!(startNA | endNA), ]
     }
     # expecting input to only be on-effort times
     if('status' %in% names(effort)) {
@@ -142,16 +123,9 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
             return(x)
         }
         ints <- collapseIntervals(x$interval)
-        # result <- data.frame(interval=ints)
-        # for(c in columns) {
-        #     result[[c]] <- x[[c]][1]
-        # }
-        # result$start <- int_start(result$interval)
-        # result$end <- int_end(result$interval)
+
         result <- data.frame(start = int_start(ints),
                              end = int_end(ints))
-        # result <- result[c('start', 'end', columns, 'interval')]
-        # result <- arrange(result, .data$start)
         if(isTRUE(combineYears)) {
             start229 <- is229(result$start)
             end229 <- is229(result$end)
@@ -242,15 +216,28 @@ collapseIntervals <- function(x) {
     if(length(x) %in% c(0, 1)) {
         return(x)
     }
+    # checked <- rep(FALSE, length(x))
+    # result <- interval()
     for(i in seq_along(x)) {
+        # if(isTRUE(checked[i])) {
+        #     next
+        # }
         doesIntersect <- int_overlaps(x[i], x)
-        doesIntersect[i] <- FALSE
-        if(any(doesIntersect)) {
-            for(j in which(doesIntersect)) {
-                x[i] <- lubridate::union(x[i], x[j])
-            }
+        # checked[doesIntersect] <- TRUE
+        if(any(doesIntersect[-i])) {
+            # result <- c(result, purrr::reduce(x[doesIntersect], lubridate::union))
+            # x[i] <- purrr::reduce(x[doesIntersect], lubridate::union)
+            x[i] <- interval(start=min(int_start(x[doesIntersect])),
+                             end=max(int_end(x[doesIntersect])))
+            # for(j in which(doesIntersect)) {
+            #     x[i] <- lubridate::union(x[i], x[j])
+            # }
+            doesIntersect[i] <- FALSE
             return(collapseIntervals(x[-which(doesIntersect)]))
         }
+        # if(all(checked)) {
+        #     break
+        # }
     }
     x
 }
@@ -305,12 +292,12 @@ spreadEffort <- function(effort, colVals=NULL, commas=NULL) {
         for(i in which(whichAll)) {
             sameGroup <- effort
             for(o in otherCols) {
-               sameVal <- effort[[o]][i]
-               # jank to make filter below match nothing
-               if(sameVal == 'ALLVALUES') {
-                   sameVal <- 'DONTMATCHME'
-               }
-               sameGroup <- sameGroup[sameGroup[[o]] == sameVal, ] 
+                sameVal <- effort[[o]][i]
+                # jank to make filter below match nothing
+                if(sameVal == 'ALLVALUES') {
+                    sameVal <- 'DONTMATCHME'
+                }
+                sameGroup <- sameGroup[sameGroup[[o]] == sameVal, ] 
             }#o
             hasVals <- unique(c(hasVals, sameGroup[[c]]))
             hasVals <- hasVals[hasVals != 'ALLVALUES']
@@ -338,13 +325,10 @@ fillEffortZeroes <- function(x, effort=NULL, resolution, columns) {
     }
     # remove the non-detections before re-adding them later
     x <- x[x$effortDetection != 0, ]
-    if(is.null(effort) &&
-       all(c('effortStart', 'effortEnd') %in% names(x))) {
-        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', columns))))
-    }
     if(is.null(effort) || resolution == 'detection') {
         return(x)
     }
+    # necessary for binning
     if(!'status' %in% names(effort)) {
         effort <- formatEffort(effort, resolution=resolution, columns=columns,
                                range=c(min(x$UTC), max(x$end)))
@@ -396,10 +380,11 @@ fillEffortZeroes <- function(x, effort=NULL, resolution, columns) {
     x
 }
 
-checkEffort <- function(x, effort=NULL, columns) {
+# makes sure 
+checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
     if(is.null(effort) &&
        all(c('effortStart', 'effortEnd') %in% names(x))) {
-        effort <- distinct(select(x, all_of(c('effortStart', 'effortEnd', columns))))
+        effort <- distinct(select(x, any_of(c('start'='effortStart', 'end'='effortEnd', columns))))
     }
     if(is.null(effort)) {
         return(NULL)
@@ -410,14 +395,54 @@ checkEffort <- function(x, effort=NULL, columns) {
                        'sound_source_codes')
     if(all(makaraAnaCols %in% names(effort))) {
         effort <- effort |>
-            mutate(sound_source_codes = split(.data$sound_source_codes, ',')) |>
-            unnest(.data$sound_source_codes) |>
+            mutate(sound_source_codes = strsplit(.data$sound_source_codes, ',')) |>
+            unnest(.data$sound_source_codes) |> 
             mutate(sound_source_codes = gsub(' ', '', .data$sound_source_codes)) |>
-            rename('effortStart' = 'analysis_start_datetime',
-                   'effortEnd' = 'analysis_end_datetime',
+            rename('start' = 'analysis_start_datetime',
+                   'end' = 'analysis_end_datetime',
                    'species' = 'sound_source_codes',
-                   'deployment' = 'deployment') |>
+                   'deployment' = 'deployment_code') |>
             distinct()
+        naRealtime<- is.na(effort$end) &
+            effort$analysis_processing_code == 'REAL_TIME'
+        if(any(naRealtime)) {
+            warning(sum(naRealtime), ' real-time analyses did not have effort',
+                    ' end times, assuming they are still ongoing')
+            effort$end[naRealtime] <- nowUTC()
+        }
+    }
+    if('effortStart' %in% names(effort)) {
+        effort <- rename(effort, 'start'='effortStart')
+    }
+    if('effortEnd' %in% names(effort)) {
+        effort <- rename(effort, 'end'='effortEnd')
+    }
+    
+    if(!all(c('start', 'end') %in% names(effort))) {
+        warning('Effort must have columns "start" and "end"')
+        return(NULL)
+    }
+    
+    if(!inherits(effort$start, 'POSIXct')) {
+        effort$start <- parseToUTC(effort$start)
+    }
+    if(!inherits(effort$end, 'POSIXct')) {
+        effort$end <- parseToUTC(effort$end)
+    }
+    startNA <- is.na(effort$start)
+    endNA <- is.na(effort$end)
+    if(sum(startNA | endNA) > 0) {
+        warning(sum(startNA | endNA), ' effort entries had', 
+                ' NA start or end values, they are removed.')
+        effort <- effort[!(startNA | endNA), ]
+    }
+    if(isTRUE(matchedOnly)) {
+        for(col in columns) {
+            if(!col %in% names(effort)) {
+                next
+            }
+            effort <- effort[effort[[col]] %in% unique(x[[col]]), ]
+        }
     }
     effort
 }

@@ -3,6 +3,12 @@
 - General improvements for effort formatting to speed up any effort-based
 plots and data processing
 
+- Adding `matchEffort` and `detectedValue` options to all detection plotting
+functions to be able to more accurately handle effort
+
+- `loadDetectionData` now loads DETECTED and NOT_DETECTED by default for Makara
+data and also reports the number and type loaded when `verbose=TRUE`
+
 # PAMscapes 0.17.1
 
 - Adjustment to how `binDetectionData` handles binning

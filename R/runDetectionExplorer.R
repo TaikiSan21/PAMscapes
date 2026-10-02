@@ -129,7 +129,7 @@ runDetectionExplorer <- function(data=NULL) {
                 fluidRow(
                     column(2, selectInput(
                         'scene_by',
-                        label='by',
+                        label='facet',
                         choices=c('none'),
                         selected='none'
                     )),
@@ -175,8 +175,8 @@ runDetectionExplorer <- function(data=NULL) {
                     column(3, selectizeInput(
                         'polar_group',
                         label='group',
-                        choices='species',
-                        selected='species',
+                        choices=c('species', 'deployment'),
+                        selected=c('species', 'deployment'),
                         multiple=TRUE
                     )),
                     column(2, selectInput(
@@ -209,8 +209,8 @@ runDetectionExplorer <- function(data=NULL) {
                     column(3, selectizeInput(
                         'box_group',
                         label='group',
-                        choices='species',
-                        selected='species',
+                        choices=c('species', 'deployment'),
+                        selected=c('species', 'deployment'),
                         multiple=TRUE
                     )),
                     column(3, selectInput(
@@ -615,12 +615,12 @@ runDetectionExplorer <- function(data=NULL) {
                 }
             }
             combine <- input$scene_combine == 'TRUE'
-            plotAcousticScene(data, by = by, freqMap=map, combineYears=combine)
+            plotAcousticScene(data, facet = by, freqMap=map, combineYears=combine)
         })
         output$code_scene <- renderPrint({
             argList <- list(x=data)
             if(input$scene_by != 'none') {
-                argList$by <- input$scene_by
+                argList$facet <- input$scene_by
             }
             argList$combineYears <- input$scene_combine == 'TRUE'
             if(input$scene_usefreq == 'TRUE') {

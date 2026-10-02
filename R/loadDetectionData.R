@@ -38,10 +38,15 @@
 #'   of detection it is.
 #' @param speciesCols only used if \code{wide=TRUE}, the names of the columns
 #'   containing the different types of detections
-#' @param detectedValues only used if \code{wide=TRUE}, the values in each
-#'   \code{speciesCols} column that indicate a positive detection. e.g. if
+#' @param detectedValues only used if \code{wide=TRUE} or if column "detectedFlag"
+#'   exists (\code{source='makara'} will have this), the values in each
+#'   \code{speciesCols} or "detectedFlag" column that indicate a positive detection. 
+#'   Most commonly only positive detections should be loaded, e.g. if
 #'   "0" represents no detection and "1" represents a detection, then this
-#'   should be "1". Note that all values will be converted to characters,
+#'   should be "1". If negative detections are also read in, make sure to
+#'   use the \code{detectedValue} parameter of any plotting functions used to
+#'   indiciate which values are positive detections.
+#'   Note that all values will be converted to characters,
 #'   so the string \code{"1"} must be used instead of the numeric \code{1}
 #' @param extraCols (optional) any additional columns to keep with the output
 #' @param verbose logical flag to show messages
@@ -100,6 +105,7 @@ loadDetectionData <- function(x,
                               speciesCols=speciesCols,
                               detectedValues=detectedValues,
                               extraCols=extraCols,
+                              verbose=FALSE,
                               ...)
         }))
         switch(match.arg(detectionType),
@@ -125,6 +131,33 @@ loadDetectionData <- function(x,
                    result$detectionType <- 'detection'
                }
         )
+        if('detectedFlag' %in% names(result) &&
+           !is.null(detectedValues) &&
+           isTRUE(verbose)) {
+            detTypes <- table(result$detectedFlag)
+            text <- ''
+            if(any(names(detTypes) %in% detectedValues)) {
+                text <- paste0(text, '\n"detectedValues" loaded:')
+                for(i in seq_along(detTypes)) {
+                    if(!names(detTypes)[i] %in% detectedValues) {
+                        next
+                    }
+                    msg <- paste0('\n  ', names(detTypes)[i], ': ', detTypes[i])
+                    text <- paste0(text, msg)
+                }
+            }
+            if(any(!names(detTypes) %in% detectedValues)) {
+                text <- paste0(text, '\n"detectedValues" dropped:')
+                for(i in seq_along(detTypes)) {
+                    if(names(detTypes)[i] %in% detectedValues) {
+                        next
+                    }
+                    msg <- paste0('\n  ', names(detTypes)[i], ': ', detTypes[i])
+                    text <- paste0(text, msg)
+                }
+            }
+            cat(text)
+        }
         return(result)
     }
     reqCols <- c('UTC', 'end', 'species', 'detectionType')
@@ -163,13 +196,13 @@ loadDetectionData <- function(x,
             result$UTC <- as.POSIXct(ymd(result$date))
             result$end <- result$UTC + 86400
         }
-                
+        
         makExtras <- c('call', 'deployment', 'site', 'project')
         tryNames <- renameToMap(names(result), columnMap)
         makExtras <- makExtras[makExtras %in% tryNames]
         extraCols <- c(extraCols, makExtras)
         if(is.null(detectedValues)) {
-            detectedValues <- 'DETECTED'
+            detectedValues <- c('NOT_DETECTED', 'DETECTED')
         }
     }
     if(is.null(columnMap)) {
@@ -281,9 +314,33 @@ loadDetectionData <- function(x,
     }
     if('detectedFlag' %in% names(result) &&
        !is.null(detectedValues)) {
-        result <- result[result$detectedFlag %in% detectedValues, ]
         extraCols <- c(extraCols, 'detectedFlag')
-        # result$detectedFlag <- NULL
+        if(verbose) {
+            detTypes <- table(result$detectedFlag)
+            text <- ''
+            if(any(names(detTypes) %in% detectedValues)) {
+                text <- paste0(text, '\n"detectedValues" loaded:')
+                for(i in seq_along(detTypes)) {
+                    if(!names(detTypes)[i] %in% detectedValues) {
+                        next
+                    }
+                    msg <- paste0('\n  ', names(detTypes)[i], ': ', detTypes[i])
+                    text <- paste0(text, msg)
+                }
+            }
+            if(any(!names(detTypes) %in% detectedValues)) {
+                text <- paste0(text, '\n"detectedValues" dropped:')
+                for(i in seq_along(detTypes)) {
+                    if(names(detTypes)[i] %in% detectedValues) {
+                        next
+                    }
+                    msg <- paste0('\n  ', names(detTypes)[i], ': ', detTypes[i])
+                    text <- paste0(text, msg)
+                }
+            }
+            cat(text)
+        }
+        result <- result[result$detectedFlag %in% detectedValues, ]
     }
     extraNotIn <- !extraCols %in% names(result)
     if(any(extraNotIn)) {
@@ -354,7 +411,7 @@ inferDetType <- function(start, end, verbose=TRUE) {
         nDay <- sum(day)
         nNa <- sum(isNa)
         nDet <- length(result) - nHour - nDay - nNa
-        text <- 'Detection types found:'
+        text <- '\nDetection types found:'
         if(nHour > 0) {
             text <- paste0(text, '\n  ', nHour, ' hourly presence')
         }
