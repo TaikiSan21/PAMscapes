@@ -1,8 +1,8 @@
 #' @title Format Detection Effort
-#' 
+#'
 #' @description Format effort data for use in other acoustic detection plotting
 #'   functions. Time ranges will be marked as either "on" or "off" effort
-#'   
+#'
 #' @param effort dataframe with columns \code{start} or \code{effortStart}
 #'   and \code{end} or \code{effortEnd} describing on effort time ranges
 #' @param range if not \code{NULL}, the full extent time ranges to consider for
@@ -15,14 +15,14 @@
 #'   different types of effort that should be tracked separately (e.g. different
 #'   deployment sites or species with different effort)
 #' @param combineYears logical flag to combine all years into a single "year"
-#' 
+#'
 #' @return a dataframe with columns \code{start}, \code{end}, and \code{status}
 #'   which is either "on" or "off", as well as any columns listed in \code{columns}
-#'   
+#'
 #' @author Taiki Sakai \email{taiki.sakai@@noaa.gov}
-#' 
+#'
 #' @export
-#' 
+#'
 #' @importFrom lubridate year floor_date ceiling_date interval union
 #' @importFrom lubridate is.interval int_overlaps int_start int_end day month
 #' @importFrom tidyr unnest
@@ -45,12 +45,12 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
     if('effortEnd' %in% names(effort)) {
         effort <- rename(effort, 'end'='effortEnd')
     }
-    
+
     if(!all(c('start', 'end') %in% names(effort))) {
         warning('Effort must have columns "start" and "end"')
         return(NULL)
     }
-    
+
     if(!inherits(effort$start, 'POSIXct')) {
         effort$start <- parseToUTC(effort$start)
     }
@@ -91,7 +91,7 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
             effort <- bind_rows(effort, newEff)
         }
     }
-    
+
     # need to account for NA vals in columns, e.g. so we can specify effort for one
     # species then all others use general effort
     for(c in columns) {
@@ -129,7 +129,7 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
         if(isTRUE(combineYears)) {
             start229 <- is229(result$start)
             end229 <- is229(result$end)
-            
+
             result$start[start229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
             result$end[end229] <- as.POSIXct('2020-03-01 00:00:00', tz='UTC')
             diffs <- as.numeric(difftime(result$end, result$start, units='secs'))
@@ -137,14 +137,14 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
             start229[dropBoth] <- FALSE
             end229[dropBoth] <- FALSE
             if(any(dropBoth)) {
-                
+
                 nDrop <<- nDrop + sum(dropBoth)
                 result <- result[!dropBoth, ]
                 diffs <- diffs[!dropBoth]
             }
             if(any(start229 | end229)) {
                 nMod <<- nMod + sum(start229 | end229)
-                
+
             }
             year(result$start) <- year(result$start) - 1
             year(result$end) <- year(result$end) - 1
@@ -170,16 +170,16 @@ formatEffort <- function(effort, range=NULL, resolution=NULL, columns=NULL, comb
         ### ADD CHECK FOR CUTTONG OFF ON EFFORT??
         offset <- -1
         if(range[1] < min(result$start)) {
-            thisOff <- data.frame(start=range[1], 
-                                  end=min(result$start), 
+            thisOff <- data.frame(start=range[1],
+                                  end=min(result$start),
                                   status='off',
                                   IX = 1)
             offs[[2]] <- thisOff
             offset <- 0
         }
         if(range[2] > max(result$end)) {
-            thisOff <- data.frame(start=max(result$end), 
-                                  end=range[2], 
+            thisOff <- data.frame(start=max(result$end),
+                                  end=range[2],
                                   status='off',
                                   IX = 2*n + 1)
             offs[[3]] <- thisOff
@@ -297,7 +297,7 @@ spreadEffort <- function(effort, colVals=NULL, commas=NULL) {
                 if(sameVal == 'ALLVALUES') {
                     sameVal <- 'DONTMATCHME'
                 }
-                sameGroup <- sameGroup[sameGroup[[o]] == sameVal, ] 
+                sameGroup <- sameGroup[sameGroup[[o]] == sameVal, ]
             }#o
             hasVals <- unique(c(hasVals, sameGroup[[c]]))
             hasVals <- hasVals[hasVals != 'ALLVALUES']
@@ -364,13 +364,13 @@ fillEffortZeroes <- function(x, effort=NULL, resolution, columns) {
         }
         effSeq <- effSeq[!effSeq %in% df$UTC]
         nOff <- length(effSeq)
-        effDf <- data.frame(UTC=effSeq, 
+        effDf <- data.frame(UTC=effSeq,
                             end=effSeq+period,
                             effortDetection=rep(0, nOff))
         for(col in columns) {
             effDf[[col]] <- rep(df[[col]][1], nOff)
         }
-        
+
         bind_rows(df, effDf)
     }))
     if(offDetections > 0) {
@@ -380,7 +380,7 @@ fillEffortZeroes <- function(x, effort=NULL, resolution, columns) {
     x
 }
 
-# makes sure 
+# makes sure
 checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
     if(is.null(effort) &&
        all(c('effortStart', 'effortEnd') %in% names(x))) {
@@ -394,15 +394,28 @@ checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
                        'deployment_code',
                        'sound_source_codes')
     if(all(makaraAnaCols %in% names(effort))) {
-        effort <- effort |>
-            mutate(sound_source_codes = strsplit(.data$sound_source_codes, ',')) |>
-            unnest(.data$sound_source_codes) |> 
-            mutate(sound_source_codes = gsub(' ', '', .data$sound_source_codes)) |>
-            rename('start' = 'analysis_start_datetime',
+        # effort <- effort |>
+        #     mutate(sound_source_codes = strsplit(.data$sound_source_codes, ',')) |>
+        #     unnest(.data$sound_source_codes) |>
+        #     mutate(sound_source_codes = gsub(' ', '', .data$sound_source_codes)) |>
+        #     rename('start' = 'analysis_start_datetime',
+        #            'end' = 'analysis_end_datetime',
+        #            'species' = 'sound_source_codes',
+        #            'deployment' = 'deployment_code') |>
+        #     distinct()
+        effort <- unnest(
+            mutate(effort,
+                   sound_source_codes = strsplit(gsub(' ', '', .data$sound_source_codes), ',')
+            ),
+            .data$sound_source_codes
+        )
+        effort <- distinct(
+            rename(effort,
+                   'start' = 'analysis_start_datetime',
                    'end' = 'analysis_end_datetime',
                    'species' = 'sound_source_codes',
-                   'deployment' = 'deployment_code') |>
-            distinct()
+                   'deployment' = 'deployment_code')
+        )
         naRealtime<- is.na(effort$end) &
             effort$analysis_processing_code == 'REAL_TIME'
         if(any(naRealtime)) {
@@ -417,12 +430,12 @@ checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
     if('effortEnd' %in% names(effort)) {
         effort <- rename(effort, 'end'='effortEnd')
     }
-    
+
     if(!all(c('start', 'end') %in% names(effort))) {
         warning('Effort must have columns "start" and "end"')
         return(NULL)
     }
-    
+
     if(!inherits(effort$start, 'POSIXct')) {
         effort$start <- parseToUTC(effort$start)
     }
@@ -432,7 +445,7 @@ checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
     startNA <- is.na(effort$start)
     endNA <- is.na(effort$end)
     if(sum(startNA | endNA) > 0) {
-        warning(sum(startNA | endNA), ' effort entries had', 
+        warning(sum(startNA | endNA), ' effort entries had',
                 ' NA start or end values, they are removed.')
         effort <- effort[!(startNA | endNA), ]
     }
