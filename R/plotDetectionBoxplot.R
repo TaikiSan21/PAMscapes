@@ -281,6 +281,11 @@ plotDetectionBoxplot <- function(x,
         if(isTRUE(combineYears)) {
             effort$start <- factor(FUN(effort$start), levels=levs)
             effort$end <- factor(FUN(effort$end), levels=levs)
+            # floor week makes a 52 for 01-01 sometimes
+            if(bigBin == 'week') {
+                badStart <- effort$start == 52 & effort$end != 52
+                effort$start[badStart] <- 1
+            }
         }
         colVals <- lapply(c(facet), function(c) unique(x[[c]]))
         names(colVals) <- c(facet)

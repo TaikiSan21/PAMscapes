@@ -1,3 +1,7 @@
+# PAMscapes 0.17.3
+
+- Minor effort formatting fixes in some niche cases
+
 # PAMscapes 0.17.2
 
 - General improvements for effort formatting to speed up any effort-based

@@ -392,7 +392,9 @@ checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
     makaraAnaCols <- c('analysis_start_datetime',
                        'analysis_end_datetime',
                        'deployment_code',
-                       'sound_source_codes')
+                       'sound_source_codes',
+                       'site_code',
+                       'project_code')
     if(all(makaraAnaCols %in% names(effort))) {
         # effort <- effort |>
         #     mutate(sound_source_codes = strsplit(.data$sound_source_codes, ',')) |>
@@ -414,7 +416,9 @@ checkEffort <- function(x, effort=NULL, columns, matchedOnly=TRUE) {
                    'start' = 'analysis_start_datetime',
                    'end' = 'analysis_end_datetime',
                    'species' = 'sound_source_codes',
-                   'deployment' = 'deployment_code')
+                   'deployment' = 'deployment_code',
+                   'site' = 'site_code',
+                   'project' = 'project_code')
         )
         naRealtime<- is.na(effort$end) &
             effort$analysis_processing_code == 'REAL_TIME'
